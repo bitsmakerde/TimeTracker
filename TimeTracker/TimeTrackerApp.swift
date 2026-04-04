@@ -9,6 +9,7 @@ struct TimeTrackerApp: App {
     init() {
         let schema = Schema([
             ClientProject.self,
+            ProjectTask.self,
             WorkSession.self,
         ])
 

@@ -7,6 +7,7 @@ struct ProjectDetailView: View {
     let project: ClientProject
     let activeSession: WorkSession?
     let onStart: () -> Void
+    let onStartTask: (ProjectTask) -> Void
     let onStop: () -> Void
     let onAddManualEntry: () -> Void
     let onEditSession: (WorkSession) -> Void
@@ -16,10 +17,12 @@ struct ProjectDetailView: View {
     let onDeleteProject: () -> Void
 
     @State private var hourlyRateText = ""
+    @State private var newTaskTitle = ""
     @State private var isEditingHourlyRate = false
     @State private var billingErrorMessage: String?
     @State private var isConfirmingProjectArchive = false
     @State private var isConfirmingProjectDeletion = false
+    @State private var sessionPendingTaskCreation: WorkSession?
     @State private var sessionPendingDeletion: WorkSession?
 
     private var isActiveProject: Bool {
@@ -50,6 +53,8 @@ struct ProjectDetailView: View {
                     if shouldShowBillingCard {
                         billingCard
                     }
+
+                    tasksCard
 
                     sessionsCard
                 }
@@ -106,6 +111,17 @@ struct ProjectDetailView: View {
                 Text("Der Eintrag vom \(TimeFormatting.shortDate(sessionPendingDeletion.startedAt)) wird dauerhaft geloescht.")
             }
         }
+        .sheet(item: $sessionPendingTaskCreation) { session in
+            NewTaskAssignmentSheet(
+                project: project,
+                session: session
+            ) { title in
+                createTaskAndAssignSession(
+                    title: title,
+                    to: session
+                )
+            }
+        }
     }
 
     private var headerCard: some View {
@@ -157,10 +173,16 @@ struct ProjectDetailView: View {
                     Image(systemName: "timer")
                         .foregroundStyle(.teal)
 
-                    TimelineView(.periodic(from: .now, by: 1)) { timeline in
-                        Text("Laeuft seit \(TimeFormatting.shortTime(activeSession.startedAt)) - \(TimeFormatting.digitalDuration(activeSession.duration(referenceDate: timeline.date)))")
-                            .font(.headline)
-                            .monospacedDigit()
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(activeSession.displayTaskTitle)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+
+                        TimelineView(.periodic(from: .now, by: 1)) { timeline in
+                            Text("Laeuft seit \(TimeFormatting.shortTime(activeSession.startedAt)) - \(TimeFormatting.digitalDuration(activeSession.duration(referenceDate: timeline.date)))")
+                                .font(.headline)
+                                .monospacedDigit()
+                        }
                     }
                 }
                 .padding(14)
@@ -359,6 +381,63 @@ struct ProjectDetailView: View {
         }
     }
 
+    private var tasksCard: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                Text("Aufgaben")
+                    .font(.title2.weight(.semibold))
+
+                Spacer()
+
+                Text("\(project.tasks.count) gesamt")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            if !project.isArchived {
+                HStack(alignment: .center, spacing: 12) {
+                    TextField("Neue Aufgabe", text: $newTaskTitle)
+                        .textFieldStyle(.roundedBorder)
+
+                    Button("Aufgabe hinzufuegen", action: addTask)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(trimmedNewTaskTitle.isEmpty)
+                }
+            }
+
+            if project.sortedTasks.isEmpty {
+                Text(project.isArchived ? "Dieses Projekt hat keine Aufgaben." : "Lege Aufgaben an, damit du Zeiten direkt auf Arbeitspakete buchen kannst.")
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 12)
+            } else {
+                TimelineView(.periodic(from: .now, by: 1)) { timeline in
+                    LazyVStack(spacing: 12) {
+                        ForEach(project.sortedTasks) { task in
+                            TaskSummaryRow(
+                                title: task.displayTitle,
+                                subtitle: "\(taskSessionCount(for: task)) Eintraege",
+                                durationText: TimeFormatting.compactDuration(taskDuration(for: task, referenceDate: timeline.date)),
+                                valueText: taskValueText(for: task, referenceDate: timeline.date),
+                                isActive: activeSession?.task?.id == task.id,
+                                isArchived: project.isArchived,
+                                onStart: {
+                                    onStartTask(task)
+                                },
+                                onStop: onStop
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        .padding(24)
+        .background(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(.background.opacity(0.94))
+                .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 8)
+        )
+    }
+
     private var sessionsCard: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack {
@@ -386,6 +465,13 @@ struct ProjectDetailView: View {
                         SessionRow(
                             session: session,
                             hourlyRate: project.hourlyRate,
+                            availableTasks: project.sortedTasks,
+                            onAssignToTask: { task in
+                                assignSession(session, to: task)
+                            },
+                            onCreateTaskAndAssign: {
+                                sessionPendingTaskCreation = session
+                            },
                             onEdit: session.isActive ? nil : {
                                 onEditSession(session)
                             },
@@ -434,7 +520,11 @@ struct ProjectDetailView: View {
             return "Projekt reaktivieren"
         }
 
-        return isActiveProject ? "Zeiterfassung stoppen" : "Zeiterfassung starten"
+        if isActiveProject {
+            return "Zeiterfassung stoppen"
+        }
+
+        return project.tasks.isEmpty ? "Zeiterfassung starten" : "Ohne Aufgabe starten"
     }
 
     private var actionButtonSystemImage: String {
@@ -451,6 +541,110 @@ struct ProjectDetailView: View {
         }
 
         return isActiveProject ? .orange : .teal
+    }
+
+    private var trimmedNewTaskTitle: String {
+        newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func taskSessionCount(for task: ProjectTask) -> Int {
+        project.sessions.filter { $0.task?.id == task.id }.count
+    }
+
+    private func taskDuration(
+        for task: ProjectTask,
+        referenceDate: Date
+    ) -> TimeInterval {
+        duration(for: task.id, referenceDate: referenceDate)
+    }
+
+    private func duration(
+        for taskID: UUID?,
+        referenceDate: Date
+    ) -> TimeInterval {
+        project.sessions.reduce(into: 0) { partialResult, session in
+            let sessionTaskID = session.task?.id
+
+            guard sessionTaskID == taskID else {
+                return
+            }
+
+            partialResult += session.duration(referenceDate: referenceDate)
+        }
+    }
+
+    private func taskValueText(
+        for task: ProjectTask,
+        referenceDate: Date
+    ) -> String {
+        valueText(forDuration: taskDuration(for: task, referenceDate: referenceDate))
+    }
+
+    private func valueText(forDuration duration: TimeInterval) -> String {
+        guard let billedAmount = project.billedAmount(for: duration) else {
+            return "Offen"
+        }
+
+        return TimeFormatting.euroAmount(billedAmount)
+    }
+
+    private func addTask() {
+        guard !trimmedNewTaskTitle.isEmpty else {
+            return
+        }
+
+        let task = ProjectTask(title: trimmedNewTaskTitle, project: project)
+        modelContext.insert(task)
+
+        do {
+            try modelContext.save()
+            newTaskTitle = ""
+        } catch {
+            modelContext.delete(task)
+            billingErrorMessage = "Die Aufgabe konnte nicht gespeichert werden."
+        }
+    }
+
+    private func assignSession(
+        _ session: WorkSession,
+        to task: ProjectTask?
+    ) {
+        let previousTask = session.task
+        session.task = task
+
+        do {
+            try modelContext.save()
+        } catch {
+            session.task = previousTask
+            billingErrorMessage = "Die Aufgabe konnte dem Zeiteintrag nicht zugeordnet werden."
+        }
+    }
+
+    private func createTaskAndAssignSession(
+        title: String,
+        to session: WorkSession
+    ) -> Bool {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmedTitle.isEmpty else {
+            billingErrorMessage = "Bitte gib einen gueltigen Aufgabentitel ein."
+            return false
+        }
+
+        let previousTask = session.task
+        let task = ProjectTask(title: trimmedTitle, project: project)
+        modelContext.insert(task)
+        session.task = task
+
+        do {
+            try modelContext.save()
+            return true
+        } catch {
+            session.task = previousTask
+            modelContext.delete(task)
+            billingErrorMessage = "Die Aufgabe konnte nicht erstellt und zugeordnet werden."
+            return false
+        }
     }
 
     private var parsedHourlyRate: Double? {
@@ -599,9 +793,69 @@ private struct SummaryCard: View {
     }
 }
 
+private struct TaskSummaryRow: View {
+    let title: String
+    let subtitle: String
+    let durationText: String
+    let valueText: String
+    let isActive: Bool
+    let isArchived: Bool
+    let onStart: () -> Void
+    let onStop: () -> Void
+
+    var body: some View {
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.headline)
+
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 6) {
+                Text(durationText)
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+
+                Text(valueText)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+
+            if !isArchived {
+                Button(action: {
+                    if isActive {
+                        onStop()
+                    } else {
+                        onStart()
+                    }
+                }) {
+                    Image(systemName: isActive ? "stop.fill" : "play.fill")
+                        .frame(width: 18)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(isActive ? .orange : .teal)
+            }
+        }
+        .padding(18)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor))
+        )
+    }
+}
+
 private struct SessionRow: View {
     let session: WorkSession
     let hourlyRate: Double?
+    let availableTasks: [ProjectTask]
+    let onAssignToTask: ((ProjectTask?) -> Void)?
+    let onCreateTaskAndAssign: (() -> Void)?
     let onEdit: (() -> Void)?
     let onDelete: (() -> Void)?
 
@@ -610,6 +864,10 @@ private struct SessionRow: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(TimeFormatting.shortDate(session.startedAt))
                     .font(.headline)
+
+                Text(session.displayTaskTitle)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
 
                 Text(timeRangeText)
                     .font(.subheadline)
@@ -620,8 +878,36 @@ private struct SessionRow: View {
 
             statusBadge
 
-            if onEdit != nil || onDelete != nil {
+            if onAssignToTask != nil || onCreateTaskAndAssign != nil || onEdit != nil || onDelete != nil {
                 Menu {
+                    if let onAssignToTask, !availableTasks.isEmpty {
+                        Menu("Aufgabe zuordnen") {
+                            ForEach(availableTasks) { task in
+                                Button(task.displayTitle) {
+                                    onAssignToTask(task)
+                                }
+                            }
+
+                            if session.task != nil {
+                                Divider()
+
+                                Button("Zuordnung entfernen") {
+                                    onAssignToTask(nil)
+                                }
+                            }
+                        }
+                    }
+
+                    if let onCreateTaskAndAssign {
+                        Button(action: onCreateTaskAndAssign) {
+                            Label("Neue Aufgabe erstellen + zuordnen", systemImage: "plus")
+                        }
+                    }
+
+                    if (onAssignToTask != nil && !availableTasks.isEmpty) || onCreateTaskAndAssign != nil {
+                        Divider()
+                    }
+
                     if let onEdit {
                         Button(action: onEdit) {
                             Label("Bearbeiten", systemImage: "square.and.pencil")
@@ -697,6 +983,71 @@ private struct SessionRow: View {
             .font(.caption.weight(.semibold))
             .foregroundStyle(.secondary)
             .monospacedDigit()
+    }
+}
+
+private struct NewTaskAssignmentSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let project: ClientProject
+    let session: WorkSession
+    let onSave: (String) -> Bool
+
+    @State private var taskTitle = ""
+    @State private var validationMessage: String?
+
+    private var trimmedTaskTitle: String {
+        taskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Neue Aufgabe fuer Zeiteintrag")
+                .font(.system(size: 26, weight: .bold, design: .rounded))
+
+            Text("\(project.displayClientName) - \(project.displayName)")
+                .foregroundStyle(.secondary)
+
+            Text("Eintrag: \(TimeFormatting.shortDate(session.startedAt)) \(TimeFormatting.shortTime(session.startedAt))")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            TextField("Aufgabentitel", text: $taskTitle)
+                .textFieldStyle(.roundedBorder)
+
+            if let validationMessage {
+                Text(validationMessage)
+                    .font(.subheadline)
+                    .foregroundStyle(.red)
+            }
+
+            HStack {
+                Spacer()
+
+                Button("Abbrechen", role: .cancel) {
+                    dismiss()
+                }
+
+                Button("Erstellen und zuordnen") {
+                    validationMessage = nil
+
+                    guard !trimmedTaskTitle.isEmpty else {
+                        validationMessage = "Bitte gib einen Aufgabentitel ein."
+                        return
+                    }
+
+                    if onSave(trimmedTaskTitle) {
+                        dismiss()
+                    } else {
+                        validationMessage = "Die Aufgabe konnte nicht erstellt werden."
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(trimmedTaskTitle.isEmpty)
+            }
+        }
+        .padding(24)
+        .frame(width: 460)
     }
 }
 

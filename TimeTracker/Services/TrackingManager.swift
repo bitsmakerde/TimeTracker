@@ -6,6 +6,7 @@ enum TrackingManagerError: LocalizedError {
     case futureDateNotAllowed
     case activeSessionEditingNotAllowed
     case archivedProjectNotEditable
+    case invalidTaskAssignment
 
     var errorDescription: String? {
         switch self {
@@ -17,6 +18,8 @@ enum TrackingManagerError: LocalizedError {
             return "Laufende Zeiteintraege koennen erst nach dem Stoppen bearbeitet werden."
         case .archivedProjectNotEditable:
             return "Archivierte Projekte muessen zuerst reaktiviert werden."
+        case .invalidTaskAssignment:
+            return "Die ausgewaehlte Aufgabe gehoert nicht zu diesem Projekt."
         }
     }
 }
@@ -24,6 +27,7 @@ enum TrackingManagerError: LocalizedError {
 struct TrackingManager {
     func startTracking(
         project: ClientProject,
+        task: ProjectTask? = nil,
         in context: ModelContext,
         at referenceDate: Date = .now
     ) throws {
@@ -31,9 +35,14 @@ struct TrackingManager {
             throw TrackingManagerError.archivedProjectNotEditable
         }
 
+        try validateTask(task, belongsTo: project)
         try closeAllActiveSessions(in: context, at: referenceDate)
 
-        let session = WorkSession(project: project, startedAt: referenceDate)
+        let session = WorkSession(
+            project: project,
+            task: task,
+            startedAt: referenceDate
+        )
         context.insert(session)
         try context.save()
     }
@@ -48,6 +57,7 @@ struct TrackingManager {
 
     func addManualSession(
         for project: ClientProject,
+        task: ProjectTask?,
         startedAt: Date,
         endedAt: Date,
         in context: ModelContext,
@@ -57,6 +67,7 @@ struct TrackingManager {
             throw TrackingManagerError.archivedProjectNotEditable
         }
 
+        try validateTask(task, belongsTo: project)
         try validateManualSessionDates(
             startedAt: startedAt,
             endedAt: endedAt,
@@ -65,6 +76,7 @@ struct TrackingManager {
 
         let session = WorkSession(
             project: project,
+            task: task,
             startedAt: startedAt,
             endedAt: endedAt
         )
@@ -75,6 +87,7 @@ struct TrackingManager {
 
     func updateManualSession(
         _ session: WorkSession,
+        task: ProjectTask?,
         startedAt: Date,
         endedAt: Date,
         in context: ModelContext,
@@ -82,6 +95,10 @@ struct TrackingManager {
     ) throws {
         guard !session.isActive else {
             throw TrackingManagerError.activeSessionEditingNotAllowed
+        }
+
+        if let project = session.project {
+            try validateTask(task, belongsTo: project)
         }
 
         try validateManualSessionDates(
@@ -92,6 +109,7 @@ struct TrackingManager {
 
         session.startedAt = startedAt
         session.endedAt = endedAt
+        session.task = task
         try context.save()
     }
 
@@ -161,6 +179,19 @@ struct TrackingManager {
 
         guard startedAt <= now, endedAt <= now else {
             throw TrackingManagerError.futureDateNotAllowed
+        }
+    }
+
+    private func validateTask(
+        _ task: ProjectTask?,
+        belongsTo project: ClientProject
+    ) throws {
+        guard let task else {
+            return
+        }
+
+        guard task.project?.id == project.id else {
+            throw TrackingManagerError.invalidTaskAssignment
         }
     }
 }

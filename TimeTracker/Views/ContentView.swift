@@ -118,9 +118,10 @@ struct ContentView: View {
         }
         .sheet(isPresented: $isPresentingManualSessionSheet) {
             if let selectedProject {
-                ManualSessionSheet(project: selectedProject) { startedAt, endedAt in
+                ManualSessionSheet(project: selectedProject) { startedAt, endedAt, task in
                     addManualSession(
                         for: selectedProject,
+                        task: task,
                         startedAt: startedAt,
                         endedAt: endedAt
                     )
@@ -131,9 +132,10 @@ struct ContentView: View {
             ManualSessionSheet(
                 project: editor.project,
                 sessionToEdit: editor.session
-            ) { startedAt, endedAt in
+            ) { startedAt, endedAt, task in
                 updateManualSession(
                     editor.session,
+                    task: task,
                     startedAt: startedAt,
                     endedAt: endedAt
                 )
@@ -163,6 +165,7 @@ struct ContentView: View {
                     ActiveSidebarCard(
                         project: project,
                         session: activeSession,
+                        task: activeSession.task,
                         onStop: stopActiveTracking
                     )
                     .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
@@ -230,6 +233,9 @@ struct ContentView: View {
                 project: selectedProject,
                 activeSession: activeSession,
                 onStart: { startTracking(selectedProject) },
+                onStartTask: { task in
+                    startTracking(selectedProject, task: task)
+                },
                 onStop: stopActiveTracking,
                 onAddManualEntry: {
                     isPresentingManualSessionSheet = true
@@ -258,9 +264,16 @@ struct ContentView: View {
         }
     }
 
-    private func startTracking(_ project: ClientProject) {
+    private func startTracking(
+        _ project: ClientProject,
+        task: ProjectTask? = nil
+    ) {
         do {
-            try trackingManager.startTracking(project: project, in: modelContext)
+            try trackingManager.startTracking(
+                project: project,
+                task: task,
+                in: modelContext
+            )
             trackingStatus.refresh()
         } catch let trackingError as TrackingManagerError {
             errorMessage = trackingError.errorDescription
@@ -280,12 +293,14 @@ struct ContentView: View {
 
     private func addManualSession(
         for project: ClientProject,
+        task: ProjectTask?,
         startedAt: Date,
         endedAt: Date
     ) -> Bool {
         do {
             try trackingManager.addManualSession(
                 for: project,
+                task: task,
                 startedAt: startedAt,
                 endedAt: endedAt,
                 in: modelContext
@@ -302,12 +317,14 @@ struct ContentView: View {
 
     private func updateManualSession(
         _ session: WorkSession,
+        task: ProjectTask?,
         startedAt: Date,
         endedAt: Date
     ) -> Bool {
         do {
             try trackingManager.updateManualSession(
                 session,
+                task: task,
                 startedAt: startedAt,
                 endedAt: endedAt,
                 in: modelContext
@@ -469,6 +486,7 @@ private struct ProjectSidebarRow: View {
 private struct ActiveSidebarCard: View {
     let project: ClientProject
     let session: WorkSession
+    let task: ProjectTask?
     let onStop: () -> Void
 
     var body: some View {
@@ -483,6 +501,16 @@ private struct ActiveSidebarCard: View {
             Text(project.displayClientName)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+
+            if let task {
+                Text(task.displayTitle)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.teal)
+            } else {
+                Text("Ohne Aufgabe")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             TimelineView(.periodic(from: .now, by: 1)) { timeline in
                 Text(TimeFormatting.digitalDuration(session.duration(referenceDate: timeline.date)))

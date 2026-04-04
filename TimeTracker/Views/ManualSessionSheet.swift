@@ -5,16 +5,17 @@ struct ManualSessionSheet: View {
 
     let project: ClientProject
     let sessionToEdit: WorkSession?
-    let onSave: (Date, Date) -> Bool
+    let onSave: (Date, Date, ProjectTask?) -> Bool
 
     @State private var startedAt: Date
     @State private var endedAt: Date
+    @State private var selectedTaskID: UUID?
     @State private var validationMessage: String?
 
     init(
         project: ClientProject,
         sessionToEdit: WorkSession? = nil,
-        onSave: @escaping (Date, Date) -> Bool
+        onSave: @escaping (Date, Date, ProjectTask?) -> Bool
     ) {
         self.project = project
         self.sessionToEdit = sessionToEdit
@@ -34,6 +35,7 @@ struct ManualSessionSheet: View {
 
         _startedAt = State(initialValue: sessionToEdit?.startedAt ?? roundedStart)
         _endedAt = State(initialValue: sessionToEdit?.endedAt ?? roundedEnd)
+        _selectedTaskID = State(initialValue: sessionToEdit?.task?.id)
     }
 
     private var durationText: String {
@@ -46,6 +48,18 @@ struct ManualSessionSheet: View {
 
     private var submitButtonTitle: String {
         sessionToEdit == nil ? "Eintrag speichern" : "Aenderungen speichern"
+    }
+
+    private var availableTasks: [ProjectTask] {
+        project.sortedTasks
+    }
+
+    private var selectedTask: ProjectTask? {
+        guard let selectedTaskID else {
+            return nil
+        }
+
+        return availableTasks.first { $0.id == selectedTaskID }
     }
 
     var body: some View {
@@ -70,6 +84,18 @@ struct ManualSessionSheet: View {
                     in: startedAt...Date(),
                     displayedComponents: [.date, .hourAndMinute]
                 )
+
+                if !availableTasks.isEmpty {
+                    Picker("Aufgabe", selection: $selectedTaskID) {
+                        Text("Ohne Aufgabe")
+                            .tag(Optional<UUID>.none)
+
+                        ForEach(availableTasks) { task in
+                            Text(task.displayTitle)
+                                .tag(Optional(task.id))
+                        }
+                    }
+                }
 
                 LabeledContent("Dauer") {
                     Text(durationText)
@@ -104,7 +130,7 @@ struct ManualSessionSheet: View {
                         return
                     }
 
-                    if onSave(startedAt, endedAt) {
+                    if onSave(startedAt, endedAt, selectedTask) {
                         dismiss()
                     } else {
                         validationMessage = "Der Zeiteintrag konnte nicht gespeichert werden."

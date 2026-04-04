@@ -71,6 +71,12 @@ struct MenuBarTrackingView: View {
                                     Text(project.displayClientName)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
+
+                                    if !project.tasks.isEmpty {
+                                        Text("Startet ohne Aufgabe")
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
 
                                 Spacer()
@@ -108,6 +114,10 @@ struct MenuBarTrackingView: View {
             Text(project.displayClientName)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+
+            Text(session.displayTaskTitle)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.teal)
 
             TimelineView(.periodic(from: .now, by: 1)) { timeline in
                 Text(TimeFormatting.digitalDuration(session.duration(referenceDate: timeline.date)))

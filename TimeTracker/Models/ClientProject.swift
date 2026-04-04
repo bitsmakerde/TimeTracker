@@ -14,6 +14,9 @@ final class ClientProject {
     @Relationship(deleteRule: .cascade, inverse: \WorkSession.project)
     var sessions: [WorkSession]
 
+    @Relationship(deleteRule: .cascade, inverse: \ProjectTask.project)
+    var tasks: [ProjectTask]
+
     init(
         clientName: String,
         name: String,
@@ -30,6 +33,7 @@ final class ClientProject {
         self.archivedAt = archivedAt
         self.createdAt = createdAt
         self.sessions = []
+        self.tasks = []
     }
 }
 
@@ -46,6 +50,18 @@ extension ClientProject {
 
     var sortedSessions: [WorkSession] {
         sessions.sorted { $0.startedAt > $1.startedAt }
+    }
+
+    var sortedTasks: [ProjectTask] {
+        tasks.sorted { lhs, rhs in
+            let titleComparison = lhs.displayTitle.localizedCaseInsensitiveCompare(rhs.displayTitle)
+
+            if titleComparison == .orderedSame {
+                return lhs.createdAt < rhs.createdAt
+            }
+
+            return titleComparison == .orderedAscending
+        }
     }
 
     var isArchived: Bool {

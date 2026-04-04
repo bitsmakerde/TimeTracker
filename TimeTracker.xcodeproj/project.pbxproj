@@ -19,6 +19,7 @@
 		A0000000000000000000000A /* ManualSessionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000B /* ManualSessionSheet.swift */; };
 		A0000000000000000000000B /* MenuBarTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000C /* MenuBarTrackingView.swift */; };
 		A0000000000000000000000C /* TrackingStatusStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000D /* TrackingStatusStore.swift */; };
+		A0000000000000000000000D /* ProjectTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000E /* ProjectTask.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,6 +35,7 @@
 		B0000000000000000000000B /* ManualSessionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualSessionSheet.swift; sourceTree = "<group>"; };
 		B0000000000000000000000C /* MenuBarTrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarTrackingView.swift; sourceTree = "<group>"; };
 		B0000000000000000000000D /* TrackingStatusStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingStatusStore.swift; sourceTree = "<group>"; };
+		B0000000000000000000000E /* ProjectTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectTask.swift; sourceTree = "<group>"; };
 		B0000000000000000000000A /* TimeTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TimeTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -81,6 +83,7 @@
 			isa = PBXGroup;
 			children = (
 				B00000000000000000000002 /* ClientProject.swift */,
+				B0000000000000000000000E /* ProjectTask.swift */,
 				B00000000000000000000003 /* WorkSession.swift */,
 			);
 			path = Models;
@@ -189,6 +192,7 @@
 				A0000000000000000000000A /* ManualSessionSheet.swift in Sources */,
 				A0000000000000000000000B /* MenuBarTrackingView.swift in Sources */,
 				A00000000000000000000008 /* NewProjectSheet.swift in Sources */,
+				A0000000000000000000000D /* ProjectTask.swift in Sources */,
 				A00000000000000000000007 /* ProjectDetailView.swift in Sources */,
 				A00000000000000000000004 /* TrackingManager.swift in Sources */,
 				A0000000000000000000000C /* TrackingStatusStore.swift in Sources */,

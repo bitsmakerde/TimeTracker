@@ -7,9 +7,11 @@ final class WorkSession {
     var startedAt: Date
     var endedAt: Date?
     var project: ClientProject?
+    var task: ProjectTask?
 
     init(
         project: ClientProject,
+        task: ProjectTask? = nil,
         startedAt: Date = .now,
         endedAt: Date? = nil
     ) {
@@ -17,6 +19,7 @@ final class WorkSession {
         self.startedAt = startedAt
         self.endedAt = endedAt
         self.project = project
+        self.task = task
     }
 }
 
@@ -32,5 +35,9 @@ extension WorkSession {
     func duration(referenceDate: Date) -> TimeInterval {
         let effectiveEnd = endedAt ?? referenceDate
         return max(effectiveEnd.timeIntervalSince(startedAt), 0)
+    }
+
+    var displayTaskTitle: String {
+        task?.displayTitle ?? "Ohne Aufgabe"
     }
 }
