@@ -137,9 +137,15 @@ struct ProjectDetailView: View {
         VStack(alignment: .leading, spacing: 20) {
             HStack(alignment: .top, spacing: 20) {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(project.displayName)
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
-                        .foregroundStyle(headerPrimaryStyle)
+                    HStack(spacing: 12) {
+                        Circle()
+                            .fill(project.projectAccentColor)
+                            .frame(width: 14, height: 14)
+
+                        Text(project.displayName)
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .foregroundStyle(headerPrimaryStyle)
+                    }
 
                     Text(project.displayClientName)
                         .font(.title3.weight(.medium))
@@ -161,6 +167,7 @@ struct ProjectDetailView: View {
                         manualEntryButton
                     }
                     projectActionsButton
+                    projectColorControls
 
                     if !project.isArchived, let selectedTaskForStart {
                         Label("Aktiv: \(selectedTaskForStart.displayTitle)", systemImage: "scope")
@@ -189,7 +196,7 @@ struct ProjectDetailView: View {
             if isActiveProject, let activeSession {
                 HStack(spacing: 12) {
                     Image(systemName: "timer")
-                        .foregroundStyle(.teal)
+                        .foregroundStyle(project.projectAccentColor)
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(activeSession.displayTaskTitle)
@@ -280,6 +287,29 @@ struct ProjectDetailView: View {
         .controlSize(.large)
     }
 
+    private var projectColorControls: some View {
+        HStack(spacing: 10) {
+            Text("Farbe")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(headerSecondaryStyle)
+
+            ColorPicker(
+                "Projektfarbe",
+                selection: projectAccentColorBinding,
+                supportsOpacity: false
+            )
+            .labelsHidden()
+            .controlSize(.small)
+
+            if project.hasCustomAccentColor {
+                Button("Auto", action: resetProjectAccentColor)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+            }
+        }
+        .frame(maxWidth: 260, alignment: .trailing)
+    }
+
     private func archiveStatusBadge(archivedAt: Date) -> some View {
         HStack(spacing: 12) {
             Image(systemName: "archivebox.fill")
@@ -340,6 +370,7 @@ struct ProjectDetailView: View {
 
                 Button("Stundensatz speichern", action: saveHourlyRate)
                     .buttonStyle(.borderedProminent)
+                    .tint(project.projectActionColor)
                     .disabled(hasInvalidHourlyRate)
 
                 Spacer()
@@ -432,6 +463,7 @@ struct ProjectDetailView: View {
 
                     Button("Aufgabe hinzufuegen", action: addTask)
                         .buttonStyle(.borderedProminent)
+                        .tint(project.projectActionColor)
                         .disabled(trimmedNewTaskTitle.isEmpty)
                 }
 
@@ -441,7 +473,7 @@ struct ProjectDetailView: View {
                         systemImage: "scope"
                     )
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.teal)
+                    .foregroundStyle(project.projectAccentColor)
                 }
             }
 
@@ -461,6 +493,7 @@ struct ProjectDetailView: View {
                                 isActive: activeSession?.task?.id == task.id,
                                 isSelectedForStart: selectedTaskForStart?.id == task.id,
                                 isProjectRunningWithoutTask: isProjectRunningWithoutTask,
+                                accentColor: project.projectActionColor,
                                 isArchived: project.isArchived,
                                 onSelectForStart: {
                                     selectTaskForStart(task)
@@ -590,10 +623,10 @@ struct ProjectDetailView: View {
 
     private var actionButtonTint: Color {
         if project.isArchived {
-            return .blue
+            return ClientProject.primaryActionColor
         }
 
-        return isActiveProject ? .orange : .teal
+        return isActiveProject ? ClientProject.stopActionColor : project.projectActionColor
     }
 
     private var headerPrimaryStyle: Color {
@@ -620,8 +653,9 @@ struct ProjectDetailView: View {
         if colorScheme == .dark {
             return LinearGradient(
                 colors: [
-                    Color(red: 0.08, green: 0.16, blue: 0.19),
-                    Color(red: 0.10, green: 0.24, blue: 0.27),
+                    Color.black.opacity(0.30),
+                    project.projectAccentColor.opacity(0.34),
+                    Color.black.opacity(0.18),
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -629,7 +663,7 @@ struct ProjectDetailView: View {
         }
 
         return LinearGradient(
-            colors: [Color.white.opacity(0.92), Color.teal.opacity(0.12)],
+            colors: [Color.white.opacity(0.94), project.projectAccentColor.opacity(0.20)],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
@@ -640,8 +674,8 @@ struct ProjectDetailView: View {
             return LinearGradient(
                 colors: [
                     Color(nsColor: .windowBackgroundColor),
-                    Color.teal.opacity(0.08),
-                    Color.orange.opacity(0.05),
+                    project.projectAccentColor.opacity(0.16),
+                    Color.black.opacity(0.18),
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -651,8 +685,8 @@ struct ProjectDetailView: View {
         return LinearGradient(
             colors: [
                 Color(red: 0.95, green: 0.97, blue: 0.98),
-                Color.teal.opacity(0.11),
-                Color.orange.opacity(0.06),
+                project.projectAccentColor.opacity(0.16),
+                Color.white.opacity(0.60),
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -718,6 +752,20 @@ struct ProjectDetailView: View {
 
     private func selectTaskForStart(_ task: ProjectTask) {
         selectedTaskID = task.id
+
+        guard let runningSession = runningSessionWithoutTask else {
+            return
+        }
+
+        let previousTask = runningSession.task
+        runningSession.task = task
+
+        do {
+            try modelContext.save()
+        } catch {
+            runningSession.task = previousTask
+            billingErrorMessage = "Die laufende Zeiterfassung konnte der Aufgabe nicht zugeordnet werden."
+        }
     }
 
     private func taskSessionCount(for task: ProjectTask) -> Int {
@@ -768,12 +816,16 @@ struct ProjectDetailView: View {
 
         let task = ProjectTask(title: trimmedNewTaskTitle, project: project)
         modelContext.insert(task)
+        let runningSession = runningSessionWithoutTask
+        let previousTask = runningSession?.task
+        runningSession?.task = task
 
         do {
             try modelContext.save()
             newTaskTitle = ""
             selectedTaskID = task.id
         } catch {
+            runningSession?.task = previousTask
             modelContext.delete(task)
             billingErrorMessage = "Die Aufgabe konnte nicht gespeichert werden."
         }
@@ -859,6 +911,14 @@ struct ProjectDetailView: View {
         !project.hasHourlyRate || isEditingHourlyRate
     }
 
+    private var runningSessionWithoutTask: WorkSession? {
+        guard isProjectRunningWithoutTask else {
+            return nil
+        }
+
+        return activeSession
+    }
+
     private var billingAlertIsPresented: Binding<Bool> {
         Binding(
             get: { billingErrorMessage != nil },
@@ -919,6 +979,49 @@ struct ProjectDetailView: View {
         } catch {
             project.hourlyRate = previousHourlyRate
             billingErrorMessage = "Der Stundensatz konnte nicht gespeichert werden."
+        }
+    }
+
+    private var projectAccentColorBinding: Binding<Color> {
+        Binding(
+            get: { project.projectAccentColor },
+            set: { newColor in
+                saveProjectAccentColor(newColor)
+            }
+        )
+    }
+
+    private func saveProjectAccentColor(_ color: Color) {
+        let previousRed = project.accentRed
+        let previousGreen = project.accentGreen
+        let previousBlue = project.accentBlue
+
+        project.setCustomAccentColor(color)
+
+        do {
+            try modelContext.save()
+        } catch {
+            project.accentRed = previousRed
+            project.accentGreen = previousGreen
+            project.accentBlue = previousBlue
+            billingErrorMessage = "Die Projektfarbe konnte nicht gespeichert werden."
+        }
+    }
+
+    private func resetProjectAccentColor() {
+        let previousRed = project.accentRed
+        let previousGreen = project.accentGreen
+        let previousBlue = project.accentBlue
+
+        project.clearCustomAccentColor()
+
+        do {
+            try modelContext.save()
+        } catch {
+            project.accentRed = previousRed
+            project.accentGreen = previousGreen
+            project.accentBlue = previousBlue
+            billingErrorMessage = "Die Projektfarbe konnte nicht zurueckgesetzt werden."
         }
     }
 }
@@ -1011,6 +1114,7 @@ private struct TaskSummaryRow: View {
     let isActive: Bool
     let isSelectedForStart: Bool
     let isProjectRunningWithoutTask: Bool
+    let accentColor: Color
     let isArchived: Bool
     let onSelectForStart: () -> Void
     let onStart: () -> Void
@@ -1031,7 +1135,7 @@ private struct TaskSummaryRow: View {
 
                             if isSelectedForStart {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.teal)
+                                    .foregroundStyle(accentColor)
                             }
                         }
 
@@ -1073,7 +1177,7 @@ private struct TaskSummaryRow: View {
                     )
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(shouldShowStop ? .orange : .teal)
+                .tint(shouldShowStop ? ClientProject.stopActionColor : accentColor)
             }
         }
         .padding(18)
@@ -1084,7 +1188,7 @@ private struct TaskSummaryRow: View {
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(
-                    isSelectedForStart ? Color.teal.opacity(0.55) : rowStroke,
+                    isSelectedForStart ? accentColor.opacity(0.55) : rowStroke,
                     lineWidth: isSelectedForStart ? 1.5 : 1
                 )
         )
@@ -1233,9 +1337,9 @@ private struct SessionRow: View {
             .padding(.vertical, 6)
             .background(
                 Capsule()
-                    .fill(session.isActive ? Color.teal.opacity(0.16) : Color.gray.opacity(0.16))
+                    .fill(session.isActive ? activeBadgeColor.opacity(0.16) : Color.gray.opacity(0.16))
             )
-            .foregroundStyle(session.isActive ? .teal : .secondary)
+            .foregroundStyle(session.isActive ? activeBadgeColor : .secondary)
     }
 
     @ViewBuilder
@@ -1260,6 +1364,10 @@ private struct SessionRow: View {
             .font(.caption.weight(.semibold))
             .foregroundStyle(rowSecondaryStyle)
             .monospacedDigit()
+    }
+
+    private var activeBadgeColor: Color {
+        session.project?.projectAccentColor ?? .teal
     }
 
     private var rowSecondaryStyle: Color {
@@ -1348,6 +1456,7 @@ private struct NewTaskAssignmentSheet: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(project.projectActionColor)
                 .disabled(trimmedTaskTitle.isEmpty)
             }
         }

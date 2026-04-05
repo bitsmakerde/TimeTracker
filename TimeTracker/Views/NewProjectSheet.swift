@@ -7,6 +7,8 @@ struct NewProjectSheet: View {
     @State private var projectName = ""
     @State private var notes = ""
     @State private var hourlyRateText = ""
+    @State private var usesCustomProjectColor = false
+    @State private var projectColor = Color.teal
 
     let onSave: (ClientProject) -> Bool
 
@@ -54,6 +56,16 @@ struct NewProjectSheet: View {
                 TextField("Projektname", text: $projectName)
                 TextField("Stundensatz in EUR", text: $hourlyRateText)
 
+                Toggle("Eigene Projektfarbe verwenden", isOn: $usesCustomProjectColor)
+
+                if usesCustomProjectColor {
+                    ColorPicker(
+                        "Projektfarbe",
+                        selection: $projectColor,
+                        supportsOpacity: false
+                    )
+                }
+
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Notiz")
                         .font(.subheadline.weight(.medium))
@@ -89,11 +101,16 @@ struct NewProjectSheet: View {
                         hourlyRate: parsedHourlyRate
                     )
 
+                    if usesCustomProjectColor {
+                        project.setCustomAccentColor(projectColor)
+                    }
+
                     if onSave(project) {
                         dismiss()
                     }
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(ClientProject.primaryActionColor)
                 .disabled(!canSave)
             }
         }

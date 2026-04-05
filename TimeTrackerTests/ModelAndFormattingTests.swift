@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Testing
 @testable import TimeTracker
 
@@ -113,6 +114,25 @@ struct ModelAndFormattingTests {
         #expect(archivedProject.isArchived)
         #expect(archivedProject.effectiveHourlyRate == 0)
         #expect(archivedProject.billedAmount(for: -120) == 0)
+    }
+
+    @Test("ClientProject allows custom accent color and reset to automatic")
+    func projectAccentColorCustomization() {
+        let project = ClientProject(clientName: "A", name: "B")
+
+        #expect(project.hasCustomAccentColor == false)
+
+        project.setCustomAccentColor(.red)
+        #expect(project.hasCustomAccentColor)
+        #expect(project.accentRed != nil)
+        #expect(project.accentGreen != nil)
+        #expect(project.accentBlue != nil)
+
+        project.clearCustomAccentColor()
+        #expect(project.hasCustomAccentColor == false)
+        #expect(project.accentRed == nil)
+        #expect(project.accentGreen == nil)
+        #expect(project.accentBlue == nil)
     }
 
     @Test("WorkSession duration helpers reflect active and ended states")

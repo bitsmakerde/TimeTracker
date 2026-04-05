@@ -137,6 +137,7 @@ struct ManualSessionSheet: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(ClientProject.primaryActionColor)
             }
         }
         .padding(24)

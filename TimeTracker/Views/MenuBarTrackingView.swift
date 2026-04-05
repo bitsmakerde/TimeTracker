@@ -64,6 +64,10 @@ struct MenuBarTrackingView: View {
                             startTracking(project)
                         } label: {
                             HStack {
+                                Circle()
+                                    .fill(project.projectAccentColor)
+                                    .frame(width: 10, height: 10)
+
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(project.displayName)
                                         .foregroundStyle(.primary)
@@ -82,7 +86,7 @@ struct MenuBarTrackingView: View {
                                 Spacer()
 
                                 Image(systemName: "play.fill")
-                                    .foregroundStyle(.teal)
+                                    .foregroundStyle(project.projectAccentColor)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .contentShape(Rectangle())
@@ -108,8 +112,14 @@ struct MenuBarTrackingView: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
 
-            Text(project.displayName)
-                .font(.headline)
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(project.projectAccentColor)
+                    .frame(width: 10, height: 10)
+
+                Text(project.displayName)
+                    .font(.headline)
+            }
 
             Text(project.displayClientName)
                 .font(.subheadline)
@@ -117,7 +127,7 @@ struct MenuBarTrackingView: View {
 
             Text(session.displayTaskTitle)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.teal)
+                .foregroundStyle(project.projectAccentColor)
 
             TimelineView(.periodic(from: .now, by: 1)) { timeline in
                 Text(TimeFormatting.digitalDuration(session.duration(referenceDate: timeline.date)))
@@ -132,6 +142,7 @@ struct MenuBarTrackingView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+            .tint(ClientProject.stopActionColor)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -139,7 +150,7 @@ struct MenuBarTrackingView: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(
                     LinearGradient(
-                        colors: [Color.teal.opacity(0.16), Color.orange.opacity(0.12)],
+                        colors: [project.projectAccentColor.opacity(0.24), project.projectAccentColor.opacity(0.10)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )

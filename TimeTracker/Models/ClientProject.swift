@@ -1,5 +1,7 @@
 import Foundation
 import SwiftData
+import SwiftUI
+import AppKit
 
 @Model
 final class ClientProject {
@@ -10,6 +12,9 @@ final class ClientProject {
     var hourlyRate: Double?
     var archivedAt: Date?
     var createdAt: Date
+    var accentRed: Double?
+    var accentGreen: Double?
+    var accentBlue: Double?
 
     @Relationship(deleteRule: .cascade, inverse: \WorkSession.project)
     var sessions: [WorkSession]
@@ -23,6 +28,9 @@ final class ClientProject {
         notes: String = "",
         hourlyRate: Double? = nil,
         archivedAt: Date? = nil,
+        accentRed: Double? = nil,
+        accentGreen: Double? = nil,
+        accentBlue: Double? = nil,
         createdAt: Date = .now
     ) {
         self.id = UUID()
@@ -31,6 +39,9 @@ final class ClientProject {
         self.notes = notes
         self.hourlyRate = hourlyRate
         self.archivedAt = archivedAt
+        self.accentRed = accentRed
+        self.accentGreen = accentGreen
+        self.accentBlue = accentBlue
         self.createdAt = createdAt
         self.sessions = []
         self.tasks = []
@@ -38,6 +49,9 @@ final class ClientProject {
 }
 
 extension ClientProject {
+    static let primaryActionColor = Color(.sRGB, red: 0.13, green: 0.44, blue: 0.86, opacity: 1)
+    static let stopActionColor = Color(.sRGB, red: 0.72, green: 0.25, blue: 0.17, opacity: 1)
+
     var displayClientName: String {
         let trimmed = clientName.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? "Ohne Kunde" : trimmed
@@ -76,11 +90,118 @@ extension ClientProject {
         max(hourlyRate ?? 0, 0)
     }
 
+    var hasCustomAccentColor: Bool {
+        accentRed != nil && accentGreen != nil && accentBlue != nil
+    }
+
+    var projectAccentColor: Color {
+        if let customAccentColor {
+            return customAccentColor
+        }
+
+        let palette = Self.projectAccentPalette
+        let paletteIndex = id.uuidString.unicodeScalars.reduce(into: 0) { partialResult, scalar in
+            partialResult = (partialResult * 33 + Int(scalar.value)) % palette.count
+        }
+
+        return palette[paletteIndex]
+    }
+
+    var projectActionColor: Color {
+        Self.prominentActionColor(from: projectAccentColor)
+    }
+
+    func setCustomAccentColor(_ color: Color) {
+        guard let components = Self.srgbComponents(from: color) else {
+            return
+        }
+
+        accentRed = components.red
+        accentGreen = components.green
+        accentBlue = components.blue
+    }
+
+    func clearCustomAccentColor() {
+        accentRed = nil
+        accentGreen = nil
+        accentBlue = nil
+    }
+
     func billedAmount(for duration: TimeInterval) -> Double? {
         guard let hourlyRate else {
             return nil
         }
 
         return max(duration / 3600, 0) * max(hourlyRate, 0)
+    }
+
+    private static let projectAccentPalette: [Color] = [
+        Color(red: 0.19, green: 0.61, blue: 0.98),
+        Color(red: 0.13, green: 0.73, blue: 0.66),
+        Color(red: 0.97, green: 0.66, blue: 0.16),
+        Color(red: 0.91, green: 0.34, blue: 0.42),
+        Color(red: 0.53, green: 0.48, blue: 0.95),
+        Color(red: 0.37, green: 0.73, blue: 0.24),
+        Color(red: 0.00, green: 0.73, blue: 0.80),
+        Color(red: 0.88, green: 0.42, blue: 0.80),
+        Color(red: 0.70, green: 0.53, blue: 0.22),
+        Color(red: 0.32, green: 0.60, blue: 0.94),
+    ]
+
+    private var customAccentColor: Color? {
+        guard let accentRed,
+              let accentGreen,
+              let accentBlue else {
+            return nil
+        }
+
+        return Color(
+            .sRGB,
+            red: min(max(accentRed, 0), 1),
+            green: min(max(accentGreen, 0), 1),
+            blue: min(max(accentBlue, 0), 1),
+            opacity: 1
+        )
+    }
+
+    private static func srgbComponents(from color: Color) -> (red: Double, green: Double, blue: Double)? {
+        guard let srgbColor = NSColor(color).usingColorSpace(.sRGB) else {
+            return nil
+        }
+
+        return (
+            red: Double(srgbColor.redComponent),
+            green: Double(srgbColor.greenComponent),
+            blue: Double(srgbColor.blueComponent)
+        )
+    }
+
+    private static func prominentActionColor(from color: Color) -> Color {
+        guard let components = srgbComponents(from: color) else {
+            return primaryActionColor
+        }
+
+        var red = clamp(components.red)
+        var green = clamp(components.green)
+        var blue = clamp(components.blue)
+
+        let luminance = relativeLuminance(red: red, green: green, blue: blue)
+
+        if luminance > 0.48 {
+            let darkenFactor = 0.48 / luminance
+            red *= darkenFactor
+            green *= darkenFactor
+            blue *= darkenFactor
+        }
+
+        return Color(.sRGB, red: red, green: green, blue: blue, opacity: 1)
+    }
+
+    private static func relativeLuminance(red: Double, green: Double, blue: Double) -> Double {
+        (0.2126 * red) + (0.7152 * green) + (0.0722 * blue)
+    }
+
+    private static func clamp(_ value: Double) -> Double {
+        min(max(value, 0), 1)
     }
 }
