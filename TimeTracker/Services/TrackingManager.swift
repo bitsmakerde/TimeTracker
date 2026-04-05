@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-enum TrackingManagerError: LocalizedError {
+enum TrackingManagerError: LocalizedError, Equatable {
     case invalidDateRange
     case futureDateNotAllowed
     case activeSessionEditingNotAllowed

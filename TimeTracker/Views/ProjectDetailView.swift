@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ProjectDetailView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
 
     let project: ClientProject
     let activeSession: WorkSession?
@@ -24,23 +25,24 @@ struct ProjectDetailView: View {
     @State private var isConfirmingProjectDeletion = false
     @State private var sessionPendingTaskCreation: WorkSession?
     @State private var sessionPendingDeletion: WorkSession?
+    @State private var selectedTaskID: UUID?
 
     private var isActiveProject: Bool {
         activeSession?.project?.id == project.id
     }
 
+    private var isProjectRunningWithoutTask: Bool {
+        guard activeSession?.project?.id == project.id else {
+            return false
+        }
+
+        return activeSession?.task == nil
+    }
+
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    Color(nsColor: .windowBackgroundColor),
-                    Color.teal.opacity(0.08),
-                    Color.orange.opacity(0.05),
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            pageBackgroundGradient
+                .ignoresSafeArea()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
@@ -61,10 +63,17 @@ struct ProjectDetailView: View {
                 .padding(28)
             }
         }
-        .onAppear(perform: syncHourlyRateText)
+        .onAppear {
+            syncHourlyRateText()
+            syncSelectedTaskForStart()
+        }
         .onChange(of: project.id) { _, _ in
             syncHourlyRateText()
             isEditingHourlyRate = false
+            syncSelectedTaskForStart()
+        }
+        .onChange(of: project.sortedTasks.map(\.id)) { _, _ in
+            syncSelectedTaskForStart()
         }
         .alert("Speichern fehlgeschlagen", isPresented: billingAlertIsPresented) {
             Button("OK", role: .cancel) {}
@@ -130,15 +139,16 @@ struct ProjectDetailView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(project.displayName)
                         .font(.system(size: 34, weight: .bold, design: .rounded))
+                        .foregroundStyle(headerPrimaryStyle)
 
                     Text(project.displayClientName)
                         .font(.title3.weight(.medium))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(headerSecondaryStyle)
 
                     if !project.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         Text(project.notes)
                             .font(.body)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(headerSecondaryStyle)
                             .padding(.top, 2)
                     }
                 }
@@ -152,13 +162,21 @@ struct ProjectDetailView: View {
                     }
                     projectActionsButton
 
+                    if !project.isArchived, let selectedTaskForStart {
+                        Label("Aktiv: \(selectedTaskForStart.displayTitle)", systemImage: "scope")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(headerSecondaryStyle)
+                            .frame(maxWidth: 260, alignment: .trailing)
+                            .multilineTextAlignment(.trailing)
+                    }
+
                     if !project.isArchived,
                        let activeSession,
                        let activeProject = activeSession.project,
                        activeProject.id != project.id {
                         Text("Beim Start wird \(activeProject.displayName) automatisch gestoppt.")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(headerSecondaryStyle)
                             .frame(maxWidth: 260, alignment: .trailing)
                     }
                 }
@@ -176,12 +194,13 @@ struct ProjectDetailView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(activeSession.displayTaskTitle)
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(headerSecondaryStyle)
 
                         TimelineView(.periodic(from: .now, by: 1)) { timeline in
                             Text("Laeuft seit \(TimeFormatting.shortTime(activeSession.startedAt)) - \(TimeFormatting.digitalDuration(activeSession.duration(referenceDate: timeline.date)))")
                                 .font(.headline)
                                 .monospacedDigit()
+                                .foregroundStyle(headerPrimaryStyle)
                         }
                     }
                 }
@@ -189,22 +208,24 @@ struct ProjectDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(.white.opacity(0.55))
+                        .fill(headerInnerSurfaceStyle)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(headerStrokeStyle, lineWidth: 1)
                 )
             }
         }
         .padding(28)
         .background(
             RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.92), Color.teal.opacity(0.12)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(headerCardGradient)
         )
-        .shadow(color: .black.opacity(0.05), radius: 18, x: 0, y: 12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .stroke(headerStrokeStyle, lineWidth: 1)
+        )
+        .shadow(color: headerShadowStyle, radius: 18, x: 0, y: 12)
     }
 
     private var actionButton: some View {
@@ -213,6 +234,8 @@ struct ProjectDetailView: View {
                 onRestoreProject()
             } else if isActiveProject {
                 onStop()
+            } else if let selectedTaskForStart {
+                onStartTask(selectedTaskForStart)
             } else {
                 onStart()
             }
@@ -260,17 +283,21 @@ struct ProjectDetailView: View {
     private func archiveStatusBadge(archivedAt: Date) -> some View {
         HStack(spacing: 12) {
             Image(systemName: "archivebox.fill")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(headerSecondaryStyle)
 
             Text("Archiviert am \(TimeFormatting.shortDate(archivedAt))")
                 .font(.headline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(headerSecondaryStyle)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(.white.opacity(0.55))
+                .fill(headerInnerSurfaceStyle)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(headerStrokeStyle, lineWidth: 1)
         )
     }
 
@@ -331,9 +358,13 @@ struct ProjectDetailView: View {
         .padding(24)
         .background(
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(.background.opacity(0.94))
-                .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 8)
+                .fill(sectionCardGradient)
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(sectionCardStroke, lineWidth: 1)
+        )
+        .shadow(color: sectionCardShadow, radius: 14, x: 0, y: 8)
     }
 
     private var manualEntryButton: some View {
@@ -403,6 +434,15 @@ struct ProjectDetailView: View {
                         .buttonStyle(.borderedProminent)
                         .disabled(trimmedNewTaskTitle.isEmpty)
                 }
+
+                if let selectedTaskForStart {
+                    Label(
+                        "Zeiterfassung startet mit: \(selectedTaskForStart.displayTitle)",
+                        systemImage: "scope"
+                    )
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.teal)
+                }
             }
 
             if project.sortedTasks.isEmpty {
@@ -419,7 +459,12 @@ struct ProjectDetailView: View {
                                 durationText: TimeFormatting.compactDuration(taskDuration(for: task, referenceDate: timeline.date)),
                                 valueText: taskValueText(for: task, referenceDate: timeline.date),
                                 isActive: activeSession?.task?.id == task.id,
+                                isSelectedForStart: selectedTaskForStart?.id == task.id,
+                                isProjectRunningWithoutTask: isProjectRunningWithoutTask,
                                 isArchived: project.isArchived,
+                                onSelectForStart: {
+                                    selectTaskForStart(task)
+                                },
                                 onStart: {
                                     onStartTask(task)
                                 },
@@ -433,9 +478,13 @@ struct ProjectDetailView: View {
         .padding(24)
         .background(
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(.background.opacity(0.94))
-                .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 8)
+                .fill(sectionCardGradient)
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(sectionCardStroke, lineWidth: 1)
+        )
+        .shadow(color: sectionCardShadow, radius: 14, x: 0, y: 8)
     }
 
     private var sessionsCard: some View {
@@ -486,9 +535,13 @@ struct ProjectDetailView: View {
         .padding(24)
         .background(
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(.background.opacity(0.94))
-                .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 8)
+                .fill(sectionCardGradient)
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(sectionCardStroke, lineWidth: 1)
+        )
+        .shadow(color: sectionCardShadow, radius: 14, x: 0, y: 8)
     }
 
     private func totalDuration(referenceDate: Date) -> TimeInterval {
@@ -524,7 +577,7 @@ struct ProjectDetailView: View {
             return "Zeiterfassung stoppen"
         }
 
-        return project.tasks.isEmpty ? "Zeiterfassung starten" : "Ohne Aufgabe starten"
+        return project.tasks.isEmpty ? "Zeiterfassung starten" : "Ausgewaehlte Aufgabe starten"
     }
 
     private var actionButtonSystemImage: String {
@@ -543,8 +596,128 @@ struct ProjectDetailView: View {
         return isActiveProject ? .orange : .teal
     }
 
+    private var headerPrimaryStyle: Color {
+        colorScheme == .dark ? Color.white.opacity(0.96) : Color.black.opacity(0.9)
+    }
+
+    private var headerSecondaryStyle: Color {
+        colorScheme == .dark ? Color.white.opacity(0.78) : Color.black.opacity(0.62)
+    }
+
+    private var headerInnerSurfaceStyle: Color {
+        colorScheme == .dark ? Color.black.opacity(0.28) : Color.white.opacity(0.72)
+    }
+
+    private var headerStrokeStyle: Color {
+        colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.06)
+    }
+
+    private var headerShadowStyle: Color {
+        colorScheme == .dark ? Color.black.opacity(0.32) : Color.black.opacity(0.05)
+    }
+
+    private var headerCardGradient: LinearGradient {
+        if colorScheme == .dark {
+            return LinearGradient(
+                colors: [
+                    Color(red: 0.08, green: 0.16, blue: 0.19),
+                    Color(red: 0.10, green: 0.24, blue: 0.27),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+
+        return LinearGradient(
+            colors: [Color.white.opacity(0.92), Color.teal.opacity(0.12)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var pageBackgroundGradient: LinearGradient {
+        if colorScheme == .dark {
+            return LinearGradient(
+                colors: [
+                    Color(nsColor: .windowBackgroundColor),
+                    Color.teal.opacity(0.08),
+                    Color.orange.opacity(0.05),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+
+        return LinearGradient(
+            colors: [
+                Color(red: 0.95, green: 0.97, blue: 0.98),
+                Color.teal.opacity(0.11),
+                Color.orange.opacity(0.06),
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var sectionCardGradient: LinearGradient {
+        if colorScheme == .dark {
+            return LinearGradient(
+                colors: [
+                    Color.white.opacity(0.07),
+                    Color.black.opacity(0.20),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+
+        return LinearGradient(
+            colors: [
+                Color.white.opacity(0.98),
+                Color(red: 0.95, green: 0.97, blue: 0.995),
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var sectionCardStroke: Color {
+        colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.10)
+    }
+
+    private var sectionCardShadow: Color {
+        colorScheme == .dark ? Color.black.opacity(0.14) : Color.black.opacity(0.08)
+    }
+
     private var trimmedNewTaskTitle: String {
         newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var selectedTaskForStart: ProjectTask? {
+        if let selectedTaskID,
+           let selectedTask = project.tasks.first(where: { $0.id == selectedTaskID }) {
+            return selectedTask
+        }
+
+        return project.sortedTasks.first
+    }
+
+    private func syncSelectedTaskForStart() {
+        guard !project.sortedTasks.isEmpty else {
+            selectedTaskID = nil
+            return
+        }
+
+        if let selectedTaskID,
+           project.tasks.contains(where: { $0.id == selectedTaskID }) {
+            return
+        }
+
+        selectedTaskID = project.sortedTasks.first?.id
+    }
+
+    private func selectTaskForStart(_ task: ProjectTask) {
+        selectedTaskID = task.id
     }
 
     private func taskSessionCount(for task: ProjectTask) -> Int {
@@ -599,6 +772,7 @@ struct ProjectDetailView: View {
         do {
             try modelContext.save()
             newTaskTitle = ""
+            selectedTaskID = task.id
         } catch {
             modelContext.delete(task)
             billingErrorMessage = "Die Aufgabe konnte nicht gespeichert werden."
@@ -750,6 +924,8 @@ struct ProjectDetailView: View {
 }
 
 private struct SummaryCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let title: String
     let value: String
     let subtitle: String
@@ -761,7 +937,7 @@ private struct SummaryCard: View {
             HStack(alignment: .top, spacing: 12) {
                 Text(title)
                     .font(.headline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(summarySecondaryStyle)
 
                 Spacer(minLength: 0)
 
@@ -769,7 +945,7 @@ private struct SummaryCard: View {
                     Button(action: accessoryAction) {
                         Image(systemName: accessorySystemImage ?? "gearshape.fill")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(summarySecondaryStyle)
                     }
                     .buttonStyle(.plain)
                 }
@@ -781,76 +957,172 @@ private struct SummaryCard: View {
 
             Text(subtitle)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(summarySecondaryStyle)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(22)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(.background.opacity(0.92))
-                .shadow(color: .black.opacity(0.035), radius: 10, x: 0, y: 6)
+                .fill(summaryCardGradient)
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(summaryCardStroke, lineWidth: 1)
+        )
+        .shadow(color: summaryCardShadow, radius: 10, x: 0, y: 6)
+    }
+
+    private var summarySecondaryStyle: Color {
+        colorScheme == .dark ? Color.white.opacity(0.66) : Color.black.opacity(0.60)
+    }
+
+    private var summaryCardGradient: LinearGradient {
+        if colorScheme == .dark {
+            return LinearGradient(
+                colors: [Color.white.opacity(0.07), Color.black.opacity(0.24)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+
+        return LinearGradient(
+            colors: [Color.white.opacity(0.98), Color(red: 0.96, green: 0.97, blue: 0.99)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var summaryCardStroke: Color {
+        colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.10)
+    }
+
+    private var summaryCardShadow: Color {
+        colorScheme == .dark ? Color.black.opacity(0.12) : Color.black.opacity(0.07)
     }
 }
 
 private struct TaskSummaryRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let title: String
     let subtitle: String
     let durationText: String
     let valueText: String
     let isActive: Bool
+    let isSelectedForStart: Bool
+    let isProjectRunningWithoutTask: Bool
     let isArchived: Bool
+    let onSelectForStart: () -> Void
     let onStart: () -> Void
     let onStop: () -> Void
 
+    private var shouldShowStop: Bool {
+        isActive || (isSelectedForStart && isProjectRunningWithoutTask)
+    }
+
     var body: some View {
         HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(title)
-                    .font(.headline)
+            Button(action: onSelectForStart) {
+                HStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 8) {
+                            Text(title)
+                                .font(.headline)
 
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                            if isSelectedForStart {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.teal)
+                            }
+                        }
+
+                        Text(subtitle)
+                            .font(.subheadline)
+                            .foregroundStyle(rowSecondaryStyle)
+                    }
+
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 6) {
+                        Text(durationText)
+                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                            .monospacedDigit()
+
+                        Text(valueText)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(rowSecondaryStyle)
+                            .monospacedDigit()
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(.rect)
             }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 6) {
-                Text(durationText)
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
-
-                Text(valueText)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-            }
+            .buttonStyle(.plain)
+            .disabled(isArchived)
 
             if !isArchived {
                 Button(action: {
-                    if isActive {
+                    if shouldShowStop {
                         onStop()
                     } else {
                         onStart()
                     }
                 }) {
-                    Image(systemName: isActive ? "stop.fill" : "play.fill")
-                        .frame(width: 18)
+                    Label(
+                        shouldShowStop ? "Stoppen" : "Starten",
+                        systemImage: shouldShowStop ? "stop.fill" : "play.fill"
+                    )
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(isActive ? .orange : .teal)
+                .tint(shouldShowStop ? .orange : .teal)
             }
         }
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color(nsColor: .controlBackgroundColor))
+                .fill(rowGradient)
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(
+                    isSelectedForStart ? Color.teal.opacity(0.55) : rowStroke,
+                    lineWidth: isSelectedForStart ? 1.5 : 1
+                )
+        )
+        .shadow(color: rowShadow, radius: 6, x: 0, y: 3)
+    }
+
+    private var rowSecondaryStyle: Color {
+        colorScheme == .dark ? Color.white.opacity(0.66) : Color.black.opacity(0.60)
+    }
+
+    private var rowGradient: LinearGradient {
+        if colorScheme == .dark {
+            return LinearGradient(
+                colors: [Color.white.opacity(0.06), Color.black.opacity(0.20)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+
+        return LinearGradient(
+            colors: [Color.white, Color(red: 0.96, green: 0.97, blue: 0.99)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var rowStroke: Color {
+        colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.09)
+    }
+
+    private var rowShadow: Color {
+        colorScheme == .dark ? Color.black.opacity(0.10) : Color.black.opacity(0.05)
     }
 }
 
 private struct SessionRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let session: WorkSession
     let hourlyRate: Double?
     let availableTasks: [ProjectTask]
@@ -867,11 +1139,11 @@ private struct SessionRow: View {
 
                 Text(session.displayTaskTitle)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(rowSecondaryStyle)
 
                 Text(timeRangeText)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(rowSecondaryStyle)
             }
 
             Spacer()
@@ -922,7 +1194,7 @@ private struct SessionRow: View {
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .font(.headline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(rowSecondaryStyle)
                 }
                 .menuStyle(.borderlessButton)
             }
@@ -936,8 +1208,13 @@ private struct SessionRow: View {
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color(nsColor: .controlBackgroundColor))
+                .fill(rowGradient)
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(rowStroke, lineWidth: 1)
+        )
+        .shadow(color: rowShadow, radius: 6, x: 0, y: 3)
     }
 
     private var timeRangeText: String {
@@ -981,8 +1258,36 @@ private struct SessionRow: View {
     private func amountLabel(amount: Double) -> some View {
         Text(TimeFormatting.euroAmount(amount))
             .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(rowSecondaryStyle)
             .monospacedDigit()
+    }
+
+    private var rowSecondaryStyle: Color {
+        colorScheme == .dark ? Color.white.opacity(0.66) : Color.black.opacity(0.60)
+    }
+
+    private var rowGradient: LinearGradient {
+        if colorScheme == .dark {
+            return LinearGradient(
+                colors: [Color.white.opacity(0.06), Color.black.opacity(0.20)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+
+        return LinearGradient(
+            colors: [Color.white, Color(red: 0.96, green: 0.97, blue: 0.99)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var rowStroke: Color {
+        colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.09)
+    }
+
+    private var rowShadow: Color {
+        colorScheme == .dark ? Color.black.opacity(0.10) : Color.black.opacity(0.05)
     }
 }
 
