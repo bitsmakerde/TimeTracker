@@ -115,6 +115,10 @@ struct NewProjectSheet: View {
             }
         }
         .padding(24)
+#if os(macOS)
         .frame(width: 460)
+#else
+        .frame(maxWidth: .infinity, alignment: .leading)
+#endif
     }
 }

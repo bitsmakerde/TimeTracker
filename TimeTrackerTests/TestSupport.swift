@@ -4,20 +4,8 @@ import SwiftData
 @MainActor
 enum TestSupport {
     static func makeInMemoryContainer() throws -> ModelContainer {
-        let schema = Schema([
-            ClientProject.self,
-            ProjectTask.self,
-            WorkSession.self,
-        ])
-
-        let configuration = ModelConfiguration(
-            schema: schema,
+        try TimeTrackerSchema.makeModelContainer(
             isStoredInMemoryOnly: true
-        )
-
-        return try ModelContainer(
-            for: schema,
-            configurations: [configuration]
         )
     }
 }

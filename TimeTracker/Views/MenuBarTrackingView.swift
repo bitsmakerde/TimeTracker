@@ -208,7 +208,7 @@ struct MenuBarTrackingView: View {
 }
 
 struct MenuBarStatusLabel: View {
-    @ObservedObject var trackingStatus: TrackingStatusStore
+    let trackingStatus: TrackingStatusStore
 
     var body: some View {
         if trackingStatus.isTracking {

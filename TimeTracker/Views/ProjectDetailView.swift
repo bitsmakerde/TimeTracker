@@ -1,5 +1,12 @@
 import SwiftData
 import SwiftUI
+import Charts
+import UniformTypeIdentifiers
+#if canImport(AppKit)
+import AppKit
+#elseif canImport(UIKit)
+import UIKit
+#endif
 
 struct ProjectDetailView: View {
     @Environment(\.modelContext) private var modelContext
@@ -18,8 +25,17 @@ struct ProjectDetailView: View {
     let onDeleteProject: () -> Void
 
     @State private var hourlyRateText = ""
+    @State private var budgetTargetText = ""
     @State private var newTaskTitle = ""
+    @State private var selectedBudgetUnit: ProjectBudgetUnit = .hours
     @State private var isEditingHourlyRate = false
+    @State private var isPresentingBudgetSheet = false
+    @State private var isEditingBudgetInSheet = false
+    @State private var isPresentingExportSheet = false
+    @State private var exportFormat: ProjectExportFormat = .csv
+    @State private var exportContentMode: ProjectExportContentMode = .hoursAndCosts
+    @State private var preparedExportURL: URL?
+    @State private var isSyncingBudgetEditor = false
     @State private var billingErrorMessage: String?
     @State private var isConfirmingProjectArchive = false
     @State private var isConfirmingProjectDeletion = false
@@ -65,15 +81,30 @@ struct ProjectDetailView: View {
         }
         .onAppear {
             syncHourlyRateText()
+            syncBudgetEditor()
+            syncExportConfiguration()
             syncSelectedTaskForStart()
         }
         .onChange(of: project.id) { _, _ in
             syncHourlyRateText()
+            syncBudgetEditor()
+            syncExportConfiguration()
             isEditingHourlyRate = false
+            isPresentingBudgetSheet = false
+            isEditingBudgetInSheet = false
+            isPresentingExportSheet = false
             syncSelectedTaskForStart()
         }
         .onChange(of: project.sortedTasks.map(\.id)) { _, _ in
             syncSelectedTaskForStart()
+        }
+        .onChange(of: selectedBudgetUnit) { oldUnit, newUnit in
+            convertBudgetEditorValue(from: oldUnit, to: newUnit)
+        }
+        .onChange(of: isPresentingBudgetSheet) { _, isPresented in
+            if !isPresented {
+                isEditingBudgetInSheet = false
+            }
         }
         .alert("Speichern fehlgeschlagen", isPresented: billingAlertIsPresented) {
             Button("OK", role: .cancel) {}
@@ -130,6 +161,12 @@ struct ProjectDetailView: View {
                     to: session
                 )
             }
+        }
+        .sheet(isPresented: $isPresentingBudgetSheet) {
+            budgetSheet
+        }
+        .sheet(isPresented: $isPresentingExportSheet) {
+            projectExportSheet
         }
     }
 
@@ -274,6 +311,12 @@ struct ProjectDetailView: View {
 
             Divider()
 
+            Button(action: presentProjectExportSheet) {
+                Label("Projekt exportieren", systemImage: "square.and.arrow.up")
+            }
+
+            Divider()
+
             Button(role: .destructive) {
                 isConfirmingProjectDeletion = true
             } label: {
@@ -283,7 +326,9 @@ struct ProjectDetailView: View {
             Label("Projekt", systemImage: "ellipsis.circle")
                 .frame(minWidth: 220)
         }
+#if os(macOS)
         .menuStyle(.borderlessButton)
+#endif
         .controlSize(.large)
     }
 
@@ -398,6 +443,255 @@ struct ProjectDetailView: View {
         .shadow(color: sectionCardShadow, radius: 14, x: 0, y: 8)
     }
 
+    private var budgetSheet: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { timeline in
+            budgetSheetContent(referenceDate: timeline.date)
+        }
+        .padding(24)
+#if os(macOS)
+        .frame(minWidth: 620, minHeight: 440)
+#else
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+#endif
+    }
+
+    @ViewBuilder
+    private func budgetSheetContent(referenceDate: Date) -> some View {
+        let snapshot = budgetSnapshot(referenceDate: referenceDate)
+
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Projektbudget")
+                    .font(.title2.weight(.semibold))
+
+                Spacer()
+
+                Button(
+                    isEditingBudgetInSheet ? "Fertig" : "Bearbeiten",
+                    systemImage: "gearshape.fill"
+                ) {
+                    isEditingBudgetInSheet.toggle()
+                }
+                .buttonStyle(.bordered)
+
+                Button("Schliessen", systemImage: "xmark") {
+                    isEditingBudgetInSheet = false
+                    isPresentingBudgetSheet = false
+                }
+                .buttonStyle(.bordered)
+            }
+
+            if let snapshot {
+                HStack(alignment: .top, spacing: 20) {
+                    BudgetProgressDonut(
+                        snapshot: snapshot,
+                        accentColor: project.projectActionColor
+                    )
+                    .frame(width: 170, height: 170)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("\(budgetValueText(snapshot.consumed, unit: snapshot.unit)) / \(budgetValueText(snapshot.target, unit: snapshot.unit))")
+                            .font(.system(size: 27, weight: .bold, design: .rounded))
+                            .monospacedDigit()
+
+                        Text(snapshot.progressText)
+                            .font(.headline)
+                            .foregroundStyle(snapshot.isOverBudget ? ClientProject.stopActionColor : project.projectActionColor)
+                            .monospacedDigit()
+
+                        Text(snapshot.statusText(unitFormatter: budgetValueText(_:unit:)))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(snapshot.isOverBudget ? ClientProject.stopActionColor : .secondary)
+                            .monospacedDigit()
+
+                        Text(secondaryBudgetSummary(referenceDate: referenceDate, primaryUnit: snapshot.unit))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+
+                    Spacer(minLength: 0)
+                }
+            } else if project.budgetUnit == .amount && !project.hasHourlyRate {
+                Label(
+                    "EUR-Budget kann erst mit hinterlegtem Stundensatz berechnet werden.",
+                    systemImage: "exclamationmark.triangle.fill"
+                )
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.orange)
+            } else {
+                Text("Lege ein Stunden- oder Euro-Budget fest, damit der Projektverbrauch live verfolgt werden kann.")
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 4)
+            }
+
+            if isEditingBudgetInSheet {
+                Divider()
+
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .center, spacing: 14) {
+                        Text("Budgettyp")
+                            .font(.title3.weight(.semibold))
+                            .frame(width: 130, alignment: .leading)
+
+                        Picker("Budgettyp", selection: $selectedBudgetUnit) {
+                            Label("Stunden", systemImage: "clock")
+                                .tag(ProjectBudgetUnit.hours)
+                            Label("Euro", systemImage: "eurosign.circle")
+                                .tag(ProjectBudgetUnit.amount)
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(width: 290)
+                    }
+
+                    HStack(alignment: .center, spacing: 14) {
+                        Text(selectedBudgetUnit == .hours ? "Stundenbudget" : "Eurobudget")
+                            .font(.title3.weight(.semibold))
+                            .frame(width: 130, alignment: .leading)
+
+                        TextField(
+                            selectedBudgetUnit == .hours ? "z. B. 20" : "z. B. 2500",
+                            text: $budgetTargetText
+                        )
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 220)
+
+                        Text(selectedBudgetUnit == .hours ? "Stunden" : "EUR")
+                            .foregroundStyle(.secondary)
+                    }
+
+                    HStack(spacing: 12) {
+                        Spacer(minLength: 144)
+
+                        Button("Speichern", action: saveBudget)
+                            .buttonStyle(.borderedProminent)
+                            .tint(project.projectActionColor)
+                            .disabled(hasInvalidBudgetTarget || selectedBudgetUnit == .amount && !project.hasHourlyRate)
+
+                        if project.hasBudget {
+                            Button("Entfernen", role: .destructive, action: clearBudget)
+                                .buttonStyle(.bordered)
+                        }
+
+                        Spacer(minLength: 0)
+                    }
+                }
+
+                Text(budgetHintText)
+                    .font(.caption)
+                    .foregroundStyle(hasInvalidBudgetTarget ? .red : .secondary)
+            } else {
+                Text("Zum Aendern auf das Zahnrad klicken.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(22)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.ultraThinMaterial)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(colorScheme == .dark ? 0.10 : 0.42),
+                            Color.clear,
+                            Color.black.opacity(colorScheme == .dark ? 0.12 : 0.04),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .allowsHitTesting(false)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(
+                    colorScheme == .dark ? Color.white.opacity(0.16) : Color.black.opacity(0.08),
+                    lineWidth: 1
+                )
+                .allowsHitTesting(false)
+        )
+    }
+
+    private var projectExportSheet: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Projekt exportieren")
+                .font(.system(size: 30, weight: .bold, design: .rounded))
+
+            Text("\(project.displayClientName) - \(project.displayName)")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Format")
+                    .font(.headline)
+                Picker("Format", selection: $exportFormat) {
+                    ForEach(ProjectExportFormat.allCases) { format in
+                        Text(format.title).tag(format)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 240)
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Inhalt")
+                    .font(.headline)
+
+                Picker("Inhalt", selection: $exportContentMode) {
+                    ForEach(availableExportModes) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 360)
+
+                if !project.hasHourlyRate {
+                    Label(
+                        "Kostenexport ist erst moeglich, wenn ein Stundensatz hinterlegt ist.",
+                        systemImage: "info.circle"
+                    )
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                }
+            }
+
+            HStack {
+                Spacer()
+
+                Button("Abbrechen", role: .cancel) {
+                    isPresentingExportSheet = false
+                }
+
+#if os(macOS)
+                Button("Export starten", action: exportProjectData)
+                    .buttonStyle(.borderedProminent)
+                    .tint(project.projectActionColor)
+#else
+                Button(preparedExportURL == nil ? "Export vorbereiten" : "Neu erstellen", action: exportProjectData)
+                    .buttonStyle(.bordered)
+
+                if let preparedExportURL {
+                    ShareLink(item: preparedExportURL) {
+                        Label("Export teilen", systemImage: "square.and.arrow.up")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(project.projectActionColor)
+                }
+#endif
+            }
+        }
+        .padding(24)
+#if os(macOS)
+        .frame(width: 520)
+#else
+        .frame(maxWidth: .infinity, alignment: .leading)
+#endif
+    }
+
     private var manualEntryButton: some View {
         Button(action: onAddManualEntry) {
             Label("Eintrag nachtragen", systemImage: "calendar.badge.plus")
@@ -439,6 +733,14 @@ struct ProjectDetailView: View {
                 subtitle: project.hasHourlyRate ? "Pro Stunde" : "Noch nicht hinterlegt",
                 accessorySystemImage: "gearshape.fill",
                 accessoryAction: toggleHourlyRateEditing
+            )
+
+            SummaryCard(
+                title: "Budget",
+                value: budgetSummaryValue(referenceDate: referenceDate),
+                subtitle: budgetSummarySubtitle(referenceDate: referenceDate),
+                accessorySystemImage: "info.circle",
+                accessoryAction: presentBudgetDetails
             )
         }
     }
@@ -673,7 +975,7 @@ struct ProjectDetailView: View {
         if colorScheme == .dark {
             return LinearGradient(
                 colors: [
-                    Color(nsColor: .windowBackgroundColor),
+                    .platformWindowBackground,
                     project.projectAccentColor.opacity(0.16),
                     Color.black.opacity(0.18),
                 ],
@@ -907,6 +1209,155 @@ struct ProjectDetailView: View {
         return TimeFormatting.euroAmount(project.effectiveHourlyRate)
     }
 
+    private var parsedBudgetTarget: Double? {
+        TimeFormatting.parseDecimalInput(budgetTargetText)
+    }
+
+    private var hasInvalidBudgetTarget: Bool {
+        let trimmed = budgetTargetText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmed.isEmpty else {
+            return false
+        }
+
+        guard let parsedBudgetTarget else {
+            return true
+        }
+
+        return parsedBudgetTarget <= 0
+    }
+
+    private var budgetHintText: String {
+        if hasInvalidBudgetTarget {
+            return "Bitte gib einen gueltigen positiven Wert ein."
+        }
+
+        if selectedBudgetUnit == .amount && !project.hasHourlyRate {
+            return "Fuer ein EUR-Budget bitte zuerst einen Stundensatz hinterlegen."
+        }
+
+        return "Leer lassen, wenn fuer dieses Projekt aktuell kein Budget gelten soll."
+    }
+
+    private func budgetSummaryValue(referenceDate: Date) -> String {
+        guard project.hasBudget else {
+            return "Offen"
+        }
+
+        return budgetHoursSummary(referenceDate: referenceDate)
+    }
+
+    private func budgetSummarySubtitle(referenceDate: Date) -> String {
+        guard project.hasBudget else {
+            return "Wert: Offen"
+        }
+
+        return "Wert: \(budgetAmountSummary(referenceDate: referenceDate))"
+    }
+
+    private func budgetHoursSummary(referenceDate: Date) -> String {
+        let duration = totalDuration(referenceDate: referenceDate)
+        let consumedHours = project.budgetValue(for: duration, in: .hours) ?? 0
+        let consumedText = budgetValueText(consumedHours, unit: .hours)
+
+        guard let targetHours = project.budgetTargetValue(in: .hours) else {
+            return consumedText
+        }
+
+        return "\(consumedText) / \(budgetValueText(targetHours, unit: .hours))"
+    }
+
+    private func budgetAmountSummary(referenceDate: Date) -> String {
+        let duration = totalDuration(referenceDate: referenceDate)
+        let consumedText: String
+
+        if let consumedAmount = project.budgetValue(for: duration, in: .amount) {
+            consumedText = budgetValueText(consumedAmount, unit: .amount)
+        } else {
+            consumedText = "Offen"
+        }
+
+        guard let targetAmount = project.budgetTargetValue(in: .amount) else {
+            return consumedText
+        }
+
+        return "\(consumedText) / \(budgetValueText(targetAmount, unit: .amount))"
+    }
+
+    private func secondaryBudgetSummary(
+        referenceDate: Date,
+        primaryUnit: ProjectBudgetUnit
+    ) -> String {
+        switch primaryUnit {
+        case .hours:
+            return "Wert: \(budgetAmountSummary(referenceDate: referenceDate))"
+        case .amount:
+            return "Zeit: \(budgetHoursSummary(referenceDate: referenceDate))"
+        }
+    }
+
+    private var availableExportModes: [ProjectExportContentMode] {
+        if project.hasHourlyRate {
+            return ProjectExportContentMode.allCases
+        }
+
+        return [.hoursOnly]
+    }
+
+    private func budgetSnapshot(referenceDate: Date) -> ProjectBudgetSnapshot? {
+        guard let unit = project.budgetUnit,
+              let target = project.effectiveBudgetTarget else {
+            return nil
+        }
+
+        let duration = totalDuration(referenceDate: referenceDate)
+
+        guard let consumed = project.budgetConsumedValue(for: duration) else {
+            return nil
+        }
+
+        return ProjectBudgetSnapshot(
+            unit: unit,
+            target: target,
+            consumed: consumed
+        )
+    }
+
+    private func budgetValueText(
+        _ value: Double,
+        unit: ProjectBudgetUnit
+    ) -> String {
+        switch unit {
+        case .hours:
+            return TimeFormatting.compactDuration(value * 3600)
+        case .amount:
+            return TimeFormatting.euroAmount(value)
+        }
+    }
+
+    private func convertBudgetEditorValue(
+        from oldUnit: ProjectBudgetUnit,
+        to newUnit: ProjectBudgetUnit
+    ) {
+        guard !isSyncingBudgetEditor,
+              oldUnit != newUnit,
+              let parsedBudgetTarget else {
+            return
+        }
+
+        guard let convertedBudgetTarget = project.convertedBudgetValue(
+            parsedBudgetTarget,
+            from: oldUnit,
+            to: newUnit
+        ) else {
+            return
+        }
+
+        isSyncingBudgetEditor = true
+        budgetTargetText = TimeFormatting.decimalInput(convertedBudgetTarget)
+        isSyncingBudgetEditor = false
+    }
+
     private var shouldShowBillingCard: Bool {
         !project.hasHourlyRate || isEditingHourlyRate
     }
@@ -982,6 +1433,173 @@ struct ProjectDetailView: View {
         }
     }
 
+    private func syncBudgetEditor() {
+        isSyncingBudgetEditor = true
+        defer { isSyncingBudgetEditor = false }
+
+        selectedBudgetUnit = project.budgetUnit ?? .hours
+        budgetTargetText = TimeFormatting.decimalInput(project.effectiveBudgetTarget)
+    }
+
+    private func syncExportConfiguration() {
+        if !project.hasHourlyRate {
+            exportContentMode = .hoursOnly
+        }
+
+        preparedExportURL = nil
+    }
+
+    private func presentBudgetDetails() {
+        syncBudgetEditor()
+        isEditingBudgetInSheet = false
+        isPresentingBudgetSheet = true
+    }
+
+    private func presentProjectExportSheet() {
+        syncExportConfiguration()
+        isPresentingExportSheet = true
+    }
+
+    private func exportProjectData() {
+        let selectedMode: ProjectExportContentMode = {
+            if project.hasHourlyRate {
+                return exportContentMode
+            }
+
+            return .hoursOnly
+        }()
+        let document = ProjectExportService.makeDocument(
+            for: project,
+            mode: selectedMode,
+            referenceDate: .now
+        )
+        let exportData = ProjectExportService.exportData(
+            document: document,
+            format: exportFormat
+        )
+
+        guard !exportData.isEmpty else {
+            billingErrorMessage = "Der Export konnte nicht erstellt werden."
+            return
+        }
+
+#if os(macOS)
+        guard let destinationURL = presentExportSavePanel(for: exportFormat) else {
+            return
+        }
+
+        do {
+            try exportData.write(to: destinationURL, options: .atomic)
+            isPresentingExportSheet = false
+        } catch {
+            billingErrorMessage = "Die Exportdatei konnte nicht gespeichert werden."
+        }
+#else
+        let destinationURL = makePreparedExportURL(for: exportFormat)
+
+        do {
+            try exportData.write(to: destinationURL, options: .atomic)
+            preparedExportURL = destinationURL
+        } catch {
+            billingErrorMessage = "Die Exportdatei konnte nicht vorbereitet werden."
+        }
+#endif
+    }
+
+#if os(macOS)
+    private func presentExportSavePanel(
+        for format: ProjectExportFormat
+    ) -> URL? {
+        let panel = NSSavePanel()
+        panel.canCreateDirectories = true
+        panel.isExtensionHidden = false
+        panel.allowedContentTypes = [utType(for: format)]
+        panel.nameFieldStringValue = defaultExportFileName(for: format)
+
+        let response = panel.runModal()
+        guard response == .OK else {
+            return nil
+        }
+
+        return panel.url
+    }
+#endif
+
+    private func defaultExportFileName(
+        for format: ProjectExportFormat
+    ) -> String {
+        ProjectExportFileNaming.defaultFileName(
+            projectName: project.displayName,
+            format: format
+        )
+    }
+
+    private func makePreparedExportURL(
+        for format: ProjectExportFormat
+    ) -> URL {
+        URL.temporaryDirectory.appending(path: defaultExportFileName(for: format))
+    }
+
+#if os(macOS)
+    private func utType(for format: ProjectExportFormat) -> UTType {
+        switch format {
+        case .csv:
+            return .commaSeparatedText
+        case .pdf:
+            return .pdf
+        }
+    }
+#endif
+
+    private func saveBudget() {
+        guard !hasInvalidBudgetTarget else {
+            billingErrorMessage = "Das Budget ist ungueltig."
+            return
+        }
+
+        if selectedBudgetUnit == .amount && !project.hasHourlyRate {
+            billingErrorMessage = "Fuer ein EUR-Budget wird ein Stundensatz benoetigt."
+            return
+        }
+
+        let previousBudgetUnitRaw = project.budgetUnitRaw
+        let previousBudgetTarget = project.budgetTarget
+
+        if let parsedBudgetTarget {
+            project.setBudget(
+                unit: selectedBudgetUnit,
+                target: parsedBudgetTarget
+            )
+        } else {
+            project.clearBudget()
+        }
+
+        do {
+            try modelContext.save()
+            syncBudgetEditor()
+        } catch {
+            project.budgetUnitRaw = previousBudgetUnitRaw
+            project.budgetTarget = previousBudgetTarget
+            billingErrorMessage = "Das Budget konnte nicht gespeichert werden."
+        }
+    }
+
+    private func clearBudget() {
+        let previousBudgetUnitRaw = project.budgetUnitRaw
+        let previousBudgetTarget = project.budgetTarget
+
+        project.clearBudget()
+
+        do {
+            try modelContext.save()
+            syncBudgetEditor()
+        } catch {
+            project.budgetUnitRaw = previousBudgetUnitRaw
+            project.budgetTarget = previousBudgetTarget
+            billingErrorMessage = "Das Budget konnte nicht entfernt werden."
+        }
+    }
+
     private var projectAccentColorBinding: Binding<Color> {
         Binding(
             get: { project.projectAccentColor },
@@ -1024,6 +1642,121 @@ struct ProjectDetailView: View {
             billingErrorMessage = "Die Projektfarbe konnte nicht zurueckgesetzt werden."
         }
     }
+}
+
+private struct ProjectBudgetSnapshot {
+    let unit: ProjectBudgetUnit
+    let target: Double
+    let consumed: Double
+
+    var remaining: Double {
+        target - consumed
+    }
+
+    var progress: Double {
+        guard target > 0 else {
+            return 0
+        }
+
+        return consumed / target
+    }
+
+    var isOverBudget: Bool {
+        remaining < 0
+    }
+
+    var progressText: String {
+        progress.formatted(
+            .percent
+                .precision(.fractionLength(0))
+        )
+    }
+
+    func statusText(unitFormatter: (Double, ProjectBudgetUnit) -> String) -> String {
+        if remaining > 0 {
+            return "Restbudget: \(unitFormatter(remaining, unit))"
+        }
+
+        if remaining < 0 {
+            return "Ueberzogen um \(unitFormatter(abs(remaining), unit))"
+        }
+
+        return "Budget exakt erreicht"
+    }
+}
+
+private struct BudgetProgressDonut: View {
+    let snapshot: ProjectBudgetSnapshot
+    let accentColor: Color
+
+    private var chartSegments: [BudgetProgressSegment] {
+        let consumedInTarget = min(max(snapshot.consumed, 0), max(snapshot.target, 0))
+        let remaining = max(snapshot.target - consumedInTarget, 0)
+        let overBudget = max(snapshot.consumed - snapshot.target, 0)
+
+        var segments: [BudgetProgressSegment] = []
+
+        if consumedInTarget > 0 {
+            segments.append(
+                BudgetProgressSegment(
+                    label: "Verbraucht",
+                    value: consumedInTarget,
+                    color: accentColor
+                )
+            )
+        }
+
+        if remaining > 0 {
+            segments.append(
+                BudgetProgressSegment(
+                    label: "Rest",
+                    value: remaining,
+                    color: .secondary.opacity(0.28)
+                )
+            )
+        }
+
+        if overBudget > 0 {
+            segments.append(
+                BudgetProgressSegment(
+                    label: "Ueber Budget",
+                    value: overBudget,
+                    color: ClientProject.stopActionColor
+                )
+            )
+        }
+
+        if segments.isEmpty {
+            return [
+                BudgetProgressSegment(
+                    label: "Leer",
+                    value: 1,
+                    color: .secondary.opacity(0.18)
+                )
+            ]
+        }
+
+        return segments
+    }
+
+    var body: some View {
+        Chart(chartSegments) { segment in
+            SectorMark(
+                angle: .value("Anteil", segment.value),
+                innerRadius: .ratio(0.64),
+                angularInset: 1
+            )
+            .foregroundStyle(segment.color)
+        }
+        .chartLegend(.hidden)
+    }
+}
+
+private struct BudgetProgressSegment: Identifiable {
+    let id = UUID()
+    let label: String
+    let value: Double
+    let color: Color
 }
 
 private struct SummaryCard: View {
@@ -1300,7 +2033,9 @@ private struct SessionRow: View {
                         .font(.headline)
                         .foregroundStyle(rowSecondaryStyle)
                 }
+#if os(macOS)
                 .menuStyle(.borderlessButton)
+#endif
             }
 
             VStack(alignment: .trailing, spacing: 6) {
@@ -1461,7 +2196,11 @@ private struct NewTaskAssignmentSheet: View {
             }
         }
         .padding(24)
+#if os(macOS)
         .frame(width: 460)
+#else
+        .frame(maxWidth: .infinity, alignment: .leading)
+#endif
     }
 }
 
@@ -1484,5 +2223,17 @@ private struct SessionDurationText: View {
         Text(TimeFormatting.digitalDuration(interval))
             .font(.system(size: 15, weight: .semibold, design: .rounded))
             .monospacedDigit()
+    }
+}
+
+private extension Color {
+    static var platformWindowBackground: Color {
+#if canImport(AppKit)
+        return Color(nsColor: .windowBackgroundColor)
+#elseif canImport(UIKit)
+        return Color(uiColor: .systemGroupedBackground)
+#else
+        return .background
+#endif
     }
 }

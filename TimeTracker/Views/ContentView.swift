@@ -1,10 +1,17 @@
 import SwiftData
 import SwiftUI
 import Charts
+#if canImport(AppKit)
+import AppKit
+#elseif canImport(UIKit)
+import UIKit
+#endif
 
-struct ContentView: View {
+struct WorkspaceRootView: View {
     @Environment(\.modelContext) private var modelContext
     let trackingStatus: TrackingStatusStore
+    let forcedWorkspaceSection: WorkspaceSection?
+    let showsWorkspaceSectionPicker: Bool
 
     @Query(
         sort: [
@@ -34,6 +41,10 @@ struct ContentView: View {
 
     private var activeSession: WorkSession? {
         activeSessions.first
+    }
+
+    private var activeWorkspaceSection: WorkspaceSection {
+        forcedWorkspaceSection ?? selectedWorkspaceSection
     }
 
     private var activeProjects: [ClientProject] {
@@ -111,6 +122,16 @@ struct ContentView: View {
             .onChange(of: projectIDList) { _, projectIDs in
                 synchronizeSelection(with: projectIDs)
             }
+    }
+
+    init(
+        trackingStatus: TrackingStatusStore,
+        forcedWorkspaceSection: WorkspaceSection? = nil,
+        showsWorkspaceSectionPicker: Bool = true
+    ) {
+        self.trackingStatus = trackingStatus
+        self.forcedWorkspaceSection = forcedWorkspaceSection
+        self.showsWorkspaceSectionPicker = showsWorkspaceSectionPicker
     }
 
     private var navigationLayout: some View {
@@ -269,9 +290,11 @@ struct ContentView: View {
     @ViewBuilder
     private var detailArea: some View {
         VStack(alignment: .leading, spacing: 0) {
-            workspaceTabBar
+            if showsWorkspaceSectionPicker && forcedWorkspaceSection == nil {
+                workspaceTabBar
+            }
 
-            if selectedWorkspaceSection == .analytics {
+            if activeWorkspaceSection == .analytics {
                 AnalyticsOverviewView(projects: projects)
             } else {
                 trackingDetailContent
@@ -481,7 +504,7 @@ struct ContentView: View {
     }
 }
 
-private enum WorkspaceSection: String, CaseIterable, Identifiable {
+enum WorkspaceSection: String, CaseIterable, Identifiable {
     case tracking
     case analytics
 
@@ -508,6 +531,7 @@ private enum WorkspaceSection: String, CaseIterable, Identifiable {
 
 private struct WorkspaceTabButton: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     let title: String
     let systemImage: String
@@ -518,7 +542,8 @@ private struct WorkspaceTabButton: View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
                 .font(.subheadline.weight(.semibold))
-                .frame(minWidth: 160)
+                .frame(minWidth: horizontalSizeClass == .compact ? nil : 160)
+                .frame(maxWidth: horizontalSizeClass == .compact ? .infinity : nil)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
         }
@@ -718,7 +743,7 @@ private struct EmptyStateView: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(nsColor: .windowBackgroundColor),
+                    .platformWindowBackground,
                     Color.teal.opacity(0.06),
                     Color.orange.opacity(0.05),
                 ],
@@ -785,7 +810,7 @@ private struct AnalyticsOverviewView: View {
         if colorScheme == .dark {
             return LinearGradient(
                 colors: [
-                    Color(nsColor: .windowBackgroundColor),
+                    .platformWindowBackground,
                     Color.teal.opacity(0.14),
                     Color.black.opacity(0.20),
                 ],
@@ -1930,6 +1955,18 @@ private enum AnalyticsCalculator {
         let nextHourText = nextHour.formatted(.number.precision(.integerLength(2)))
 
         return "Aktivstes Zeitfenster: \(peakHourText):00-\(nextHourText):00 mit durchschnittlich \(TimeFormatting.compactDuration(peakAverageDuration)) pro Tag."
+    }
+}
+
+private extension Color {
+    static var platformWindowBackground: Color {
+#if canImport(AppKit)
+        return Color(nsColor: .windowBackgroundColor)
+#elseif canImport(UIKit)
+        return Color(uiColor: .systemGroupedBackground)
+#else
+        return .background
+#endif
     }
 }
 
