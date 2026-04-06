@@ -4,6 +4,7 @@ import SwiftUI
 struct ProjectDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     let project: ClientProject
     let activeSession: WorkSession?
@@ -37,6 +38,10 @@ struct ProjectDetailView: View {
         }
 
         return activeSession?.task == nil
+    }
+
+    private var isCompactWidth: Bool {
+        horizontalSizeClass == .compact
     }
 
     var body: some View {
@@ -135,57 +140,16 @@ struct ProjectDetailView: View {
 
     private var headerCard: some View {
         VStack(alignment: .leading, spacing: 20) {
-            HStack(alignment: .top, spacing: 20) {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 12) {
-                        Circle()
-                            .fill(project.projectAccentColor)
-                            .frame(width: 14, height: 14)
-
-                        Text(project.displayName)
-                            .font(.system(size: 34, weight: .bold, design: .rounded))
-                            .foregroundStyle(headerPrimaryStyle)
-                    }
-
-                    Text(project.displayClientName)
-                        .font(.title3.weight(.medium))
-                        .foregroundStyle(headerSecondaryStyle)
-
-                    if !project.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Text(project.notes)
-                            .font(.body)
-                            .foregroundStyle(headerSecondaryStyle)
-                            .padding(.top, 2)
-                    }
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 20) {
+                    headerPrimaryInfo
+                    Spacer()
+                    headerActionPanel(alignment: .trailing)
                 }
 
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 10) {
-                    actionButton
-                    if !project.isArchived {
-                        manualEntryButton
-                    }
-                    projectActionsButton
-                    projectColorControls
-
-                    if !project.isArchived, let selectedTaskForStart {
-                        Label("Aktiv: \(selectedTaskForStart.displayTitle)", systemImage: "scope")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(headerSecondaryStyle)
-                            .frame(maxWidth: 260, alignment: .trailing)
-                            .multilineTextAlignment(.trailing)
-                    }
-
-                    if !project.isArchived,
-                       let activeSession,
-                       let activeProject = activeSession.project,
-                       activeProject.id != project.id {
-                        Text("Beim Start wird \(activeProject.displayName) automatisch gestoppt.")
-                            .font(.caption)
-                            .foregroundStyle(headerSecondaryStyle)
-                            .frame(maxWidth: 260, alignment: .trailing)
-                    }
+                VStack(alignment: .leading, spacing: 16) {
+                    headerPrimaryInfo
+                    headerActionPanel(alignment: .leading)
                 }
             }
 
@@ -235,6 +199,62 @@ struct ProjectDetailView: View {
         .shadow(color: headerShadowStyle, radius: 18, x: 0, y: 12)
     }
 
+    private var headerPrimaryInfo: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                Circle()
+                    .fill(project.projectAccentColor)
+                    .frame(width: 14, height: 14)
+
+                Text(project.displayName)
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .foregroundStyle(headerPrimaryStyle)
+            }
+
+            Text(project.displayClientName)
+                .font(.title3.weight(.medium))
+                .foregroundStyle(headerSecondaryStyle)
+
+            if !project.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(project.notes)
+                    .font(.body)
+                    .foregroundStyle(headerSecondaryStyle)
+                    .padding(.top, 2)
+            }
+        }
+    }
+
+    private func headerActionPanel(alignment: HorizontalAlignment) -> some View {
+        VStack(alignment: alignment, spacing: 10) {
+            actionButton
+            if !project.isArchived {
+                manualEntryButton
+            }
+            projectActionsButton
+            projectColorControls
+
+            if !project.isArchived, let selectedTaskForStart {
+                Label("Aktiv: \(selectedTaskForStart.displayTitle)", systemImage: "scope")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(headerSecondaryStyle)
+                    .frame(maxWidth: isCompactWidth ? .infinity : 260, alignment: isCompactWidth ? .leading : .trailing)
+                    .multilineTextAlignment(isCompactWidth ? .leading : .trailing)
+            }
+
+            if !project.isArchived,
+               let activeSession,
+               let activeProject = activeSession.project,
+               activeProject.id != project.id {
+                Text("Beim Start wird \(activeProject.displayName) automatisch gestoppt.")
+                    .font(.caption)
+                    .foregroundStyle(headerSecondaryStyle)
+                    .frame(maxWidth: isCompactWidth ? .infinity : 260, alignment: isCompactWidth ? .leading : .trailing)
+                    .multilineTextAlignment(isCompactWidth ? .leading : .trailing)
+            }
+        }
+        .frame(maxWidth: isCompactWidth ? .infinity : nil, alignment: isCompactWidth ? .leading : .trailing)
+    }
+
     private var actionButton: some View {
         Button(action: {
             if project.isArchived {
@@ -251,7 +271,8 @@ struct ProjectDetailView: View {
                 actionButtonTitle,
                 systemImage: actionButtonSystemImage
             )
-            .frame(minWidth: 220)
+            .frame(minWidth: isCompactWidth ? nil : 220)
+            .frame(maxWidth: isCompactWidth ? .infinity : nil)
         }
         .buttonStyle(.borderedProminent)
         .controlSize(.large)
@@ -281,9 +302,12 @@ struct ProjectDetailView: View {
             }
         } label: {
             Label("Projekt", systemImage: "ellipsis.circle")
-                .frame(minWidth: 220)
+                .frame(minWidth: isCompactWidth ? nil : 220)
+                .frame(maxWidth: isCompactWidth ? .infinity : nil)
         }
+#if os(macOS)
         .menuStyle(.borderlessButton)
+#endif
         .controlSize(.large)
     }
 
@@ -307,7 +331,7 @@ struct ProjectDetailView: View {
                     .controlSize(.small)
             }
         }
-        .frame(maxWidth: 260, alignment: .trailing)
+        .frame(maxWidth: isCompactWidth ? .infinity : 260, alignment: isCompactWidth ? .leading : .trailing)
     }
 
     private func archiveStatusBadge(archivedAt: Date) -> some View {
@@ -401,7 +425,8 @@ struct ProjectDetailView: View {
     private var manualEntryButton: some View {
         Button(action: onAddManualEntry) {
             Label("Eintrag nachtragen", systemImage: "calendar.badge.plus")
-                .frame(minWidth: 220)
+                .frame(minWidth: isCompactWidth ? nil : 220)
+                .frame(maxWidth: isCompactWidth ? .infinity : nil)
         }
         .buttonStyle(.bordered)
         .controlSize(.large)
@@ -673,7 +698,7 @@ struct ProjectDetailView: View {
         if colorScheme == .dark {
             return LinearGradient(
                 colors: [
-                    Color(nsColor: .windowBackgroundColor),
+                    .platformWindowBackground,
                     project.projectAccentColor.opacity(0.16),
                     Color.black.opacity(0.18),
                 ],
@@ -1061,8 +1086,10 @@ private struct SummaryCard: View {
             Text(subtitle)
                 .font(.subheadline)
                 .foregroundStyle(summarySecondaryStyle)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 188, maxHeight: 188, alignment: .topLeading)
         .padding(22)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
@@ -1300,7 +1327,9 @@ private struct SessionRow: View {
                         .font(.headline)
                         .foregroundStyle(rowSecondaryStyle)
                 }
+#if os(macOS)
                 .menuStyle(.borderlessButton)
+#endif
             }
 
             VStack(alignment: .trailing, spacing: 6) {
@@ -1461,7 +1490,11 @@ private struct NewTaskAssignmentSheet: View {
             }
         }
         .padding(24)
+#if os(macOS)
         .frame(width: 460)
+#else
+        .frame(maxWidth: .infinity, alignment: .leading)
+#endif
     }
 }
 
@@ -1484,5 +1517,17 @@ private struct SessionDurationText: View {
         Text(TimeFormatting.digitalDuration(interval))
             .font(.system(size: 15, weight: .semibold, design: .rounded))
             .monospacedDigit()
+    }
+}
+
+private extension Color {
+    static var platformWindowBackground: Color {
+#if canImport(AppKit)
+        return Color(nsColor: .windowBackgroundColor)
+#elseif canImport(UIKit)
+        return Color(uiColor: .systemGroupedBackground)
+#else
+        return .background
+#endif
     }
 }

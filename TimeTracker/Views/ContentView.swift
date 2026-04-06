@@ -1,9 +1,15 @@
 import SwiftData
 import SwiftUI
 import Charts
+#if canImport(AppKit)
+import AppKit
+#elseif canImport(UIKit)
+import UIKit
+#endif
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     let trackingStatus: TrackingStatusStore
 
     @Query(
@@ -34,6 +40,10 @@ struct ContentView: View {
 
     private var activeSession: WorkSession? {
         activeSessions.first
+    }
+
+    private var isCompactLayout: Bool {
+        horizontalSizeClass == .compact
     }
 
     private var activeProjects: [ClientProject] {
@@ -97,7 +107,7 @@ struct ContentView: View {
     }
 
     var body: some View {
-        navigationLayout
+        workspaceLayout
             .sheet(isPresented: $isPresentingNewProjectSheet, content: newProjectSheet)
             .sheet(isPresented: $isPresentingManualSessionSheet, content: manualSessionSheet)
             .sheet(item: $sessionEditor, content: sessionEditorSheet(editor:))
@@ -113,11 +123,54 @@ struct ContentView: View {
             }
     }
 
-    private var navigationLayout: some View {
+    @ViewBuilder
+    private var workspaceLayout: some View {
+#if os(iOS)
+        if isCompactLayout {
+            TabView(selection: $selectedWorkspaceSection) {
+                Tab(
+                    "Aufnehmen",
+                    systemImage: "record.circle",
+                    value: WorkspaceSection.tracking
+                ) {
+                    navigationLayout(for: .tracking, showsWorkspaceTabBar: false)
+                }
+
+                Tab(
+                    "Auswertung",
+                    systemImage: "chart.bar.xaxis",
+                    value: WorkspaceSection.analytics
+                ) {
+                    navigationLayout(for: .analytics, showsWorkspaceTabBar: false)
+                }
+            }
+            .toolbarBackground(.visible, for: .tabBar)
+            .toolbarBackground(.regularMaterial, for: .tabBar)
+        } else {
+            navigationLayout(
+                for: selectedWorkspaceSection,
+                showsWorkspaceTabBar: true
+            )
+        }
+#else
+        navigationLayout(
+            for: selectedWorkspaceSection,
+            showsWorkspaceTabBar: true
+        )
+#endif
+    }
+
+    private func navigationLayout(
+        for section: WorkspaceSection,
+        showsWorkspaceTabBar: Bool
+    ) -> some View {
         NavigationSplitView {
             sidebar
         } detail: {
-            detailArea
+            detailArea(
+                for: section,
+                showsWorkspaceTabBar: showsWorkspaceTabBar
+            )
         }
         .navigationSplitViewStyle(.balanced)
     }
@@ -267,11 +320,16 @@ struct ContentView: View {
     }
 
     @ViewBuilder
-    private var detailArea: some View {
+    private func detailArea(
+        for section: WorkspaceSection,
+        showsWorkspaceTabBar: Bool
+    ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            workspaceTabBar
+            if showsWorkspaceTabBar {
+                workspaceTabBar
+            }
 
-            if selectedWorkspaceSection == .analytics {
+            if section == .analytics {
                 AnalyticsOverviewView(projects: projects)
             } else {
                 trackingDetailContent
@@ -718,7 +776,7 @@ private struct EmptyStateView: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(nsColor: .windowBackgroundColor),
+                    .platformWindowBackground,
                     Color.teal.opacity(0.06),
                     Color.orange.opacity(0.05),
                 ],
@@ -785,7 +843,7 @@ private struct AnalyticsOverviewView: View {
         if colorScheme == .dark {
             return LinearGradient(
                 colors: [
-                    Color(nsColor: .windowBackgroundColor),
+                    .platformWindowBackground,
                     Color.teal.opacity(0.14),
                     Color.black.opacity(0.20),
                 ],
@@ -1930,6 +1988,18 @@ private enum AnalyticsCalculator {
         let nextHourText = nextHour.formatted(.number.precision(.integerLength(2)))
 
         return "Aktivstes Zeitfenster: \(peakHourText):00-\(nextHourText):00 mit durchschnittlich \(TimeFormatting.compactDuration(peakAverageDuration)) pro Tag."
+    }
+}
+
+private extension Color {
+    static var platformWindowBackground: Color {
+#if canImport(AppKit)
+        return Color(nsColor: .windowBackgroundColor)
+#elseif canImport(UIKit)
+        return Color(uiColor: .systemGroupedBackground)
+#else
+        return .background
+#endif
     }
 }
 
