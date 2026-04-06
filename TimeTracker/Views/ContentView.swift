@@ -7,10 +7,11 @@ import AppKit
 import UIKit
 #endif
 
-struct ContentView: View {
+struct WorkspaceRootView: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     let trackingStatus: TrackingStatusStore
+    let forcedWorkspaceSection: WorkspaceSection?
+    let showsWorkspaceSectionPicker: Bool
 
     @Query(
         sort: [
@@ -42,8 +43,8 @@ struct ContentView: View {
         activeSessions.first
     }
 
-    private var isCompactLayout: Bool {
-        horizontalSizeClass == .compact
+    private var activeWorkspaceSection: WorkspaceSection {
+        forcedWorkspaceSection ?? selectedWorkspaceSection
     }
 
     private var activeProjects: [ClientProject] {
@@ -123,41 +124,21 @@ struct ContentView: View {
             }
     }
 
-    @ViewBuilder
-    private var workspaceLayout: some View {
-#if os(iOS)
-        if isCompactLayout {
-            TabView(selection: $selectedWorkspaceSection) {
-                Tab(
-                    "Aufnehmen",
-                    systemImage: "record.circle",
-                    value: WorkspaceSection.tracking
-                ) {
-                    navigationLayout(for: .tracking, showsWorkspaceTabBar: false)
-                }
+    init(
+        trackingStatus: TrackingStatusStore,
+        forcedWorkspaceSection: WorkspaceSection? = nil,
+        showsWorkspaceSectionPicker: Bool = true
+    ) {
+        self.trackingStatus = trackingStatus
+        self.forcedWorkspaceSection = forcedWorkspaceSection
+        self.showsWorkspaceSectionPicker = showsWorkspaceSectionPicker
+    }
 
-                Tab(
-                    "Auswertung",
-                    systemImage: "chart.bar.xaxis",
-                    value: WorkspaceSection.analytics
-                ) {
-                    navigationLayout(for: .analytics, showsWorkspaceTabBar: false)
-                }
-            }
-            .toolbarBackground(.visible, for: .tabBar)
-            .toolbarBackground(.regularMaterial, for: .tabBar)
-        } else {
-            navigationLayout(
-                for: selectedWorkspaceSection,
-                showsWorkspaceTabBar: true
-            )
-        }
-#else
+    private var workspaceLayout: some View {
         navigationLayout(
-            for: selectedWorkspaceSection,
-            showsWorkspaceTabBar: true
+            for: activeWorkspaceSection,
+            showsWorkspaceTabBar: showsWorkspaceSectionPicker && forcedWorkspaceSection == nil
         )
-#endif
     }
 
     private func navigationLayout(
@@ -539,7 +520,7 @@ struct ContentView: View {
     }
 }
 
-private enum WorkspaceSection: String, CaseIterable, Identifiable {
+enum WorkspaceSection: String, CaseIterable, Identifiable {
     case tracking
     case analytics
 
@@ -566,6 +547,7 @@ private enum WorkspaceSection: String, CaseIterable, Identifiable {
 
 private struct WorkspaceTabButton: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     let title: String
     let systemImage: String
@@ -576,7 +558,8 @@ private struct WorkspaceTabButton: View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
                 .font(.subheadline.weight(.semibold))
-                .frame(minWidth: 160)
+                .frame(minWidth: horizontalSizeClass == .compact ? nil : 160)
+                .frame(maxWidth: horizontalSizeClass == .compact ? .infinity : nil)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
         }

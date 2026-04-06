@@ -1,8 +1,15 @@
+//
+//  TimeTrackeriOSApp.swift
+//  TimeTrackeriOS
+//
+//  Created by André Bongartz on 06.04.26.
+//
+
 import SwiftData
 import SwiftUI
 
 @main
-struct TimeTrackerApp: App {
+struct TimeTrackeriOSApp: App {
     private let sharedModelContainer: ModelContainer
     @State private var trackingStatus: TrackingStatusStore
 
@@ -20,17 +27,8 @@ struct TimeTrackerApp: App {
 
     var body: some Scene {
         WindowGroup {
-            WorkspaceRootView(trackingStatus: trackingStatus)
-                .frame(minWidth: 1100, minHeight: 720)
+            ContentView(trackingStatus: trackingStatus)
         }
         .modelContainer(sharedModelContainer)
-
-        MenuBarExtra {
-            MenuBarTrackingView(trackingStatus: trackingStatus)
-        } label: {
-            MenuBarStatusLabel(trackingStatus: trackingStatus)
-        }
-        .modelContainer(sharedModelContainer)
-        .menuBarExtraStyle(.window)
     }
 }

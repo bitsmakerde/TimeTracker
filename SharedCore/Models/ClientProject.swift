@@ -1,7 +1,11 @@
 import Foundation
 import SwiftData
 import SwiftUI
+#if canImport(AppKit)
 import AppKit
+#elseif canImport(UIKit)
+import UIKit
+#endif
 
 enum ProjectBudgetUnit: String, CaseIterable, Identifiable {
     case hours
@@ -317,6 +321,7 @@ extension ClientProject {
     }
 
     private static func srgbComponents(from color: Color) -> (red: Double, green: Double, blue: Double)? {
+#if canImport(AppKit)
         guard let srgbColor = NSColor(color).usingColorSpace(.sRGB) else {
             return nil
         }
@@ -326,6 +331,30 @@ extension ClientProject {
             green: Double(srgbColor.greenComponent),
             blue: Double(srgbColor.blueComponent)
         )
+#elseif canImport(UIKit)
+        let platformColor = UIColor(color)
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+
+        guard platformColor.getRed(
+            &red,
+            green: &green,
+            blue: &blue,
+            alpha: &alpha
+        ) else {
+            return nil
+        }
+
+        return (
+            red: Double(red),
+            green: Double(green),
+            blue: Double(blue)
+        )
+#else
+        return nil
+#endif
     }
 
     private static func prominentActionColor(from color: Color) -> Color {
