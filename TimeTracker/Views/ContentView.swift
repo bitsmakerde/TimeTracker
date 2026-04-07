@@ -9,6 +9,7 @@ import UIKit
 
 struct WorkspaceRootView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     let trackingStatus: TrackingStatusStore
     let forcedWorkspaceSection: WorkspaceSection?
     let showsWorkspaceSectionPicker: Bool
@@ -134,12 +135,68 @@ struct WorkspaceRootView: View {
         self.showsWorkspaceSectionPicker = showsWorkspaceSectionPicker
     }
 
+    @ViewBuilder
     private var workspaceLayout: some View {
+#if os(iOS)
+        if WorkspaceRootLayoutRules.usesTabRoot(
+            horizontalSizeClass: horizontalSizeClass,
+            forcedWorkspaceSection: forcedWorkspaceSection
+        ) {
+            iosCompactTabLayout
+        } else if horizontalSizeClass == .compact {
+            NavigationStack {
+                detailArea(
+                    for: activeWorkspaceSection,
+                    showsWorkspaceTabBar: false
+                )
+                .navigationTitle(activeWorkspaceSection.title)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar(content: iosCompactToolbar)
+            }
+        } else {
+            navigationLayout(
+                for: activeWorkspaceSection,
+                showsWorkspaceTabBar: showsWorkspaceSectionPicker && forcedWorkspaceSection == nil
+            )
+        }
+#else
         navigationLayout(
             for: activeWorkspaceSection,
             showsWorkspaceTabBar: showsWorkspaceSectionPicker && forcedWorkspaceSection == nil
         )
+#endif
     }
+
+#if os(iOS)
+    private var iosCompactTabLayout: some View {
+        TabView(selection: $selectedWorkspaceSection) {
+            Tab(
+                WorkspaceSection.tracking.title,
+                systemImage: WorkspaceSection.tracking.systemImage,
+                value: WorkspaceSection.tracking
+            ) {
+                NavigationStack {
+                    trackingDetailContent
+                        .navigationTitle(WorkspaceSection.tracking.title)
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar(content: iosCompactToolbar)
+                }
+            }
+
+            Tab(
+                WorkspaceSection.analytics.title,
+                systemImage: WorkspaceSection.analytics.systemImage,
+                value: WorkspaceSection.analytics
+            ) {
+                NavigationStack {
+                    AnalyticsOverviewView(projects: projects)
+                        .navigationTitle(WorkspaceSection.analytics.title)
+                        .navigationBarTitleDisplayMode(.inline)
+                }
+            }
+        }
+    }
+#endif
 
     private func navigationLayout(
         for section: WorkspaceSection,
@@ -155,6 +212,52 @@ struct WorkspaceRootView: View {
         }
         .navigationSplitViewStyle(.balanced)
     }
+
+#if os(iOS)
+    @ToolbarContentBuilder
+    private func iosCompactToolbar() -> some ToolbarContent {
+        if activeWorkspaceSection == .tracking {
+            ToolbarItem(placement: .topBarLeading) {
+                Menu {
+                    if activeProjects.isEmpty {
+                        Text("Keine Projekte")
+                    } else {
+                        ForEach(activeProjects) { project in
+                            Button {
+                                selectedProjectID = project.id
+                            } label: {
+                                Label(
+                                    project.displayName,
+                                    systemImage: selectedProjectID == project.id ? "checkmark" : "circle"
+                                )
+                            }
+                        }
+                    }
+                } label: {
+                    Label("Projekt", systemImage: "folder")
+                }
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    presentNewProjectSheet()
+                } label: {
+                    Label("Projekt", systemImage: "plus")
+                }
+            }
+
+            if activeSession != nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(role: .destructive) {
+                        stopActiveTracking()
+                    } label: {
+                        Label("Stopp", systemImage: "stop.fill")
+                    }
+                }
+            }
+        }
+    }
+#endif
 
     private func newProjectSheet() -> some View {
         NewProjectSheet(initialClientName: initialClientNameForNewProject) { project in
@@ -545,6 +648,15 @@ enum WorkspaceSection: String, CaseIterable, Identifiable {
     }
 }
 
+struct WorkspaceRootLayoutRules {
+    static func usesTabRoot(
+        horizontalSizeClass: UserInterfaceSizeClass?,
+        forcedWorkspaceSection: WorkspaceSection?
+    ) -> Bool {
+        horizontalSizeClass == .compact && forcedWorkspaceSection == nil
+    }
+}
+
 private struct WorkspaceTabButton: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -729,7 +841,8 @@ private struct ActiveSidebarCard: View {
 
             TimelineView(.periodic(from: .now, by: 1)) { timeline in
                 Text(TimeFormatting.digitalDuration(session.duration(referenceDate: timeline.date)))
-                    .font(.system(size: 28, weight: .semibold, design: .rounded))
+                    .font(.title2)
+                    .bold()
                     .monospacedDigit()
             }
 
@@ -770,11 +883,16 @@ private struct EmptyStateView: View {
 
             VStack(alignment: .leading, spacing: 20) {
                 Text("Zeiten pro Kundenprojekt erfassen")
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .font(.largeTitle)
+                    .bold()
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text("Lege dein erstes Projekt an und starte die Zeiterfassung direkt aus der Uebersicht.")
                     .font(.title3)
                     .foregroundStyle(.secondary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Button("Projekt anlegen", action: onAddProject)
                     .buttonStyle(.borderedProminent)
@@ -793,8 +911,13 @@ private struct EmptyStateView: View {
 
 private struct AnalyticsOverviewView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     let projects: [ClientProject]
+
+    private var analyticsContentPadding: CGFloat {
+        horizontalSizeClass == .compact ? 16 : 28
+    }
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 60)) { timeline in
@@ -815,7 +938,7 @@ private struct AnalyticsOverviewView: View {
                         AnalyticsWeeklyHoursCard(snapshot: snapshot)
                         AnalyticsDailyDistributionCard(snapshot: snapshot)
                     }
-                    .padding(28)
+                    .padding(analyticsContentPadding)
                 }
                 .scrollIndicators(.hidden)
             }
@@ -854,11 +977,14 @@ private struct AnalyticsHeaderCard: View {
         AnalyticsCard {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Auswertungen")
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .font(.largeTitle)
+                    .bold()
 
                 Text("Top-Projekte, Wochenstunden und taegliche Arbeitsverteilung auf einen Blick.")
                     .font(.title3)
                     .foregroundStyle(.secondary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(snapshot.subtitle)
                     .font(.subheadline.weight(.semibold))
@@ -875,7 +1001,7 @@ private struct AnalyticsMetricGrid: View {
     var body: some View {
         LazyVGrid(
             columns: [
-                GridItem(.adaptive(minimum: 180), spacing: 16),
+                GridItem(.adaptive(minimum: 140), spacing: 16),
             ],
             spacing: 16
         ) {
@@ -920,7 +1046,8 @@ private struct AnalyticsMetricCard: View {
                 .foregroundStyle(secondaryTextStyle)
 
             Text(value)
-                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .font(.title2)
+                .bold()
                 .monospacedDigit()
 
             Text(subtitle)
@@ -968,6 +1095,8 @@ private struct AnalyticsMetricCard: View {
 }
 
 private struct AnalyticsTopProjectsCard: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
     @State private var visualization: AnalyticsTopProjectsVisualization = .bar
 
     let snapshot: AnalyticsSnapshot
@@ -976,23 +1105,36 @@ private struct AnalyticsTopProjectsCard: View {
         Array(snapshot.projectTotals.prefix(6))
     }
 
+    private var pieLegendMinimum: CGFloat {
+        horizontalSizeClass == .compact ? 140 : 180
+    }
+
     var body: some View {
         AnalyticsCard {
             VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .center) {
-                    Text("Top-Projekte und Zeitverteilung")
-                        .font(.title2.weight(.semibold))
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .center) {
+                        Text("Top-Projekte und Zeitverteilung")
+                            .font(.title2)
+                            .bold()
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                    Spacer()
+                        Spacer()
 
-                    Picker("Darstellung", selection: $visualization) {
-                        ForEach(AnalyticsTopProjectsVisualization.allCases) { mode in
-                            Label(mode.title, systemImage: mode.systemImage)
-                                .tag(mode)
-                        }
+                        visualizationPicker
+                            .frame(maxWidth: 290)
                     }
-                    .pickerStyle(.segmented)
-                    .frame(maxWidth: 290)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Top-Projekte und Zeitverteilung")
+                            .font(.title2)
+                            .bold()
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        visualizationPicker
+                    }
                 }
 
                 if topProjects.isEmpty {
@@ -1009,11 +1151,22 @@ private struct AnalyticsTopProjectsCard: View {
                 } else {
                     AnalyticsTopProjectsPieChart(
                         projects: topProjects,
-                        totalDuration: snapshot.totalDuration
+                        totalDuration: snapshot.totalDuration,
+                        pieLegendMinimum: pieLegendMinimum
                     )
                 }
             }
         }
+    }
+
+    private var visualizationPicker: some View {
+        Picker("Darstellung", selection: $visualization) {
+            ForEach(AnalyticsTopProjectsVisualization.allCases) { mode in
+                Label(mode.title, systemImage: mode.systemImage)
+                    .tag(mode)
+            }
+        }
+        .pickerStyle(.segmented)
     }
 }
 
@@ -1045,6 +1198,7 @@ private enum AnalyticsTopProjectsVisualization: String, CaseIterable, Identifiab
 private struct AnalyticsTopProjectsPieChart: View {
     let projects: [AnalyticsProjectTotal]
     let totalDuration: TimeInterval
+    let pieLegendMinimum: CGFloat
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -1067,7 +1221,7 @@ private struct AnalyticsTopProjectsPieChart: View {
 
             LazyVGrid(
                 columns: [
-                    GridItem(.adaptive(minimum: 180), spacing: 12),
+                    GridItem(.adaptive(minimum: pieLegendMinimum), spacing: 12),
                 ],
                 spacing: 10
             ) {
@@ -1078,13 +1232,16 @@ private struct AnalyticsTopProjectsPieChart: View {
                             .frame(width: 9, height: 9)
 
                         Text(project.projectName)
-                            .font(.subheadline.weight(.semibold))
-                            .lineLimit(1)
+                            .font(.subheadline)
+                            .bold()
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
 
                         Spacer(minLength: 6)
 
                         Text(project.shareText(totalDuration: totalDuration))
-                            .font(.caption.weight(.semibold))
+                            .font(.caption)
+                            .bold()
                             .monospacedDigit()
                     }
                 }
@@ -1270,6 +1427,7 @@ private struct AnalyticsChartColorScale: ViewModifier {
 
 private struct AnalyticsCard<Content: View>: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     let content: Content
 
@@ -1279,7 +1437,7 @@ private struct AnalyticsCard<Content: View>: View {
 
     var body: some View {
         content
-            .padding(24)
+            .padding(horizontalSizeClass == .compact ? 16 : 24)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(cardGradient)
             .overlay(

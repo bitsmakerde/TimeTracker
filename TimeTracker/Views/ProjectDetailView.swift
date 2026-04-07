@@ -8,9 +8,69 @@ import AppKit
 import UIKit
 #endif
 
+struct ProjectDetailLayoutMetrics {
+    static func contentPadding(horizontalSizeClass: UserInterfaceSizeClass?) -> CGFloat {
+        horizontalSizeClass == .compact ? 16 : 24
+    }
+
+    static func sectionPadding(horizontalSizeClass: UserInterfaceSizeClass?) -> CGFloat {
+        horizontalSizeClass == .compact ? 16 : 24
+    }
+
+    static func summaryGridMinimum(horizontalSizeClass: UserInterfaceSizeClass?) -> CGFloat {
+        horizontalSizeClass == .compact ? 140 : 180
+    }
+
+    static func usesStackedRow(
+        dynamicTypeSize: DynamicTypeSize,
+        horizontalSizeClass: UserInterfaceSizeClass?
+    ) -> Bool {
+        if horizontalSizeClass == .compact {
+            return true
+        }
+
+        return dynamicTypeSize >= .accessibility1
+    }
+
+    static func sessionRowSpacing(
+        dynamicTypeSize: DynamicTypeSize,
+        horizontalSizeClass: UserInterfaceSizeClass?
+    ) -> CGFloat {
+        usesStackedRow(
+            dynamicTypeSize: dynamicTypeSize,
+            horizontalSizeClass: horizontalSizeClass
+        ) ? 10 : 12
+    }
+
+    static func sessionRowPadding(
+        dynamicTypeSize: DynamicTypeSize,
+        horizontalSizeClass: UserInterfaceSizeClass?
+    ) -> CGFloat {
+        usesStackedRow(
+            dynamicTypeSize: dynamicTypeSize,
+            horizontalSizeClass: horizontalSizeClass
+        ) ? 12 : 18
+    }
+}
+
+struct ProjectExportSelection: Equatable {
+    let format: ProjectExportFormat
+    let mode: ProjectExportContentMode
+
+    static func current(
+        format: ProjectExportFormat,
+        selectedMode: ProjectExportContentMode,
+        hasHourlyRate: Bool
+    ) -> ProjectExportSelection {
+        let mode: ProjectExportContentMode = hasHourlyRate ? selectedMode : .hoursOnly
+        return ProjectExportSelection(format: format, mode: mode)
+    }
+}
+
 struct ProjectDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     let project: ClientProject
@@ -36,6 +96,7 @@ struct ProjectDetailView: View {
     @State private var exportFormat: ProjectExportFormat = .csv
     @State private var exportContentMode: ProjectExportContentMode = .hoursAndCosts
     @State private var preparedExportURL: URL?
+    @State private var preparedExportSelection: ProjectExportSelection?
     @State private var isSyncingBudgetEditor = false
     @State private var billingErrorMessage: String?
     @State private var isConfirmingProjectArchive = false
@@ -60,6 +121,33 @@ struct ProjectDetailView: View {
         horizontalSizeClass == .compact
     }
 
+    private var contentPadding: CGFloat {
+        ProjectDetailLayoutMetrics.contentPadding(horizontalSizeClass: horizontalSizeClass)
+    }
+
+    private var sectionPadding: CGFloat {
+        ProjectDetailLayoutMetrics.sectionPadding(horizontalSizeClass: horizontalSizeClass)
+    }
+
+    private var summaryGridMinimum: CGFloat {
+        ProjectDetailLayoutMetrics.summaryGridMinimum(horizontalSizeClass: horizontalSizeClass)
+    }
+
+    private var usesStackedRows: Bool {
+        ProjectDetailLayoutMetrics.usesStackedRow(
+            dynamicTypeSize: dynamicTypeSize,
+            horizontalSizeClass: horizontalSizeClass
+        )
+    }
+
+    private var sectionCornerRadius: CGFloat {
+        isCompactWidth ? 22 : 28
+    }
+
+    private var headerCornerRadius: CGFloat {
+        isCompactWidth ? 24 : 30
+    }
+
     var body: some View {
         ZStack {
             pageBackgroundGradient
@@ -81,7 +169,7 @@ struct ProjectDetailView: View {
 
                     sessionsCard
                 }
-                .padding(28)
+                .padding(contentPadding)
             }
         }
         .onAppear {
@@ -102,6 +190,12 @@ struct ProjectDetailView: View {
         }
         .onChange(of: project.sortedTasks.map(\.id)) { _, _ in
             syncSelectedTaskForStart()
+        }
+        .onChange(of: exportFormat) { _, _ in
+            invalidatePreparedExport()
+        }
+        .onChange(of: exportContentMode) { _, _ in
+            invalidatePreparedExport()
         }
         .onChange(of: selectedBudgetUnit) { oldUnit, newUnit in
             convertBudgetEditorValue(from: oldUnit, to: newUnit)
@@ -176,7 +270,7 @@ struct ProjectDetailView: View {
     }
 
     private var headerCard: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: isCompactWidth ? 16 : 20) {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .top, spacing: 20) {
                     headerPrimaryInfo
@@ -201,7 +295,8 @@ struct ProjectDetailView: View {
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(activeSession.displayTaskTitle)
-                            .font(.subheadline.weight(.semibold))
+                            .font(.subheadline)
+                            .bold()
                             .foregroundStyle(headerSecondaryStyle)
 
                         TimelineView(.periodic(from: .now, by: 1)) { timeline in
@@ -224,13 +319,13 @@ struct ProjectDetailView: View {
                 )
             }
         }
-        .padding(28)
+        .padding(sectionPadding)
         .background(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
+            RoundedRectangle(cornerRadius: headerCornerRadius, style: .continuous)
                 .fill(headerCardGradient)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
+            RoundedRectangle(cornerRadius: headerCornerRadius, style: .continuous)
                 .stroke(headerStrokeStyle, lineWidth: 1)
         )
         .shadow(color: headerShadowStyle, radius: 18, x: 0, y: 12)
@@ -244,19 +339,26 @@ struct ProjectDetailView: View {
                     .frame(width: 14, height: 14)
 
                 Text(project.displayName)
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .font(.largeTitle)
+                    .bold()
                     .foregroundStyle(headerPrimaryStyle)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Text(project.displayClientName)
-                .font(.title3.weight(.medium))
+                .font(.title3)
                 .foregroundStyle(headerSecondaryStyle)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
 
             if !project.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Text(project.notes)
                     .font(.body)
                     .foregroundStyle(headerSecondaryStyle)
                     .padding(.top, 2)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -272,10 +374,13 @@ struct ProjectDetailView: View {
 
             if !project.isArchived, let selectedTaskForStart {
                 Label("Aktiv: \(selectedTaskForStart.displayTitle)", systemImage: "scope")
-                    .font(.caption.weight(.semibold))
+                    .font(.caption)
+                    .bold()
                     .foregroundStyle(headerSecondaryStyle)
                     .frame(maxWidth: isCompactWidth ? .infinity : 260, alignment: isCompactWidth ? .leading : .trailing)
                     .multilineTextAlignment(isCompactWidth ? .leading : .trailing)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             if !project.isArchived,
@@ -287,6 +392,8 @@ struct ProjectDetailView: View {
                     .foregroundStyle(headerSecondaryStyle)
                     .frame(maxWidth: isCompactWidth ? .infinity : 260, alignment: isCompactWidth ? .leading : .trailing)
                     .multilineTextAlignment(isCompactWidth ? .leading : .trailing)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .frame(maxWidth: isCompactWidth ? .infinity : nil, alignment: isCompactWidth ? .leading : .trailing)
@@ -357,7 +464,8 @@ struct ProjectDetailView: View {
     private var projectColorControls: some View {
         HStack(spacing: 10) {
             Text("Farbe")
-                .font(.caption.weight(.semibold))
+                .font(.caption)
+                .bold()
                 .foregroundStyle(headerSecondaryStyle)
 
             ColorPicker(
@@ -402,7 +510,10 @@ struct ProjectDetailView: View {
         VStack(alignment: .leading, spacing: 18) {
             HStack {
                 Text(project.hasHourlyRate ? "Stundensatz bearbeiten" : "Stundensatz hinterlegen")
-                    .font(.title2.weight(.semibold))
+                    .font(.title2)
+                    .bold()
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Spacer()
 
@@ -415,51 +526,93 @@ struct ProjectDetailView: View {
                 }
             }
 
-            HStack(alignment: .center, spacing: 18) {
-                VStack(alignment: .leading, spacing: 8) {
+            if usesStackedRows {
+                VStack(alignment: .leading, spacing: 12) {
                     Text("Stundensatz")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.subheadline)
+                        .bold()
                         .foregroundStyle(.secondary)
 
-                    HStack(spacing: 10) {
-                        TextField("z. B. 95,00", text: $hourlyRateText)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 160)
+                    TextField("z. B. 95,00", text: $hourlyRateText)
+                        .textFieldStyle(.roundedBorder)
 
-                        Text("EUR pro Stunde")
-                            .foregroundStyle(.secondary)
-                    }
+                    Text("EUR pro Stunde")
+                        .foregroundStyle(.secondary)
 
                     Text(hourlyRateHint)
                         .font(.caption)
                         .foregroundStyle(hasInvalidHourlyRate ? .red : .secondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Button("Stundensatz speichern", action: saveHourlyRate)
+                        .buttonStyle(.borderedProminent)
+                        .tint(project.projectActionColor)
+                        .disabled(hasInvalidHourlyRate)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Aktueller Satz")
+                            .font(.caption)
+                            .bold()
+                            .foregroundStyle(.secondary)
+
+                        Text(hourlyRateSummary)
+                            .font(.title2)
+                            .bold()
+                            .monospacedDigit()
+                    }
                 }
+            } else {
+                HStack(alignment: .center, spacing: 18) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Stundensatz")
+                            .font(.subheadline)
+                            .bold()
+                            .foregroundStyle(.secondary)
 
-                Button("Stundensatz speichern", action: saveHourlyRate)
-                    .buttonStyle(.borderedProminent)
-                    .tint(project.projectActionColor)
-                    .disabled(hasInvalidHourlyRate)
+                        HStack(spacing: 10) {
+                            TextField("z. B. 95,00", text: $hourlyRateText)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 160)
 
-                Spacer()
+                            Text("EUR pro Stunde")
+                                .foregroundStyle(.secondary)
+                        }
 
-                VStack(alignment: .trailing, spacing: 6) {
-                    Text("Aktueller Satz")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        Text(hourlyRateHint)
+                            .font(.caption)
+                            .foregroundStyle(hasInvalidHourlyRate ? .red : .secondary)
+                    }
 
-                    Text(hourlyRateSummary)
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
-                        .monospacedDigit()
+                    Button("Stundensatz speichern", action: saveHourlyRate)
+                        .buttonStyle(.borderedProminent)
+                        .tint(project.projectActionColor)
+                        .disabled(hasInvalidHourlyRate)
+
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 6) {
+                        Text("Aktueller Satz")
+                            .font(.caption)
+                            .bold()
+                            .foregroundStyle(.secondary)
+
+                        Text(hourlyRateSummary)
+                            .font(.title2)
+                            .bold()
+                            .monospacedDigit()
+                    }
                 }
             }
         }
-        .padding(24)
+        .padding(sectionPadding)
         .background(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: sectionCornerRadius, style: .continuous)
                 .fill(sectionCardGradient)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: sectionCornerRadius, style: .continuous)
                 .stroke(sectionCardStroke, lineWidth: 1)
         )
         .shadow(color: sectionCardShadow, radius: 14, x: 0, y: 8)
@@ -469,7 +622,7 @@ struct ProjectDetailView: View {
         TimelineView(.periodic(from: .now, by: 1)) { timeline in
             budgetSheetContent(referenceDate: timeline.date)
         }
-        .padding(24)
+        .padding(sectionPadding)
 #if os(macOS)
         .frame(minWidth: 620, minHeight: 440)
 #else
@@ -484,7 +637,8 @@ struct ProjectDetailView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("Projektbudget")
-                    .font(.title2.weight(.semibold))
+                    .font(.title2)
+                    .bold()
 
                 Spacer()
 
@@ -513,7 +667,8 @@ struct ProjectDetailView: View {
 
                     VStack(alignment: .leading, spacing: 10) {
                         Text("\(budgetValueText(snapshot.consumed, unit: snapshot.unit)) / \(budgetValueText(snapshot.target, unit: snapshot.unit))")
-                            .font(.system(size: 27, weight: .bold, design: .rounded))
+                            .font(.title2)
+                            .bold()
                             .monospacedDigit()
 
                         Text(snapshot.progressText)
@@ -522,12 +677,14 @@ struct ProjectDetailView: View {
                             .monospacedDigit()
 
                         Text(snapshot.statusText(unitFormatter: budgetValueText(_:unit:)))
-                            .font(.subheadline.weight(.semibold))
+                            .font(.subheadline)
+                            .bold()
                             .foregroundStyle(snapshot.isOverBudget ? ClientProject.stopActionColor : .secondary)
                             .monospacedDigit()
 
                         Text(secondaryBudgetSummary(referenceDate: referenceDate, primaryUnit: snapshot.unit))
-                            .font(.subheadline.weight(.semibold))
+                            .font(.subheadline)
+                            .bold()
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
                     }
@@ -539,7 +696,8 @@ struct ProjectDetailView: View {
                     "EUR-Budget kann erst mit hinterlegtem Stundensatz berechnet werden.",
                     systemImage: "exclamationmark.triangle.fill"
                 )
-                .font(.subheadline.weight(.semibold))
+                .font(.subheadline)
+                .bold()
                 .foregroundStyle(.orange)
             } else {
                 Text("Lege ein Stunden- oder Euro-Budget fest, damit der Projektverbrauch live verfolgt werden kann.")
@@ -551,10 +709,10 @@ struct ProjectDetailView: View {
                 Divider()
 
                 VStack(alignment: .leading, spacing: 12) {
-                    HStack(alignment: .center, spacing: 14) {
+                    if usesStackedRows {
                         Text("Budgettyp")
-                            .font(.title3.weight(.semibold))
-                            .frame(width: 130, alignment: .leading)
+                            .font(.title3)
+                            .bold()
 
                         Picker("Budgettyp", selection: $selectedBudgetUnit) {
                             Label("Stunden", systemImage: "clock")
@@ -563,27 +721,19 @@ struct ProjectDetailView: View {
                                 .tag(ProjectBudgetUnit.amount)
                         }
                         .pickerStyle(.segmented)
-                        .frame(width: 290)
-                    }
 
-                    HStack(alignment: .center, spacing: 14) {
                         Text(selectedBudgetUnit == .hours ? "Stundenbudget" : "Eurobudget")
-                            .font(.title3.weight(.semibold))
-                            .frame(width: 130, alignment: .leading)
+                            .font(.title3)
+                            .bold()
 
                         TextField(
                             selectedBudgetUnit == .hours ? "z. B. 20" : "z. B. 2500",
                             text: $budgetTargetText
                         )
                         .textFieldStyle(.roundedBorder)
-                        .frame(width: 220)
 
                         Text(selectedBudgetUnit == .hours ? "Stunden" : "EUR")
                             .foregroundStyle(.secondary)
-                    }
-
-                    HStack(spacing: 12) {
-                        Spacer(minLength: 144)
 
                         Button("Speichern", action: saveBudget)
                             .buttonStyle(.borderedProminent)
@@ -594,8 +744,55 @@ struct ProjectDetailView: View {
                             Button("Entfernen", role: .destructive, action: clearBudget)
                                 .buttonStyle(.bordered)
                         }
+                    } else {
+                        HStack(alignment: .center, spacing: 14) {
+                            Text("Budgettyp")
+                                .font(.title3)
+                                .bold()
+                                .frame(width: 130, alignment: .leading)
 
-                        Spacer(minLength: 0)
+                            Picker("Budgettyp", selection: $selectedBudgetUnit) {
+                                Label("Stunden", systemImage: "clock")
+                                    .tag(ProjectBudgetUnit.hours)
+                                Label("Euro", systemImage: "eurosign.circle")
+                                    .tag(ProjectBudgetUnit.amount)
+                            }
+                            .pickerStyle(.segmented)
+                            .frame(width: 290)
+                        }
+
+                        HStack(alignment: .center, spacing: 14) {
+                            Text(selectedBudgetUnit == .hours ? "Stundenbudget" : "Eurobudget")
+                                .font(.title3)
+                                .bold()
+                                .frame(width: 130, alignment: .leading)
+
+                            TextField(
+                                selectedBudgetUnit == .hours ? "z. B. 20" : "z. B. 2500",
+                                text: $budgetTargetText
+                            )
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 220)
+
+                            Text(selectedBudgetUnit == .hours ? "Stunden" : "EUR")
+                                .foregroundStyle(.secondary)
+                        }
+
+                        HStack(spacing: 12) {
+                            Spacer(minLength: 144)
+
+                            Button("Speichern", action: saveBudget)
+                                .buttonStyle(.borderedProminent)
+                                .tint(project.projectActionColor)
+                                .disabled(hasInvalidBudgetTarget || selectedBudgetUnit == .amount && !project.hasHourlyRate)
+
+                            if project.hasBudget {
+                                Button("Entfernen", role: .destructive, action: clearBudget)
+                                    .buttonStyle(.bordered)
+                            }
+
+                            Spacer(minLength: 0)
+                        }
                     }
                 }
 
@@ -608,7 +805,7 @@ struct ProjectDetailView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(22)
+        .padding(sectionPadding)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(.ultraThinMaterial)
@@ -641,11 +838,14 @@ struct ProjectDetailView: View {
     private var projectExportSheet: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Projekt exportieren")
-                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .font(.title)
+                .bold()
 
             Text("\(project.displayClientName) - \(project.displayName)")
                 .font(.headline)
                 .foregroundStyle(.secondary)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
 
             VStack(alignment: .leading, spacing: 10) {
                 Text("Format")
@@ -656,7 +856,7 @@ struct ProjectDetailView: View {
                     }
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 240)
+                .frame(maxWidth: usesStackedRows ? .infinity : 240)
             }
 
             VStack(alignment: .leading, spacing: 10) {
@@ -669,7 +869,7 @@ struct ProjectDetailView: View {
                     }
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 360)
+                .frame(maxWidth: usesStackedRows ? .infinity : 360)
 
                 if !project.hasHourlyRate {
                     Label(
@@ -678,6 +878,8 @@ struct ProjectDetailView: View {
                     )
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
@@ -693,10 +895,11 @@ struct ProjectDetailView: View {
                     .buttonStyle(.borderedProminent)
                     .tint(project.projectActionColor)
 #else
-                Button(preparedExportURL == nil ? "Export vorbereiten" : "Neu erstellen", action: exportProjectData)
+                Button(hasPreparedExportForCurrentSelection ? "Neu erstellen" : "Export vorbereiten", action: exportProjectData)
                     .buttonStyle(.bordered)
 
-                if let preparedExportURL {
+                if hasPreparedExportForCurrentSelection,
+                   let preparedExportURL {
                     ShareLink(item: preparedExportURL) {
                         Label("Export teilen", systemImage: "square.and.arrow.up")
                     }
@@ -706,7 +909,7 @@ struct ProjectDetailView: View {
 #endif
             }
         }
-        .padding(24)
+        .padding(sectionPadding)
 #if os(macOS)
         .frame(width: 520)
 #else
@@ -728,9 +931,9 @@ struct ProjectDetailView: View {
     private func summaryRow(referenceDate: Date) -> some View {
         LazyVGrid(
             columns: [
-                GridItem(.adaptive(minimum: 180), spacing: 18),
+                GridItem(.adaptive(minimum: summaryGridMinimum), spacing: 14),
             ],
-            spacing: 18
+            spacing: 14
         ) {
             SummaryCard(
                 title: "Gesamtzeit",
@@ -770,26 +973,51 @@ struct ProjectDetailView: View {
 
     private var tasksCard: some View {
         VStack(alignment: .leading, spacing: 18) {
-            HStack {
-                Text("Aufgaben")
-                    .font(.title2.weight(.semibold))
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    Text("Aufgaben")
+                        .font(.title2)
+                        .bold()
 
-                Spacer()
+                    Spacer()
 
-                Text("\(project.tasks.count) gesamt")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    Text("\(project.tasks.count) gesamt")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Aufgaben")
+                        .font(.title2)
+                        .bold()
+
+                    Text("\(project.tasks.count) gesamt")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             if !project.isArchived {
-                HStack(alignment: .center, spacing: 12) {
-                    TextField("Neue Aufgabe", text: $newTaskTitle)
-                        .textFieldStyle(.roundedBorder)
+                if usesStackedRows {
+                    VStack(alignment: .leading, spacing: 10) {
+                        TextField("Neue Aufgabe", text: $newTaskTitle)
+                            .textFieldStyle(.roundedBorder)
 
-                    Button("Aufgabe hinzufuegen", action: addTask)
-                        .buttonStyle(.borderedProminent)
-                        .tint(project.projectActionColor)
-                        .disabled(trimmedNewTaskTitle.isEmpty)
+                        Button("Aufgabe hinzufuegen", action: addTask)
+                            .buttonStyle(.borderedProminent)
+                            .tint(project.projectActionColor)
+                            .disabled(trimmedNewTaskTitle.isEmpty)
+                    }
+                } else {
+                    HStack(alignment: .center, spacing: 12) {
+                        TextField("Neue Aufgabe", text: $newTaskTitle)
+                            .textFieldStyle(.roundedBorder)
+
+                        Button("Aufgabe hinzufuegen", action: addTask)
+                            .buttonStyle(.borderedProminent)
+                            .tint(project.projectActionColor)
+                            .disabled(trimmedNewTaskTitle.isEmpty)
+                    }
                 }
 
                 if let selectedTaskForStart {
@@ -797,8 +1025,11 @@ struct ProjectDetailView: View {
                         "Zeiterfassung startet mit: \(selectedTaskForStart.displayTitle)",
                         systemImage: "scope"
                     )
-                    .font(.subheadline.weight(.semibold))
+                    .font(.subheadline)
+                    .bold()
                     .foregroundStyle(project.projectAccentColor)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
@@ -806,6 +1037,8 @@ struct ProjectDetailView: View {
                 Text(project.isArchived ? "Dieses Projekt hat keine Aufgaben." : "Lege Aufgaben an, damit du Zeiten direkt auf Arbeitspakete buchen kannst.")
                     .foregroundStyle(.secondary)
                     .padding(.vertical, 12)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             } else {
                 TimelineView(.periodic(from: .now, by: 1)) { timeline in
                     LazyVStack(spacing: 12) {
@@ -833,13 +1066,13 @@ struct ProjectDetailView: View {
                 }
             }
         }
-        .padding(24)
+        .padding(sectionPadding)
         .background(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: sectionCornerRadius, style: .continuous)
                 .fill(sectionCardGradient)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: sectionCornerRadius, style: .continuous)
                 .stroke(sectionCardStroke, lineWidth: 1)
         )
         .shadow(color: sectionCardShadow, radius: 14, x: 0, y: 8)
@@ -847,25 +1080,48 @@ struct ProjectDetailView: View {
 
     private var sessionsCard: some View {
         VStack(alignment: .leading, spacing: 18) {
-            HStack {
-                Text("Letzte Eintraege")
-                    .font(.title2.weight(.semibold))
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    Text("Letzte Eintraege")
+                        .font(.title2)
+                        .bold()
 
-                Spacer()
+                    Spacer()
 
-                Button(action: onAddManualEntry) {
-                    Label("Nachtragen", systemImage: "plus.circle")
+                    Button(action: onAddManualEntry) {
+                        Label("Nachtragen", systemImage: "plus.circle")
+                    }
+
+                    Text("\(project.sessions.count) gesamt")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
 
-                Text("\(project.sessions.count) gesamt")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text("Letzte Eintraege")
+                            .font(.title2)
+                            .bold()
+
+                        Spacer()
+
+                        Text("\(project.sessions.count) gesamt")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Button(action: onAddManualEntry) {
+                        Label("Nachtragen", systemImage: "plus.circle")
+                    }
+                }
             }
 
             if project.sortedSessions.isEmpty {
                 Text("Noch keine Zeit erfasst. Starte oben den ersten Timer fuer dieses Projekt.")
                     .foregroundStyle(.secondary)
                     .padding(.vertical, 18)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             } else {
                 LazyVStack(spacing: 12) {
                     ForEach(project.sortedSessions) { session in
@@ -890,13 +1146,13 @@ struct ProjectDetailView: View {
                 }
             }
         }
-        .padding(24)
+        .padding(sectionPadding)
         .background(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: sectionCornerRadius, style: .continuous)
                 .fill(sectionCardGradient)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: sectionCornerRadius, style: .continuous)
                 .stroke(sectionCardStroke, lineWidth: 1)
         )
         .shadow(color: sectionCardShadow, radius: 14, x: 0, y: 8)
@@ -1469,7 +1725,28 @@ struct ProjectDetailView: View {
             exportContentMode = .hoursOnly
         }
 
+        invalidatePreparedExport()
+    }
+
+    private var currentExportSelection: ProjectExportSelection {
+        ProjectExportSelection.current(
+            format: exportFormat,
+            selectedMode: exportContentMode,
+            hasHourlyRate: project.hasHourlyRate
+        )
+    }
+
+    private var hasPreparedExportForCurrentSelection: Bool {
+        guard preparedExportURL != nil else {
+            return false
+        }
+
+        return preparedExportSelection == currentExportSelection
+    }
+
+    private func invalidatePreparedExport() {
         preparedExportURL = nil
+        preparedExportSelection = nil
     }
 
     private func presentBudgetDetails() {
@@ -1484,13 +1761,7 @@ struct ProjectDetailView: View {
     }
 
     private func exportProjectData() {
-        let selectedMode: ProjectExportContentMode = {
-            if project.hasHourlyRate {
-                return exportContentMode
-            }
-
-            return .hoursOnly
-        }()
+        let selectedMode = currentExportSelection.mode
         let document = ProjectExportService.makeDocument(
             for: project,
             mode: selectedMode,
@@ -1518,13 +1789,15 @@ struct ProjectDetailView: View {
             billingErrorMessage = "Die Exportdatei konnte nicht gespeichert werden."
         }
 #else
-        let destinationURL = makePreparedExportURL(for: exportFormat)
+        let destinationURL = makePreparedExportURL(for: currentExportSelection.format)
 
         do {
             try exportData.write(to: destinationURL, options: .atomic)
             preparedExportURL = destinationURL
+            preparedExportSelection = currentExportSelection
         } catch {
             billingErrorMessage = "Die Exportdatei konnte nicht vorbereitet werden."
+            invalidatePreparedExport()
         }
 #endif
     }
@@ -1784,6 +2057,7 @@ private struct BudgetProgressSegment: Identifiable {
 
 private struct SummaryCard: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     let title: String
     let value: String
@@ -1803,7 +2077,8 @@ private struct SummaryCard: View {
                 if let accessoryAction {
                     Button(action: accessoryAction) {
                         Image(systemName: accessorySystemImage ?? "gearshape.fill")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.footnote)
+                            .bold()
                             .foregroundStyle(summarySecondaryStyle)
                     }
                     .buttonStyle(.plain)
@@ -1811,17 +2086,20 @@ private struct SummaryCard: View {
             }
 
             Text(value)
-                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .font(horizontalSizeClass == .compact ? .title2 : .title)
+                .bold()
                 .monospacedDigit()
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
 
             Text(subtitle)
                 .font(.subheadline)
                 .foregroundStyle(summarySecondaryStyle)
-                .lineLimit(2)
+                .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity, minHeight: 188, maxHeight: 188, alignment: .topLeading)
-        .padding(22)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .padding(horizontalSizeClass == .compact ? 16 : 22)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(summaryCardGradient)
@@ -1864,6 +2142,8 @@ private struct SummaryCard: View {
 
 private struct TaskSummaryRow: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     let title: String
     let subtitle: String
@@ -1882,41 +2162,53 @@ private struct TaskSummaryRow: View {
         isActive || (isSelectedForStart && isProjectRunningWithoutTask)
     }
 
-    var body: some View {
-        HStack(spacing: 16) {
-            Button(action: onSelectForStart) {
-                HStack(spacing: 16) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(spacing: 8) {
-                            Text(title)
-                                .font(.headline)
+    private var usesStackedLayout: Bool {
+        ProjectDetailLayoutMetrics.usesStackedRow(
+            dynamicTypeSize: dynamicTypeSize,
+            horizontalSizeClass: horizontalSizeClass
+        )
+    }
 
-                            if isSelectedForStart {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(accentColor)
-                            }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button(action: onSelectForStart) {
+                if usesStackedLayout {
+                    VStack(alignment: .leading, spacing: 10) {
+                        taskTitleBlock
+
+                        HStack(alignment: .firstTextBaseline, spacing: 12) {
+                            Text(subtitle)
+                                .font(.subheadline)
+                                .foregroundStyle(rowSecondaryStyle)
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Spacer(minLength: 0)
+
+                            taskMetricBlock(alignment: .trailing)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(.rect)
+                } else {
+                    HStack(spacing: 16) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            taskTitleBlock
+
+                            Text(subtitle)
+                                .font(.subheadline)
+                                .foregroundStyle(rowSecondaryStyle)
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
 
-                        Text(subtitle)
-                            .font(.subheadline)
-                            .foregroundStyle(rowSecondaryStyle)
+                        Spacer()
+
+                        taskMetricBlock(alignment: .trailing)
                     }
-
-                    Spacer()
-
-                    VStack(alignment: .trailing, spacing: 6) {
-                        Text(durationText)
-                            .font(.system(size: 18, weight: .semibold, design: .rounded))
-                            .monospacedDigit()
-
-                        Text(valueText)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(rowSecondaryStyle)
-                            .monospacedDigit()
-                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(.rect)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(.rect)
             }
             .buttonStyle(.plain)
             .disabled(isArchived)
@@ -1933,12 +2225,13 @@ private struct TaskSummaryRow: View {
                         shouldShowStop ? "Stoppen" : "Starten",
                         systemImage: shouldShowStop ? "stop.fill" : "play.fill"
                     )
+                    .frame(maxWidth: .infinity, alignment: .center)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(shouldShowStop ? ClientProject.stopActionColor : accentColor)
             }
         }
-        .padding(18)
+        .padding(usesStackedLayout ? 14 : 18)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(rowGradient)
@@ -1951,6 +2244,39 @@ private struct TaskSummaryRow: View {
                 )
         )
         .shadow(color: rowShadow, radius: 6, x: 0, y: 3)
+    }
+
+    private var taskTitleBlock: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text(title)
+                .font(.headline)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if isSelectedForStart {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(accentColor)
+            }
+        }
+    }
+
+    private func taskMetricBlock(alignment: HorizontalAlignment) -> some View {
+        VStack(alignment: alignment, spacing: 4) {
+            Text(durationText)
+                .font(.title3)
+                .bold()
+                .monospacedDigit()
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(valueText)
+                .font(.caption)
+                .bold()
+                .foregroundStyle(rowSecondaryStyle)
+                .monospacedDigit()
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private var rowSecondaryStyle: Color {
@@ -1984,6 +2310,8 @@ private struct TaskSummaryRow: View {
 
 private struct SessionRow: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     let session: WorkSession
     let hourlyRate: Double?
@@ -1993,83 +2321,80 @@ private struct SessionRow: View {
     let onEdit: (() -> Void)?
     let onDelete: (() -> Void)?
 
+    private var hasActions: Bool {
+        onAssignToTask != nil || onCreateTaskAndAssign != nil || onEdit != nil || onDelete != nil
+    }
+
+    private var usesStackedLayout: Bool {
+        ProjectDetailLayoutMetrics.usesStackedRow(
+            dynamicTypeSize: dynamicTypeSize,
+            horizontalSizeClass: horizontalSizeClass
+        )
+    }
+
+    private var rowSpacing: CGFloat {
+        ProjectDetailLayoutMetrics.sessionRowSpacing(
+            dynamicTypeSize: dynamicTypeSize,
+            horizontalSizeClass: horizontalSizeClass
+        )
+    }
+
+    private var rowPadding: CGFloat {
+        ProjectDetailLayoutMetrics.sessionRowPadding(
+            dynamicTypeSize: dynamicTypeSize,
+            horizontalSizeClass: horizontalSizeClass
+        )
+    }
+
     var body: some View {
-        HStack(spacing: 18) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(TimeFormatting.shortDate(session.startedAt))
-                    .font(.headline)
+        VStack(alignment: .leading, spacing: rowSpacing) {
+            if usesStackedLayout {
+                HStack(alignment: .top, spacing: 10) {
+                    compactSessionInfoBlock
 
-                Text(session.displayTaskTitle)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(rowSecondaryStyle)
+                    Spacer(minLength: 8)
 
-                Text(timeRangeText)
-                    .font(.subheadline)
-                    .foregroundStyle(rowSecondaryStyle)
-            }
-
-            Spacer()
-
-            statusBadge
-
-            if onAssignToTask != nil || onCreateTaskAndAssign != nil || onEdit != nil || onDelete != nil {
-                Menu {
-                    if let onAssignToTask, !availableTasks.isEmpty {
-                        Menu("Aufgabe zuordnen") {
-                            ForEach(availableTasks) { task in
-                                Button(task.displayTitle) {
-                                    onAssignToTask(task)
-                                }
-                            }
-
-                            if session.task != nil {
-                                Divider()
-
-                                Button("Zuordnung entfernen") {
-                                    onAssignToTask(nil)
-                                }
-                            }
-                        }
-                    }
-
-                    if let onCreateTaskAndAssign {
-                        Button(action: onCreateTaskAndAssign) {
-                            Label("Neue Aufgabe erstellen + zuordnen", systemImage: "plus")
-                        }
-                    }
-
-                    if (onAssignToTask != nil && !availableTasks.isEmpty) || onCreateTaskAndAssign != nil {
-                        Divider()
-                    }
-
-                    if let onEdit {
-                        Button(action: onEdit) {
-                            Label("Bearbeiten", systemImage: "square.and.pencil")
-                        }
-                    }
-
-                    if let onDelete {
-                        Button(role: .destructive, action: onDelete) {
-                            Label("Loeschen", systemImage: "trash")
-                        }
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.headline)
-                        .foregroundStyle(rowSecondaryStyle)
+                    actionMenu
                 }
-#if os(macOS)
-                .menuStyle(.borderlessButton)
-#endif
-            }
 
-            VStack(alignment: .trailing, spacing: 6) {
-                SessionDurationText(session: session)
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text(timeRangeText)
+                        .font(.subheadline)
+                        .foregroundStyle(rowSecondaryStyle)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                billedAmountView
+                    Spacer(minLength: 0)
+
+                    statusBadge
+                }
+
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    SessionDurationText(session: session)
+
+                    Spacer(minLength: 0)
+
+                    billedAmountView
+                }
+            } else {
+                HStack(spacing: 18) {
+                    sessionInfoBlock
+
+                    Spacer()
+
+                    statusBadge
+
+                    actionMenu
+
+                    VStack(alignment: .trailing, spacing: 6) {
+                        SessionDurationText(session: session)
+                        billedAmountView
+                    }
+                }
             }
         }
-        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(rowPadding)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(rowGradient)
@@ -2081,6 +2406,44 @@ private struct SessionRow: View {
         .shadow(color: rowShadow, radius: 6, x: 0, y: 3)
     }
 
+    private var compactSessionInfoBlock: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(TimeFormatting.shortDate(session.startedAt))
+                .font(.headline)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(session.displayTaskTitle)
+                .font(.subheadline)
+                .bold()
+                .foregroundStyle(rowSecondaryStyle)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var sessionInfoBlock: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(TimeFormatting.shortDate(session.startedAt))
+                .font(.headline)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(session.displayTaskTitle)
+                .font(.subheadline)
+                .bold()
+                .foregroundStyle(rowSecondaryStyle)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(timeRangeText)
+                .font(.subheadline)
+                .foregroundStyle(rowSecondaryStyle)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     private var timeRangeText: String {
         if let endedAt = session.endedAt {
             return "\(TimeFormatting.shortTime(session.startedAt)) - \(TimeFormatting.shortTime(endedAt))"
@@ -2090,9 +2453,64 @@ private struct SessionRow: View {
     }
 
     @ViewBuilder
+    private var actionMenu: some View {
+        if hasActions {
+            Menu {
+                if let onAssignToTask, !availableTasks.isEmpty {
+                    Menu("Aufgabe zuordnen") {
+                        ForEach(availableTasks) { task in
+                            Button(task.displayTitle) {
+                                onAssignToTask(task)
+                            }
+                        }
+
+                        if session.task != nil {
+                            Divider()
+
+                            Button("Zuordnung entfernen") {
+                                onAssignToTask(nil)
+                            }
+                        }
+                    }
+                }
+
+                if let onCreateTaskAndAssign {
+                    Button(action: onCreateTaskAndAssign) {
+                        Label("Neue Aufgabe erstellen + zuordnen", systemImage: "plus")
+                    }
+                }
+
+                if (onAssignToTask != nil && !availableTasks.isEmpty) || onCreateTaskAndAssign != nil {
+                    Divider()
+                }
+
+                if let onEdit {
+                    Button(action: onEdit) {
+                        Label("Bearbeiten", systemImage: "square.and.pencil")
+                    }
+                }
+
+                if let onDelete {
+                    Button(role: .destructive, action: onDelete) {
+                        Label("Loeschen", systemImage: "trash")
+                    }
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.headline)
+                    .foregroundStyle(rowSecondaryStyle)
+            }
+#if os(macOS)
+            .menuStyle(.borderlessButton)
+#endif
+        }
+    }
+
+    @ViewBuilder
     private var statusBadge: some View {
         Text(session.isActive ? "Aktiv" : "Beendet")
-            .font(.caption.weight(.semibold))
+            .font(.caption)
+            .bold()
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(
@@ -2121,7 +2539,8 @@ private struct SessionRow: View {
 
     private func amountLabel(amount: Double) -> some View {
         Text(TimeFormatting.euroAmount(amount))
-            .font(.caption.weight(.semibold))
+            .font(.caption)
+            .bold()
             .foregroundStyle(rowSecondaryStyle)
             .monospacedDigit()
     }
@@ -2176,7 +2595,8 @@ private struct NewTaskAssignmentSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Neue Aufgabe fuer Zeiteintrag")
-                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .font(.title2)
+                .bold()
 
             Text("\(project.displayClientName) - \(project.displayName)")
                 .foregroundStyle(.secondary)
@@ -2246,7 +2666,8 @@ private struct SessionDurationText: View {
 
     private func durationLabel(interval: TimeInterval) -> some View {
         Text(TimeFormatting.digitalDuration(interval))
-            .font(.system(size: 15, weight: .semibold, design: .rounded))
+            .font(.headline)
+            .bold()
             .monospacedDigit()
     }
 }

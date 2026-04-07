@@ -372,6 +372,116 @@ struct ModelAndFormattingTests {
         #expect(pdfName == "Projekt A-Export-2024-01-01.pdf")
     }
 
+    @Test("Project detail layout metrics adapt to compact and accessibility sizes")
+    func projectDetailLayoutMetrics() {
+        #expect(ProjectDetailLayoutMetrics.contentPadding(horizontalSizeClass: .compact) == 16)
+        #expect(ProjectDetailLayoutMetrics.contentPadding(horizontalSizeClass: .regular) == 24)
+
+        #expect(ProjectDetailLayoutMetrics.sectionPadding(horizontalSizeClass: .compact) == 16)
+        #expect(ProjectDetailLayoutMetrics.sectionPadding(horizontalSizeClass: .regular) == 24)
+
+        #expect(ProjectDetailLayoutMetrics.summaryGridMinimum(horizontalSizeClass: .compact) == 140)
+        #expect(ProjectDetailLayoutMetrics.summaryGridMinimum(horizontalSizeClass: .regular) == 180)
+
+        #expect(
+            ProjectDetailLayoutMetrics.usesStackedRow(
+                dynamicTypeSize: .large,
+                horizontalSizeClass: .compact
+            )
+        )
+        #expect(
+            ProjectDetailLayoutMetrics.usesStackedRow(
+                dynamicTypeSize: .accessibility1,
+                horizontalSizeClass: .regular
+            )
+        )
+        #expect(
+            ProjectDetailLayoutMetrics.usesStackedRow(
+                dynamicTypeSize: .large,
+                horizontalSizeClass: .regular
+            ) == false
+        )
+
+        #expect(
+            ProjectDetailLayoutMetrics.sessionRowSpacing(
+                dynamicTypeSize: .large,
+                horizontalSizeClass: .compact
+            ) == 10
+        )
+        #expect(
+            ProjectDetailLayoutMetrics.sessionRowSpacing(
+                dynamicTypeSize: .large,
+                horizontalSizeClass: .regular
+            ) == 12
+        )
+        #expect(
+            ProjectDetailLayoutMetrics.sessionRowSpacing(
+                dynamicTypeSize: .accessibility1,
+                horizontalSizeClass: .regular
+            ) == 10
+        )
+
+        #expect(
+            ProjectDetailLayoutMetrics.sessionRowPadding(
+                dynamicTypeSize: .large,
+                horizontalSizeClass: .compact
+            ) == 12
+        )
+        #expect(
+            ProjectDetailLayoutMetrics.sessionRowPadding(
+                dynamicTypeSize: .large,
+                horizontalSizeClass: .regular
+            ) == 18
+        )
+        #expect(
+            ProjectDetailLayoutMetrics.sessionRowPadding(
+                dynamicTypeSize: .accessibility1,
+                horizontalSizeClass: .regular
+            ) == 12
+        )
+    }
+
+    @Test("Workspace layout rules use native tabs only for compact root navigation")
+    func workspaceLayoutRules() {
+        #expect(
+            WorkspaceRootLayoutRules.usesTabRoot(
+                horizontalSizeClass: .compact,
+                forcedWorkspaceSection: nil
+            )
+        )
+        #expect(
+            WorkspaceRootLayoutRules.usesTabRoot(
+                horizontalSizeClass: .regular,
+                forcedWorkspaceSection: nil
+            ) == false
+        )
+        #expect(
+            WorkspaceRootLayoutRules.usesTabRoot(
+                horizontalSizeClass: .compact,
+                forcedWorkspaceSection: .analytics
+            ) == false
+        )
+    }
+
+    @Test("Project export selection normalizes mode without hourly rate")
+    func projectExportSelectionNormalization() {
+        let normalizedWithoutRate = ProjectExportSelection.current(
+            format: .pdf,
+            selectedMode: .hoursAndCosts,
+            hasHourlyRate: false
+        )
+        #expect(normalizedWithoutRate == ProjectExportSelection(format: .pdf, mode: .hoursOnly))
+
+        let withRate = ProjectExportSelection.current(
+            format: .csv,
+            selectedMode: .hoursAndCosts,
+            hasHourlyRate: true
+        )
+        #expect(withRate == ProjectExportSelection(format: .csv, mode: .hoursAndCosts))
+
+        #expect(normalizedWithoutRate != withRate)
+    }
+
     private func pdfContentStreamText(from pdfData: Data) -> String? {
         guard let provider = CGDataProvider(data: pdfData as CFData),
               let pdfDocument = CGPDFDocument(provider),

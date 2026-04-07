@@ -71,6 +71,7 @@
 		658F65402F8404A00016E346 /* TimeTrackeriOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TimeTrackeriOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		658F654C2F8404A10016E346 /* TimeTrackeriOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TimeTrackeriOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		658F65562F8404A10016E346 /* TimeTrackeriOSUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TimeTrackeriOSUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		658F65D52F84374C0016E346 /* TimeTrackeriOS.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = TimeTrackeriOS.xctestplan; sourceTree = "<group>"; };
 		B00000000000000000000001 /* TimeTrackerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeTrackerApp.swift; sourceTree = "<group>"; };
 		B00000000000000000000002 /* ClientProject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientProject.swift; sourceTree = "<group>"; };
 		B00000000000000000000003 /* WorkSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkSession.swift; sourceTree = "<group>"; };
@@ -150,6 +151,7 @@
 		D00000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
+				658F65D52F84374C0016E346 /* TimeTrackeriOS.xctestplan */,
 				D00000000000000000000002 /* TimeTracker */,
 				D00000000000000000000008 /* TimeTrackerTests */,
 				D10000000000000000000001 /* SharedCore */,

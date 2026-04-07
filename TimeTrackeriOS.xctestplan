@@ -1,0 +1,38 @@
+{
+  "configurations" : [
+    {
+      "id" : "10E4AD9B-4D4E-4EB1-A989-538A13FADB31",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:TimeTracker.xcodeproj",
+      "identifier" : "658F653F2F8404A00016E346",
+      "name" : "TimeTrackeriOS"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:TimeTracker.xcodeproj",
+        "identifier" : "658F654B2F8404A10016E346",
+        "name" : "TimeTrackeriOSTests"
+      }
+    },
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:TimeTracker.xcodeproj",
+        "identifier" : "658F65552F8404A10016E346",
+        "name" : "TimeTrackeriOSUITests"
+      }
+    }
+  ],
+  "version" : 1
+}
