@@ -4,6 +4,7 @@ import SwiftUI
 struct MenuBarTrackingView: View {
     @Environment(\.modelContext) private var modelContext
     let trackingStatus: TrackingStatusStore
+    let dependencies: AppDependencies
 
     @Query(
         sort: [
@@ -22,8 +23,6 @@ struct MenuBarTrackingView: View {
     private var activeSessions: [WorkSession]
 
     @State private var errorMessage: String?
-
-    private let trackingManager = TrackingManager()
 
     private var activeSession: WorkSession? {
         activeSessions.first
@@ -188,7 +187,12 @@ struct MenuBarTrackingView: View {
 
     private func startTracking(_ project: ClientProject) {
         do {
-            try trackingManager.startTracking(project: project, in: modelContext)
+            try dependencies.workspaceTrackingUseCases.startTracking(
+                project: project,
+                task: nil,
+                in: modelContext,
+                at: .now
+            )
             trackingStatus.refresh()
         } catch let trackingError as TrackingManagerError {
             errorMessage = trackingError.errorDescription
@@ -199,7 +203,10 @@ struct MenuBarTrackingView: View {
 
     private func stopTracking() {
         do {
-            try trackingManager.stopActiveTracking(in: modelContext)
+            try dependencies.workspaceTrackingUseCases.stopActiveTracking(
+                in: modelContext,
+                at: .now
+            )
             trackingStatus.refresh()
         } catch {
             errorMessage = "Die laufende Zeiterfassung konnte nicht beendet werden."

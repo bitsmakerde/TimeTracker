@@ -18,6 +18,9 @@
 		A00000000000000000000012 /* ModelAndFormattingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000012 /* ModelAndFormattingTests.swift */; };
 		A00000000000000000000013 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000013 /* TestSupport.swift */; };
 		A00000000000000000000015 /* ProjectExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000015 /* ProjectExportService.swift */; };
+		A00000000000000000000017 /* WorkspaceAnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000017 /* WorkspaceAnalyticsView.swift */; };
+		A00000000000000000000018 /* ProjectDetailView+Logic.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000018 /* ProjectDetailView+Logic.swift */; };
+		A00000000000000000000019 /* ProjectDetailComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000019 /* ProjectDetailComponents.swift */; };
 		C20000000000000000000001 /* ClientProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000001 /* ClientProject.swift */; };
 		C20000000000000000000002 /* ProjectTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000002 /* ProjectTask.swift */; };
 		C20000000000000000000003 /* WorkSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000003 /* WorkSession.swift */; };
@@ -41,6 +44,9 @@
 		C3000000000000000000000C /* ProjectDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000007 /* ProjectDetailView.swift */; };
 		C3000000000000000000000D /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000008 /* NewProjectSheet.swift */; };
 		C3000000000000000000000E /* ManualSessionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000B /* ManualSessionSheet.swift */; };
+		C3000000000000000000000F /* WorkspaceAnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000017 /* WorkspaceAnalyticsView.swift */; };
+		C30000000000000000000010 /* ProjectDetailView+Logic.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000018 /* ProjectDetailView+Logic.swift */; };
+		C30000000000000000000011 /* ProjectDetailComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000019 /* ProjectDetailComponents.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -92,6 +98,9 @@
 		B00000000000000000000014 /* TimeTrackerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TimeTrackerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B00000000000000000000015 /* ProjectExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectExportService.swift; sourceTree = "<group>"; };
 		B00000000000000000000016 /* TimeTracker.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TimeTracker.entitlements; sourceTree = "<group>"; };
+		B00000000000000000000017 /* WorkspaceAnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceAnalyticsView.swift; sourceTree = "<group>"; };
+		B00000000000000000000018 /* ProjectDetailView+Logic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectDetailView+Logic.swift"; sourceTree = "<group>"; };
+		B00000000000000000000019 /* ProjectDetailComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailComponents.swift; sourceTree = "<group>"; };
 		C10000000000000000000001 /* ClientProject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientProject.swift; sourceTree = "<group>"; };
 		C10000000000000000000002 /* ProjectTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectTask.swift; sourceTree = "<group>"; };
 		C10000000000000000000003 /* WorkSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkSession.swift; sourceTree = "<group>"; };
@@ -221,8 +230,11 @@
 			isa = PBXGroup;
 			children = (
 				B00000000000000000000006 /* ContentView.swift */,
+				B00000000000000000000017 /* WorkspaceAnalyticsView.swift */,
 				B0000000000000000000000C /* MenuBarTrackingView.swift */,
 				B00000000000000000000007 /* ProjectDetailView.swift */,
+				B00000000000000000000018 /* ProjectDetailView+Logic.swift */,
+				B00000000000000000000019 /* ProjectDetailComponents.swift */,
 				B00000000000000000000008 /* NewProjectSheet.swift */,
 				B0000000000000000000000B /* ManualSessionSheet.swift */,
 			);
@@ -497,9 +509,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				C3000000000000000000000B /* ContentView.swift in Sources */,
+				C3000000000000000000000F /* WorkspaceAnalyticsView.swift in Sources */,
 				C3000000000000000000000D /* NewProjectSheet.swift in Sources */,
 				C3000000000000000000000E /* ManualSessionSheet.swift in Sources */,
 				C3000000000000000000000C /* ProjectDetailView.swift in Sources */,
+				C30000000000000000000010 /* ProjectDetailView+Logic.swift in Sources */,
+				C30000000000000000000011 /* ProjectDetailComponents.swift in Sources */,
 				C30000000000000000000001 /* ClientProject.swift in Sources */,
 				C30000000000000000000002 /* ProjectTask.swift in Sources */,
 				C30000000000000000000003 /* WorkSession.swift in Sources */,
@@ -532,6 +547,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A00000000000000000000006 /* ContentView.swift in Sources */,
+				A00000000000000000000017 /* WorkspaceAnalyticsView.swift in Sources */,
 				A0000000000000000000000A /* ManualSessionSheet.swift in Sources */,
 				A0000000000000000000000B /* MenuBarTrackingView.swift in Sources */,
 				A00000000000000000000008 /* NewProjectSheet.swift in Sources */,
@@ -540,6 +556,8 @@
 				A00000000000000000000015 /* ProjectExportService.swift in Sources */,
 				C20000000000000000000002 /* ProjectTask.swift in Sources */,
 				A00000000000000000000007 /* ProjectDetailView.swift in Sources */,
+				A00000000000000000000018 /* ProjectDetailView+Logic.swift in Sources */,
+				A00000000000000000000019 /* ProjectDetailComponents.swift in Sources */,
 				C20000000000000000000004 /* TrackingManager.swift in Sources */,
 				C20000000000000000000005 /* TrackingStatusStore.swift in Sources */,
 				C20000000000000000000006 /* TimeFormatting.swift in Sources */,

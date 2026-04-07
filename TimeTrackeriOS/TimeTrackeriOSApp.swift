@@ -11,12 +11,16 @@ import SwiftUI
 @main
 struct TimeTrackeriOSApp: App {
     private let sharedModelContainer: ModelContainer
+    private let dependencies: AppDependencies
     @State private var trackingStatus: TrackingStatusStore
 
     init() {
         do {
             let container = try TimeTrackerSchema.makeModelContainer()
             self.sharedModelContainer = container
+            self.dependencies = AppDependencies.live(
+                configuration: TimeTrackerTargetConfiguration.iOS
+            )
             _trackingStatus = State(
                 wrappedValue: TrackingStatusStore(modelContainer: container)
             )
@@ -27,7 +31,10 @@ struct TimeTrackeriOSApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(trackingStatus: trackingStatus)
+            ContentView(
+                trackingStatus: trackingStatus,
+                dependencies: dependencies
+            )
         }
         .modelContainer(sharedModelContainer)
     }

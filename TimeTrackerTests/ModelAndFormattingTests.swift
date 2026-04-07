@@ -446,19 +446,29 @@ struct ModelAndFormattingTests {
         #expect(
             WorkspaceRootLayoutRules.usesTabRoot(
                 horizontalSizeClass: .compact,
-                forcedWorkspaceSection: nil
+                forcedWorkspaceSection: nil,
+                prefersNativeTabBar: true
             )
         )
         #expect(
             WorkspaceRootLayoutRules.usesTabRoot(
                 horizontalSizeClass: .regular,
-                forcedWorkspaceSection: nil
+                forcedWorkspaceSection: nil,
+                prefersNativeTabBar: true
             ) == false
         )
         #expect(
             WorkspaceRootLayoutRules.usesTabRoot(
                 horizontalSizeClass: .compact,
-                forcedWorkspaceSection: .analytics
+                forcedWorkspaceSection: .analytics,
+                prefersNativeTabBar: true
+            ) == false
+        )
+        #expect(
+            WorkspaceRootLayoutRules.usesTabRoot(
+                horizontalSizeClass: .compact,
+                forcedWorkspaceSection: nil,
+                prefersNativeTabBar: false
             ) == false
         )
     }

@@ -23,3 +23,63 @@ enum TimeTrackerSchema {
         )
     }
 }
+
+enum TimeTrackerTargetPlatform: String {
+    case macOS
+    case iOS
+}
+
+struct TimeTrackerFeatureFlags: Equatable {
+    var usesNativeCompactTabBar: Bool
+    var showsMenuBarModule: Bool
+    var enablesPreparedExports: Bool
+}
+
+protocol TimeTrackerTargetConfigurationProtocol {
+    var platform: TimeTrackerTargetPlatform { get }
+    var featureFlags: TimeTrackerFeatureFlags { get }
+}
+
+struct TimeTrackerTargetConfiguration: TimeTrackerTargetConfigurationProtocol, Equatable {
+    let platform: TimeTrackerTargetPlatform
+    let featureFlags: TimeTrackerFeatureFlags
+
+    static let macOS = TimeTrackerTargetConfiguration(
+        platform: .macOS,
+        featureFlags: TimeTrackerFeatureFlags(
+            usesNativeCompactTabBar: false,
+            showsMenuBarModule: true,
+            enablesPreparedExports: true
+        )
+    )
+
+    static let iOS = TimeTrackerTargetConfiguration(
+        platform: .iOS,
+        featureFlags: TimeTrackerFeatureFlags(
+            usesNativeCompactTabBar: true,
+            showsMenuBarModule: false,
+            enablesPreparedExports: true
+        )
+    )
+}
+
+struct AppDependencies {
+    let configuration: any TimeTrackerTargetConfigurationProtocol
+    let workspaceTrackingUseCases: any WorkspaceTrackingUseCasesProtocol
+
+    static func live(
+        configuration: any TimeTrackerTargetConfigurationProtocol,
+        trackingManager: any TrackingManagerProtocol = TrackingManager()
+    ) -> AppDependencies {
+        let repository = SwiftDataTrackingRepository(
+            trackingManager: trackingManager
+        )
+        let useCases = DefaultWorkspaceTrackingUseCases(
+            repository: repository
+        )
+        return AppDependencies(
+            configuration: configuration,
+            workspaceTrackingUseCases: useCases
+        )
+    }
+}

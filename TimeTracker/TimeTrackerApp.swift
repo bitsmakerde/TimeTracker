@@ -4,12 +4,16 @@ import SwiftUI
 @main
 struct TimeTrackerApp: App {
     private let sharedModelContainer: ModelContainer
+    private let dependencies: AppDependencies
     @State private var trackingStatus: TrackingStatusStore
 
     init() {
         do {
             let container = try TimeTrackerSchema.makeModelContainer()
             self.sharedModelContainer = container
+            self.dependencies = AppDependencies.live(
+                configuration: TimeTrackerTargetConfiguration.macOS
+            )
             _trackingStatus = State(
                 wrappedValue: TrackingStatusStore(modelContainer: container)
             )
@@ -20,13 +24,19 @@ struct TimeTrackerApp: App {
 
     var body: some Scene {
         WindowGroup {
-            WorkspaceRootView(trackingStatus: trackingStatus)
+            WorkspaceRootView(
+                trackingStatus: trackingStatus,
+                dependencies: dependencies
+            )
                 .frame(minWidth: 1100, minHeight: 720)
         }
         .modelContainer(sharedModelContainer)
 
         MenuBarExtra {
-            MenuBarTrackingView(trackingStatus: trackingStatus)
+            MenuBarTrackingView(
+                trackingStatus: trackingStatus,
+                dependencies: dependencies
+            )
         } label: {
             MenuBarStatusLabel(trackingStatus: trackingStatus)
         }

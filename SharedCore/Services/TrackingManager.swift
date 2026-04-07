@@ -195,3 +195,363 @@ struct TrackingManager {
         }
     }
 }
+
+protocol TrackingManagerProtocol {
+    func startTracking(
+        project: ClientProject,
+        task: ProjectTask?,
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws
+    func stopActiveTracking(
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws
+    func addManualSession(
+        for project: ClientProject,
+        task: ProjectTask?,
+        startedAt: Date,
+        endedAt: Date,
+        in context: ModelContext,
+        now: Date
+    ) throws
+    func updateManualSession(
+        _ session: WorkSession,
+        task: ProjectTask?,
+        startedAt: Date,
+        endedAt: Date,
+        in context: ModelContext,
+        now: Date
+    ) throws
+    func archiveProject(
+        _ project: ClientProject,
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws
+    func restoreProject(
+        _ project: ClientProject,
+        in context: ModelContext
+    ) throws
+    func deleteProject(
+        _ project: ClientProject,
+        in context: ModelContext
+    ) throws
+    func deleteSession(
+        _ session: WorkSession,
+        in context: ModelContext
+    ) throws
+}
+
+extension TrackingManager: TrackingManagerProtocol {}
+
+protocol TrackingRepositoryProtocol {
+    func startTracking(
+        project: ClientProject,
+        task: ProjectTask?,
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws
+    func stopActiveTracking(
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws
+    func addManualSession(
+        for project: ClientProject,
+        task: ProjectTask?,
+        startedAt: Date,
+        endedAt: Date,
+        in context: ModelContext,
+        now: Date
+    ) throws
+    func updateManualSession(
+        _ session: WorkSession,
+        task: ProjectTask?,
+        startedAt: Date,
+        endedAt: Date,
+        in context: ModelContext,
+        now: Date
+    ) throws
+    func archiveProject(
+        _ project: ClientProject,
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws
+    func restoreProject(
+        _ project: ClientProject,
+        in context: ModelContext
+    ) throws
+    func deleteProject(
+        _ project: ClientProject,
+        in context: ModelContext
+    ) throws
+    func deleteSession(
+        _ session: WorkSession,
+        in context: ModelContext
+    ) throws
+}
+
+struct SwiftDataTrackingRepository: TrackingRepositoryProtocol {
+    let trackingManager: any TrackingManagerProtocol
+
+    init(trackingManager: any TrackingManagerProtocol = TrackingManager()) {
+        self.trackingManager = trackingManager
+    }
+
+    func startTracking(
+        project: ClientProject,
+        task: ProjectTask?,
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws {
+        try trackingManager.startTracking(
+            project: project,
+            task: task,
+            in: context,
+            at: referenceDate
+        )
+    }
+
+    func stopActiveTracking(
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws {
+        try trackingManager.stopActiveTracking(
+            in: context,
+            at: referenceDate
+        )
+    }
+
+    func addManualSession(
+        for project: ClientProject,
+        task: ProjectTask?,
+        startedAt: Date,
+        endedAt: Date,
+        in context: ModelContext,
+        now: Date
+    ) throws {
+        try trackingManager.addManualSession(
+            for: project,
+            task: task,
+            startedAt: startedAt,
+            endedAt: endedAt,
+            in: context,
+            now: now
+        )
+    }
+
+    func updateManualSession(
+        _ session: WorkSession,
+        task: ProjectTask?,
+        startedAt: Date,
+        endedAt: Date,
+        in context: ModelContext,
+        now: Date
+    ) throws {
+        try trackingManager.updateManualSession(
+            session,
+            task: task,
+            startedAt: startedAt,
+            endedAt: endedAt,
+            in: context,
+            now: now
+        )
+    }
+
+    func archiveProject(
+        _ project: ClientProject,
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws {
+        try trackingManager.archiveProject(
+            project,
+            in: context,
+            at: referenceDate
+        )
+    }
+
+    func restoreProject(
+        _ project: ClientProject,
+        in context: ModelContext
+    ) throws {
+        try trackingManager.restoreProject(
+            project,
+            in: context
+        )
+    }
+
+    func deleteProject(
+        _ project: ClientProject,
+        in context: ModelContext
+    ) throws {
+        try trackingManager.deleteProject(
+            project,
+            in: context
+        )
+    }
+
+    func deleteSession(
+        _ session: WorkSession,
+        in context: ModelContext
+    ) throws {
+        try trackingManager.deleteSession(
+            session,
+            in: context
+        )
+    }
+}
+
+protocol WorkspaceTrackingUseCasesProtocol {
+    func startTracking(
+        project: ClientProject,
+        task: ProjectTask?,
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws
+    func stopActiveTracking(
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws
+    func addManualSession(
+        for project: ClientProject,
+        task: ProjectTask?,
+        startedAt: Date,
+        endedAt: Date,
+        in context: ModelContext,
+        now: Date
+    ) throws
+    func updateManualSession(
+        _ session: WorkSession,
+        task: ProjectTask?,
+        startedAt: Date,
+        endedAt: Date,
+        in context: ModelContext,
+        now: Date
+    ) throws
+    func archiveProject(
+        _ project: ClientProject,
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws
+    func restoreProject(
+        _ project: ClientProject,
+        in context: ModelContext
+    ) throws
+    func deleteProject(
+        _ project: ClientProject,
+        in context: ModelContext
+    ) throws
+    func deleteSession(
+        _ session: WorkSession,
+        in context: ModelContext
+    ) throws
+}
+
+struct DefaultWorkspaceTrackingUseCases: WorkspaceTrackingUseCasesProtocol {
+    let repository: any TrackingRepositoryProtocol
+
+    init(repository: any TrackingRepositoryProtocol = SwiftDataTrackingRepository()) {
+        self.repository = repository
+    }
+
+    func startTracking(
+        project: ClientProject,
+        task: ProjectTask?,
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws {
+        try repository.startTracking(
+            project: project,
+            task: task,
+            in: context,
+            at: referenceDate
+        )
+    }
+
+    func stopActiveTracking(
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws {
+        try repository.stopActiveTracking(
+            in: context,
+            at: referenceDate
+        )
+    }
+
+    func addManualSession(
+        for project: ClientProject,
+        task: ProjectTask?,
+        startedAt: Date,
+        endedAt: Date,
+        in context: ModelContext,
+        now: Date
+    ) throws {
+        try repository.addManualSession(
+            for: project,
+            task: task,
+            startedAt: startedAt,
+            endedAt: endedAt,
+            in: context,
+            now: now
+        )
+    }
+
+    func updateManualSession(
+        _ session: WorkSession,
+        task: ProjectTask?,
+        startedAt: Date,
+        endedAt: Date,
+        in context: ModelContext,
+        now: Date
+    ) throws {
+        try repository.updateManualSession(
+            session,
+            task: task,
+            startedAt: startedAt,
+            endedAt: endedAt,
+            in: context,
+            now: now
+        )
+    }
+
+    func archiveProject(
+        _ project: ClientProject,
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws {
+        try repository.archiveProject(
+            project,
+            in: context,
+            at: referenceDate
+        )
+    }
+
+    func restoreProject(
+        _ project: ClientProject,
+        in context: ModelContext
+    ) throws {
+        try repository.restoreProject(
+            project,
+            in: context
+        )
+    }
+
+    func deleteProject(
+        _ project: ClientProject,
+        in context: ModelContext
+    ) throws {
+        try repository.deleteProject(
+            project,
+            in: context
+        )
+    }
+
+    func deleteSession(
+        _ session: WorkSession,
+        in context: ModelContext
+    ) throws {
+        try repository.deleteSession(
+            session,
+            in: context
+        )
+    }
+}

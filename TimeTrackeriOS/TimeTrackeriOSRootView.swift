@@ -3,12 +3,14 @@ import SwiftUI
 
 struct ContentView: View {
     let trackingStatus: TrackingStatusStore
+    let dependencies: AppDependencies
 
     var body: some View {
         TabView {
             Tab("Aufnehmen", systemImage: "record.circle") {
                 WorkspaceRootView(
                     trackingStatus: trackingStatus,
+                    dependencies: dependencies,
                     forcedWorkspaceSection: .tracking,
                     showsWorkspaceSectionPicker: false
                 )
@@ -17,6 +19,7 @@ struct ContentView: View {
             Tab("Auswertung", systemImage: "chart.bar.xaxis") {
                 WorkspaceRootView(
                     trackingStatus: trackingStatus,
+                    dependencies: dependencies,
                     forcedWorkspaceSection: .analytics,
                     showsWorkspaceSectionPicker: false
                 )
@@ -39,7 +42,10 @@ struct ContentView: View {
     }()
 
     return ContentView(
-        trackingStatus: TrackingStatusStore(modelContainer: previewContainer)
+        trackingStatus: TrackingStatusStore(modelContainer: previewContainer),
+        dependencies: AppDependencies.live(
+            configuration: TimeTrackerTargetConfiguration.iOS
+        )
     )
     .modelContainer(previewContainer)
 }
