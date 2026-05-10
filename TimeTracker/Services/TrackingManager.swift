@@ -118,7 +118,7 @@ struct TrackingManager {
         in context: ModelContext,
         at referenceDate: Date = .now
     ) throws {
-        for session in project.sessions where session.isActive {
+        for session in project.sessionList where session.isActive {
             session.endedAt = max(session.startedAt, referenceDate)
         }
 
@@ -158,7 +158,7 @@ struct TrackingManager {
             predicate: #Predicate<WorkSession> { session in
                 session.endedAt == nil
             },
-            sortBy: [SortDescriptor(\WorkSession.startedAt, order: .reverse)]
+            sortBy: [SortDescriptor(\WorkSession.startedAt, order: .forward)]
         )
 
         let activeSessions = try context.fetch(descriptor)

@@ -931,7 +931,7 @@ struct ProjectDetailView: View {
             SummaryCard(
                 title: "Gesamtzeit",
                 value: TimeFormatting.compactDuration(totalDuration(referenceDate: referenceDate)),
-                subtitle: "\(project.sessions.count) Sitzungen"
+                subtitle: "\(project.sessionList.count) Sitzungen"
             )
 
             SummaryCard(
@@ -974,7 +974,7 @@ struct ProjectDetailView: View {
 
                     Spacer()
 
-                    Text("\(project.tasks.count) gesamt")
+                    Text("\(project.taskList.count) gesamt")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -984,7 +984,7 @@ struct ProjectDetailView: View {
                         .font(.title2)
                         .bold()
 
-                    Text("\(project.tasks.count) gesamt")
+                    Text("\(project.taskList.count) gesamt")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -1085,7 +1085,7 @@ struct ProjectDetailView: View {
                         Label("Nachtragen", systemImage: "plus.circle")
                     }
 
-                    Text("\(project.sessions.count) gesamt")
+                    Text("\(project.sessionList.count) gesamt")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -1098,7 +1098,7 @@ struct ProjectDetailView: View {
 
                         Spacer()
 
-                        Text("\(project.sessions.count) gesamt")
+                        Text("\(project.sessionList.count) gesamt")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }

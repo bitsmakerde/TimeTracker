@@ -3,13 +3,13 @@ import SwiftData
 
 @Model
 final class ProjectTask {
-    @Attribute(.unique) var id: UUID
-    var title: String
-    var createdAt: Date
+    var id: UUID = UUID()
+    var title: String = ""
+    var createdAt: Date = Date.now
     var project: ClientProject?
 
     @Relationship(deleteRule: .nullify, inverse: \WorkSession.task)
-    var sessions: [WorkSession]
+    var sessions: [WorkSession]?
 
     init(
         title: String,
@@ -25,6 +25,10 @@ final class ProjectTask {
 }
 
 extension ProjectTask {
+    var sessionList: [WorkSession] {
+        sessions ?? []
+    }
+
     var displayTitle: String {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? "Unbenannte Aufgabe" : trimmed

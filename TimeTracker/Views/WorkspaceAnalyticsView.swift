@@ -755,7 +755,7 @@ private enum AnalyticsCalculator {
             totalBilledAmount: totalBilledAmount,
             hasAnyHourlyRate: hasAnyHourlyRate,
             sessionCount: projects.reduce(into: 0) { partialResult, project in
-                partialResult += project.sessions.count
+                partialResult += project.sessionList.count
             },
             trackedProjectCount: projectTotals.count,
             currentWeekDuration: currentWeekDuration,
@@ -796,7 +796,7 @@ private enum AnalyticsCalculator {
         var dayDurations: [Date: [UUID: TimeInterval]] = [:]
 
         for project in projects {
-            for session in project.sessions {
+            for session in project.sessionList {
                 let sessionEnd = session.endedAt ?? referenceDate
                 guard sessionEnd > session.startedAt else {
                     continue
@@ -985,7 +985,7 @@ private enum AnalyticsCalculator {
         var durationsByHour: [Int: [UUID: TimeInterval]] = [:]
 
         for project in projects {
-            for session in project.sessions {
+            for session in project.sessionList {
                 let sessionEnd = session.endedAt ?? referenceDate
                 let effectiveStart = max(session.startedAt, oldestDayStart)
                 let effectiveEnd = min(sessionEnd, rangeEnd)

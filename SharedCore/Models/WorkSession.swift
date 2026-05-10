@@ -3,11 +3,11 @@ import SwiftData
 
 @Model
 final class WorkSession {
-    @Attribute(.unique) var id: UUID
-    var startedAt: Date
+    var id: UUID = UUID()
+    var startedAt: Date = Date.now
     var endedAt: Date?
-    var project: ClientProject?
-    var task: ProjectTask?
+    var project: ClientProject? = nil
+    var task: ProjectTask? = nil
 
     init(
         project: ClientProject,

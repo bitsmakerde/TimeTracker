@@ -88,7 +88,7 @@ enum ProjectExportService {
         mode: ProjectExportContentMode,
         referenceDate: Date
     ) -> ProjectExportDocument {
-        let sessions = project.sessions.sorted { $0.startedAt < $1.startedAt }
+        let sessions = project.sessionList.sorted { $0.startedAt < $1.startedAt }
         let effectiveMode: ProjectExportContentMode = mode.includesCosts && !project.hasHourlyRate ? .hoursOnly : mode
 
         var rows: [ProjectExportSessionRow] = []
@@ -160,7 +160,7 @@ enum ProjectExportService {
 
             switch key {
             case .task(let taskID):
-                if let task = project.tasks.first(where: { $0.id == taskID }) {
+                if let task = project.taskList.first(where: { $0.id == taskID }) {
                     title = task.displayTitle
                     id = taskID.uuidString
                 } else {

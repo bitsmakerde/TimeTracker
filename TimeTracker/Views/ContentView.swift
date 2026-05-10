@@ -26,7 +26,7 @@ struct WorkspaceRootView: View {
         filter: #Predicate<WorkSession> { session in
             session.endedAt == nil
         },
-        sort: [SortDescriptor(\WorkSession.startedAt, order: .reverse)]
+        sort: [SortDescriptor(\WorkSession.startedAt, order: .forward)]
     )
     private var activeSessions: [WorkSession]
 

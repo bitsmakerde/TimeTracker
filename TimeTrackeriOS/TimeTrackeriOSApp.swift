@@ -5,6 +5,7 @@
 //  Created by André Bongartz on 06.04.26.
 //
 
+import Foundation
 import SwiftData
 import SwiftUI
 
@@ -16,13 +17,21 @@ struct TimeTrackeriOSApp: App {
 
     init() {
         do {
-            let container = try TimeTrackerSchema.makeModelContainer()
+            let syncMode: TimeTrackerSyncMode = if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
+                .cloudKitPrivate(containerIdentifier: TimeTrackerSchema.defaultCloudKitContainerIdentifier)
+            } else {
+                .localOnly
+            }
+            let container = try TimeTrackerSchema.makeModelContainer(syncMode: syncMode)
             self.sharedModelContainer = container
             self.dependencies = AppDependencies.live(
                 configuration: TimeTrackerTargetConfiguration.iOS
             )
             _trackingStatus = State(
-                wrappedValue: TrackingStatusStore(modelContainer: container)
+                wrappedValue: TrackingStatusStore(
+                    modelContainer: container,
+                    syncMode: syncMode
+                )
             )
         } catch {
             fatalError("Failed to create model container: \(error)")

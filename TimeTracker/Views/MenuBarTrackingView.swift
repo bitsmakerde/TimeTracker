@@ -18,7 +18,7 @@ struct MenuBarTrackingView: View {
         filter: #Predicate<WorkSession> { session in
             session.endedAt == nil
         },
-        sort: [SortDescriptor(\WorkSession.startedAt, order: .reverse)]
+        sort: [SortDescriptor(\WorkSession.startedAt, order: .forward)]
     )
     private var activeSessions: [WorkSession]
 
@@ -40,6 +40,12 @@ struct MenuBarTrackingView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            MenuBarSyncStatusRow(trackingStatus: trackingStatus)
+
+            if let crossDeviceTrackingSnapshot = trackingStatus.crossDeviceTrackingSnapshot {
+                MenuBarCrossDeviceStatusRow(snapshot: crossDeviceTrackingSnapshot)
+            }
+
             if let activeSession, let activeProject {
                 activeTrackingCard(project: activeProject, session: activeSession)
             } else {
@@ -75,7 +81,7 @@ struct MenuBarTrackingView: View {
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
 
-                                    if !project.tasks.isEmpty {
+                                    if !project.taskList.isEmpty {
                                         Text("Startet ohne Aufgabe")
                                             .font(.caption2)
                                             .foregroundStyle(.secondary)
@@ -214,12 +220,126 @@ struct MenuBarTrackingView: View {
     }
 }
 
+private struct MenuBarCrossDeviceStatusRow: View {
+    let snapshot: CrossDeviceTrackingSnapshot
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption)
+                .bold()
+
+            Text(detail)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(3)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor))
+        )
+    }
+
+    private var title: String {
+        switch snapshot.lifecycle {
+        case .started:
+            return "Anderes Geraet: Start"
+        case .stopped:
+            return "Anderes Geraet: Stopp"
+        }
+    }
+
+    private var detail: String {
+        let startTime = snapshot.startedAt.formatted(date: .omitted, time: .shortened)
+        return "\(snapshot.projectName) - \(snapshot.taskTitle) - Start \(startTime)"
+    }
+}
+
+private struct MenuBarSyncStatusRow: View {
+    let trackingStatus: TrackingStatusStore
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: symbolName)
+                .foregroundStyle(tintColor)
+
+            Text(title)
+                .font(.caption)
+                .bold()
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor))
+        )
+    }
+
+    private var title: String {
+        switch trackingStatus.syncStatus {
+        case .localOnly:
+            return "Sync lokal"
+        case .waitingForCloud:
+            return "Sync bereit"
+        case let .syncing(operation, _):
+            switch operation {
+            case .setup:
+                return "Sync Setup"
+            case .importData:
+                return "Sync Import"
+            case .export:
+                return "Sync Export"
+            }
+        case .upToDate:
+            return "Sync aktuell"
+        case .failed:
+            return "Sync Fehler"
+        }
+    }
+
+    private var symbolName: String {
+        switch trackingStatus.syncStatus {
+        case .localOnly:
+            return "icloud.slash"
+        case .waitingForCloud:
+            return "icloud"
+        case .syncing:
+            return "arrow.triangle.2.circlepath.icloud"
+        case .upToDate:
+            return "checkmark.icloud"
+        case .failed:
+            return "exclamationmark.icloud"
+        }
+    }
+
+    private var tintColor: Color {
+        switch trackingStatus.syncStatus {
+        case .localOnly, .waitingForCloud:
+            return .secondary
+        case .syncing:
+            return .teal
+        case .upToDate:
+            return .green
+        case .failed:
+            return .orange
+        }
+    }
+}
+
 struct MenuBarStatusLabel: View {
     let trackingStatus: TrackingStatusStore
 
     var body: some View {
         if trackingStatus.isTracking {
             (Text(Image(systemName: "timer")) + Text(" \(trackingStatus.menuBarDurationText)"))
+                .monospacedDigit()
+        } else if let crossDeviceDuration = trackingStatus.menuBarCrossDeviceDurationText {
+            (Text(Image(systemName: "dot.radiowaves.left.and.right")) + Text(" \(crossDeviceDuration)"))
                 .monospacedDigit()
         } else {
             Image(systemName: "timer")

@@ -1,6 +1,13 @@
 import SwiftData
 
+enum TimeTrackerSyncMode: Equatable {
+    case localOnly
+    case cloudKitPrivate(containerIdentifier: String)
+}
+
 enum TimeTrackerSchema {
+    static let defaultCloudKitContainerIdentifier = "iCloud.de.bitsmaker.TimeTracker"
+
     static var schema: Schema {
         Schema([
             ClientProject.self,
@@ -10,12 +17,30 @@ enum TimeTrackerSchema {
     }
 
     static func makeModelContainer(
-        isStoredInMemoryOnly: Bool = false
+        isStoredInMemoryOnly: Bool = false,
+        syncMode: TimeTrackerSyncMode = .localOnly
     ) throws -> ModelContainer {
-        let configuration = ModelConfiguration(
-            schema: schema,
-            isStoredInMemoryOnly: isStoredInMemoryOnly
-        )
+        let configuration: ModelConfiguration
+
+        if isStoredInMemoryOnly {
+            configuration = ModelConfiguration(
+                schema: schema,
+                isStoredInMemoryOnly: true
+            )
+        } else {
+            switch syncMode {
+            case .localOnly:
+                configuration = ModelConfiguration(
+                    schema: schema,
+                    isStoredInMemoryOnly: false
+                )
+            case let .cloudKitPrivate(containerIdentifier):
+                configuration = ModelConfiguration(
+                    schema: schema,
+                    cloudKitDatabase: .private(containerIdentifier)
+                )
+            }
+        }
 
         return try ModelContainer(
             for: schema,

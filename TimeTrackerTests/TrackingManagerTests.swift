@@ -501,4 +501,459 @@ struct TrackingStatusStoreTests {
         #expect(store.activeSession == nil)
         #expect(store.isTracking == false)
     }
+
+    @Test("cloud sync status starts as waiting when CloudKit mode is enabled")
+    func cloudSyncStartsWaiting() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let store = TrackingStatusStore(
+            modelContainer: container,
+            syncMode: .cloudKitPrivate(containerIdentifier: "iCloud.de.bitsmaker.TimeTracker")
+        )
+
+        #expect(store.syncStatus == .waitingForCloud)
+    }
+
+    @Test("cloud sync status starts as local only when CloudKit is disabled")
+    func cloudSyncStartsLocalOnly() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let store = TrackingStatusStore(
+            modelContainer: container,
+            syncMode: .localOnly
+        )
+
+        #expect(store.syncStatus == .localOnly)
+    }
+
+    @Test("sync status changes to syncing while an export event is in progress")
+    func syncStatusChangesToRunning() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let store = TrackingStatusStore(
+            modelContainer: container,
+            syncMode: .cloudKitPrivate(containerIdentifier: "iCloud.de.bitsmaker.TimeTracker")
+        )
+        let startedAt = Date(timeIntervalSince1970: 1_000)
+
+        store.handleCloudKitEvent(
+            CloudKitSyncEventSnapshot(
+                eventType: .export,
+                startDate: startedAt,
+                endDate: nil,
+                succeeded: false,
+                errorDescription: nil
+            )
+        )
+
+        #expect(store.syncStatus == .syncing(operation: .export, startedAt: startedAt))
+    }
+
+    @Test("successful import and export events update latest sync timestamps")
+    func syncStatusTracksSuccessfulEvents() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let store = TrackingStatusStore(
+            modelContainer: container,
+            syncMode: .cloudKitPrivate(containerIdentifier: "iCloud.de.bitsmaker.TimeTracker")
+        )
+        let importEnd = Date(timeIntervalSince1970: 2_000)
+        let exportEnd = Date(timeIntervalSince1970: 3_000)
+
+        store.handleCloudKitEvent(
+            CloudKitSyncEventSnapshot(
+                eventType: .importData,
+                startDate: Date(timeIntervalSince1970: 1_900),
+                endDate: importEnd,
+                succeeded: true,
+                errorDescription: nil
+            )
+        )
+        store.handleCloudKitEvent(
+            CloudKitSyncEventSnapshot(
+                eventType: .export,
+                startDate: Date(timeIntervalSince1970: 2_900),
+                endDate: exportEnd,
+                succeeded: true,
+                errorDescription: nil
+            )
+        )
+
+        #expect(store.lastSuccessfulImportAt == importEnd)
+        #expect(store.lastSuccessfulExportAt == exportEnd)
+        #expect(store.syncStatus == .upToDate(lastSyncAt: exportEnd))
+    }
+
+    @Test("failed cloud event sets failed sync status with message")
+    func syncStatusTracksFailure() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let store = TrackingStatusStore(
+            modelContainer: container,
+            syncMode: .cloudKitPrivate(containerIdentifier: "iCloud.de.bitsmaker.TimeTracker")
+        )
+        let endDate = Date(timeIntervalSince1970: 4_000)
+        let errorMessage = "Invalid bundle ID for container"
+
+        store.handleCloudKitEvent(
+            CloudKitSyncEventSnapshot(
+                eventType: .setup,
+                startDate: Date(timeIntervalSince1970: 3_900),
+                endDate: endDate,
+                succeeded: false,
+                errorDescription: errorMessage
+            )
+        )
+
+        #expect(store.syncStatus == .failed(message: errorMessage, at: endDate))
+        #expect(store.lastSyncErrorMessage == errorMessage)
+    }
+
+    @Test("refresh publishes realtime start details to cross-device channel")
+    func refreshPublishesRealtimeStartDetails() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let context = container.mainContext
+        let project = ClientProject(clientName: "Kunde A", name: "Projekt X")
+        let task = ProjectTask(title: "Bugfix", project: project)
+        let startedAt = Date(timeIntervalSince1970: 5_000)
+        let session = WorkSession(project: project, task: task, startedAt: startedAt)
+
+        context.insert(project)
+        context.insert(task)
+        context.insert(session)
+        try context.save()
+
+        let channel = CrossDeviceTrackingChannelSpy()
+        _ = TrackingStatusStore(
+            modelContainer: container,
+            syncMode: .cloudKitPrivate(containerIdentifier: "iCloud.de.bitsmaker.TimeTracker"),
+            crossDeviceChannel: channel,
+            deviceID: "device-a"
+        )
+
+        let publishedSnapshot = try #require(channel.publishedSnapshots.last)
+        #expect(publishedSnapshot.lifecycle == .started)
+        #expect(publishedSnapshot.projectName == "Projekt X")
+        #expect(publishedSnapshot.clientName == "Kunde A")
+        #expect(publishedSnapshot.taskTitle == "Bugfix")
+        #expect(publishedSnapshot.startedAt == startedAt)
+    }
+
+    @Test("refresh publishes realtime stop when active tracking ends")
+    func refreshPublishesRealtimeStop() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let context = container.mainContext
+        let project = ClientProject(clientName: "Kunde A", name: "Projekt X")
+        let startedAt = Date(timeIntervalSince1970: 6_000)
+        let session = WorkSession(project: project, startedAt: startedAt)
+
+        context.insert(project)
+        context.insert(session)
+        try context.save()
+
+        let channel = CrossDeviceTrackingChannelSpy()
+        let store = TrackingStatusStore(
+            modelContainer: container,
+            syncMode: .cloudKitPrivate(containerIdentifier: "iCloud.de.bitsmaker.TimeTracker"),
+            crossDeviceChannel: channel,
+            deviceID: "device-a"
+        )
+
+        session.endedAt = Date(timeIntervalSince1970: 6_600)
+        try context.save()
+        store.refresh()
+
+        let publishedSnapshot = try #require(channel.publishedSnapshots.last)
+        #expect(publishedSnapshot.lifecycle == .stopped)
+        #expect(publishedSnapshot.projectName == "Projekt X")
+        #expect(publishedSnapshot.taskTitle == "Ohne Aufgabe")
+    }
+
+    @Test("cross-device snapshots from other devices are exposed")
+    func crossDeviceSnapshotIsExposed() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let channel = CrossDeviceTrackingChannelSpy()
+        let store = TrackingStatusStore(
+            modelContainer: container,
+            syncMode: .cloudKitPrivate(containerIdentifier: "iCloud.de.bitsmaker.TimeTracker"),
+            crossDeviceChannel: channel,
+            deviceID: "device-a"
+        )
+
+        let remoteSnapshot = CrossDeviceTrackingSnapshot(
+            sourceDeviceID: "device-b",
+            projectName: "Projekt B",
+            clientName: "Kunde B",
+            taskTitle: "Implementierung",
+            startedAt: Date(timeIntervalSince1970: 7_000),
+            lifecycle: .started,
+            updatedAt: Date(timeIntervalSince1970: 7_001)
+        )
+
+        channel.emitIncomingSnapshot(remoteSnapshot)
+
+        #expect(store.crossDeviceTrackingSnapshot == remoteSnapshot)
+    }
+
+    @Test("cross-device snapshots from current device are ignored")
+    func crossDeviceSnapshotFromCurrentDeviceIsIgnored() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let channel = CrossDeviceTrackingChannelSpy()
+        let store = TrackingStatusStore(
+            modelContainer: container,
+            syncMode: .cloudKitPrivate(containerIdentifier: "iCloud.de.bitsmaker.TimeTracker"),
+            crossDeviceChannel: channel,
+            deviceID: "device-a"
+        )
+
+        let localEchoSnapshot = CrossDeviceTrackingSnapshot(
+            sourceDeviceID: "device-a",
+            projectName: "Projekt A",
+            clientName: "Kunde A",
+            taskTitle: "Design",
+            startedAt: Date(timeIntervalSince1970: 8_000),
+            lifecycle: .started,
+            updatedAt: Date(timeIntervalSince1970: 8_001)
+        )
+
+        channel.emitIncomingSnapshot(localEchoSnapshot)
+
+        #expect(store.crossDeviceTrackingSnapshot == nil)
+    }
+
+    @Test("cross-device start snapshot updates remote tracking indicator")
+    func crossDeviceStartSnapshotUpdatesRemoteTrackingIndicator() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let channel = CrossDeviceTrackingChannelSpy()
+        let store = TrackingStatusStore(
+            modelContainer: container,
+            syncMode: .cloudKitPrivate(containerIdentifier: "iCloud.de.bitsmaker.TimeTracker"),
+            crossDeviceChannel: channel,
+            deviceID: "device-a"
+        )
+
+        channel.emitIncomingSnapshot(
+            CrossDeviceTrackingSnapshot(
+                sourceDeviceID: "device-b",
+                projectName: "Projekt B",
+                clientName: "Kunde B",
+                taskTitle: "Analyse",
+                startedAt: .now.addingTimeInterval(-90),
+                lifecycle: .started,
+                updatedAt: .now
+            )
+        )
+
+        #expect(store.isTrackingOnAnotherDevice)
+        #expect(store.menuBarCrossDeviceDurationText != nil)
+    }
+
+    @Test("cross-device stop snapshot clears remote tracking indicator")
+    func crossDeviceStopSnapshotClearsRemoteTrackingIndicator() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let channel = CrossDeviceTrackingChannelSpy()
+        let store = TrackingStatusStore(
+            modelContainer: container,
+            syncMode: .cloudKitPrivate(containerIdentifier: "iCloud.de.bitsmaker.TimeTracker"),
+            crossDeviceChannel: channel,
+            deviceID: "device-a"
+        )
+        let startedAt = Date.now.addingTimeInterval(-120)
+
+        channel.emitIncomingSnapshot(
+            CrossDeviceTrackingSnapshot(
+                sourceDeviceID: "device-b",
+                projectName: "Projekt B",
+                clientName: "Kunde B",
+                taskTitle: "Analyse",
+                startedAt: startedAt,
+                lifecycle: .started,
+                updatedAt: .now
+            )
+        )
+        channel.emitIncomingSnapshot(
+            CrossDeviceTrackingSnapshot(
+                sourceDeviceID: "device-b",
+                projectName: "Projekt B",
+                clientName: "Kunde B",
+                taskTitle: "Analyse",
+                startedAt: startedAt,
+                lifecycle: .stopped,
+                updatedAt: .now
+            )
+        )
+
+        #expect(store.isTrackingOnAnotherDevice == false)
+        #expect(store.menuBarCrossDeviceDurationText == nil)
+    }
+
+    @Test("cross-device stop snapshot hides stale local active session immediately")
+    func crossDeviceStopSnapshotHidesStaleLocalActiveSession() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let context = container.mainContext
+        let project = ClientProject(clientName: "Kunde A", name: "Projekt A")
+        let startedAt = Date(timeIntervalSince1970: 9_000)
+        let session = WorkSession(project: project, startedAt: startedAt)
+        context.insert(project)
+        context.insert(session)
+        try context.save()
+
+        let channel = CrossDeviceTrackingChannelSpy()
+        let store = TrackingStatusStore(
+            modelContainer: container,
+            syncMode: .cloudKitPrivate(containerIdentifier: "iCloud.de.bitsmaker.TimeTracker"),
+            crossDeviceChannel: channel,
+            deviceID: "device-a"
+        )
+
+        #expect(store.activeSession?.startedAt == startedAt)
+
+        channel.emitIncomingSnapshot(
+            CrossDeviceTrackingSnapshot(
+                sourceDeviceID: "device-b",
+                projectName: "Projekt A",
+                clientName: "Kunde A",
+                taskTitle: "Ohne Aufgabe",
+                startedAt: startedAt,
+                lifecycle: .stopped,
+                updatedAt: .now
+            )
+        )
+
+        #expect(store.activeSession == nil)
+        #expect(store.isTracking == false)
+    }
+
+    @Test("local active session returns after remote stop once a new local session exists")
+    func localSessionReturnsAfterRemoteStopWhenNewSessionStarts() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let context = container.mainContext
+        let project = ClientProject(clientName: "Kunde A", name: "Projekt A")
+        let firstStartedAt = Date(timeIntervalSince1970: 10_000)
+        let firstSession = WorkSession(project: project, startedAt: firstStartedAt)
+        context.insert(project)
+        context.insert(firstSession)
+        try context.save()
+
+        let channel = CrossDeviceTrackingChannelSpy()
+        let store = TrackingStatusStore(
+            modelContainer: container,
+            syncMode: .cloudKitPrivate(containerIdentifier: "iCloud.de.bitsmaker.TimeTracker"),
+            crossDeviceChannel: channel,
+            deviceID: "device-a"
+        )
+
+        channel.emitIncomingSnapshot(
+            CrossDeviceTrackingSnapshot(
+                sourceDeviceID: "device-b",
+                projectName: "Projekt A",
+                clientName: "Kunde A",
+                taskTitle: "Ohne Aufgabe",
+                startedAt: firstStartedAt,
+                lifecycle: .stopped,
+                updatedAt: .now
+            )
+        )
+        #expect(store.activeSession == nil)
+
+        firstSession.endedAt = firstStartedAt
+        let secondStartedAt = Date(timeIntervalSince1970: 10_500)
+        let secondSession = WorkSession(project: project, startedAt: secondStartedAt)
+        context.insert(secondSession)
+        try context.save()
+
+        store.refresh()
+
+        #expect(store.activeSession?.startedAt == secondStartedAt)
+        #expect(store.isTracking)
+    }
+
+    @Test("refresh keeps the oldest active session when conflicts exist")
+    func refreshPrefersOldestSessionOnConflict() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let context = container.mainContext
+
+        let oldestProject = ClientProject(clientName: "Kunde A", name: "Aeltestes")
+        let newestProject = ClientProject(clientName: "Kunde B", name: "Neuestes")
+        let oldestSession = WorkSession(
+            project: oldestProject,
+            startedAt: Date(timeIntervalSince1970: 100)
+        )
+        let newestSession = WorkSession(
+            project: newestProject,
+            startedAt: Date(timeIntervalSince1970: 200)
+        )
+        context.insert(oldestProject)
+        context.insert(newestProject)
+        context.insert(oldestSession)
+        context.insert(newestSession)
+        try context.save()
+
+        let store = TrackingStatusStore(modelContainer: container)
+        store.refresh()
+
+        let snapshot = try #require(store.activeSession)
+        #expect(snapshot.projectName == oldestProject.displayName)
+        #expect(snapshot.clientName == oldestProject.displayClientName)
+        #expect(snapshot.startedAt == oldestSession.startedAt)
+    }
+
+    @Test("refresh ends newer conflicting sessions with zero duration")
+    func refreshEndsNewerConflictsAtStartDate() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let context = container.mainContext
+
+        let project = ClientProject(clientName: "Kunde", name: "Projekt")
+        let oldestSession = WorkSession(
+            project: project,
+            startedAt: Date(timeIntervalSince1970: 100)
+        )
+        let newerSession = WorkSession(
+            project: project,
+            startedAt: Date(timeIntervalSince1970: 200)
+        )
+        let newestSession = WorkSession(
+            project: project,
+            startedAt: Date(timeIntervalSince1970: 300)
+        )
+
+        context.insert(project)
+        context.insert(oldestSession)
+        context.insert(newerSession)
+        context.insert(newestSession)
+        try context.save()
+
+        let store = TrackingStatusStore(modelContainer: container)
+        store.refresh()
+
+        let sessions = try context.fetch(
+            FetchDescriptor<WorkSession>(
+                sortBy: [SortDescriptor(\WorkSession.startedAt)]
+            )
+        )
+        let activeSessions = sessions.filter(\.isActive)
+
+        #expect(activeSessions.count == 1)
+        #expect(activeSessions.first?.id == oldestSession.id)
+        #expect(newerSession.endedAt == newerSession.startedAt)
+        #expect(newestSession.endedAt == newestSession.startedAt)
+        #expect(newerSession.duration(referenceDate: Date(timeIntervalSince1970: 500)) == 0)
+        #expect(newestSession.duration(referenceDate: Date(timeIntervalSince1970: 500)) == 0)
+    }
+}
+
+@MainActor
+private final class CrossDeviceTrackingChannelSpy: CrossDeviceTrackingChannelProtocol {
+    private var onChange: ((CrossDeviceTrackingSnapshot?) -> Void)?
+    private(set) var publishedSnapshots: [CrossDeviceTrackingSnapshot] = []
+
+    func start(onChange: @escaping (CrossDeviceTrackingSnapshot?) -> Void) {
+        self.onChange = onChange
+        onChange(nil)
+    }
+
+    func publish(_ snapshot: CrossDeviceTrackingSnapshot) {
+        publishedSnapshots.append(snapshot)
+    }
+
+    func refresh() {}
+
+    func emitIncomingSnapshot(_ snapshot: CrossDeviceTrackingSnapshot?) {
+        onChange?(snapshot)
+    }
 }

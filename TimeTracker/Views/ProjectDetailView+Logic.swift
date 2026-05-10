@@ -7,7 +7,7 @@ import AppKit
 
 extension ProjectDetailView {
     func totalDuration(referenceDate: Date) -> TimeInterval {
-        project.sessions.reduce(into: 0) { partialResult, session in
+        project.sessionList.reduce(into: 0) { partialResult, session in
             partialResult += session.duration(referenceDate: referenceDate)
         }
     }
@@ -16,7 +16,7 @@ extension ProjectDetailView {
         let dayStart = calendar.startOfDay(for: referenceDate)
         let nextDayStart = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? referenceDate
 
-        return project.sessions.reduce(into: 0) { partialResult, session in
+        return project.sessionList.reduce(into: 0) { partialResult, session in
             let sessionEnd = session.endedAt ?? referenceDate
             let overlapStart = max(session.startedAt, dayStart)
             let overlapEnd = min(sessionEnd, nextDayStart)
@@ -37,7 +37,7 @@ extension ProjectDetailView {
             return "Zeiterfassung stoppen"
         }
 
-        return project.tasks.isEmpty ? "Zeiterfassung starten" : "Ausgewaehlte Aufgabe starten"
+        return project.taskList.isEmpty ? "Zeiterfassung starten" : "Ausgewaehlte Aufgabe starten"
     }
     var actionButtonSystemImage: String {
         if project.isArchived {
@@ -142,7 +142,7 @@ extension ProjectDetailView {
     }
     var selectedTaskForStart: ProjectTask? {
         if let selectedTaskID,
-           let selectedTask = project.tasks.first(where: { $0.id == selectedTaskID }) {
+           let selectedTask = project.taskList.first(where: { $0.id == selectedTaskID }) {
             return selectedTask
         }
 
@@ -155,7 +155,7 @@ extension ProjectDetailView {
         }
 
         if let selectedTaskID,
-           project.tasks.contains(where: { $0.id == selectedTaskID }) {
+           project.taskList.contains(where: { $0.id == selectedTaskID }) {
             return
         }
 
@@ -179,7 +179,7 @@ extension ProjectDetailView {
         }
     }
     func taskSessionCount(for task: ProjectTask) -> Int {
-        project.sessions.filter { $0.task?.id == task.id }.count
+        project.sessionList.filter { $0.task?.id == task.id }.count
     }
     func taskDuration(
         for task: ProjectTask,
@@ -191,7 +191,7 @@ extension ProjectDetailView {
         for taskID: UUID?,
         referenceDate: Date
     ) -> TimeInterval {
-        project.sessions.reduce(into: 0) { partialResult, session in
+        project.sessionList.reduce(into: 0) { partialResult, session in
             let sessionTaskID = session.task?.id
 
             guard sessionTaskID == taskID else {

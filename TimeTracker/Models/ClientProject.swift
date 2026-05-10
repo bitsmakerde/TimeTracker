@@ -12,24 +12,24 @@ enum ProjectBudgetUnit: String, CaseIterable, Identifiable {
 
 @Model
 final class ClientProject {
-    @Attribute(.unique) var id: UUID
-    var clientName: String
-    var name: String
-    var notes: String
+    var id: UUID = UUID()
+    var clientName: String = ""
+    var name: String = ""
+    var notes: String = ""
     var hourlyRate: Double?
     var budgetUnitRaw: String?
     var budgetTarget: Double?
     var archivedAt: Date?
-    var createdAt: Date
+    var createdAt: Date = Date.now
     var accentRed: Double?
     var accentGreen: Double?
     var accentBlue: Double?
 
     @Relationship(deleteRule: .cascade, inverse: \WorkSession.project)
-    var sessions: [WorkSession]
+    var sessions: [WorkSession]?
 
     @Relationship(deleteRule: .cascade, inverse: \ProjectTask.project)
-    var tasks: [ProjectTask]
+    var tasks: [ProjectTask]?
 
     init(
         clientName: String,
@@ -65,6 +65,14 @@ extension ClientProject {
     static let primaryActionColor = Color(.sRGB, red: 0.13, green: 0.44, blue: 0.86, opacity: 1)
     static let stopActionColor = Color(.sRGB, red: 0.72, green: 0.25, blue: 0.17, opacity: 1)
 
+    var sessionList: [WorkSession] {
+        sessions ?? []
+    }
+
+    var taskList: [ProjectTask] {
+        tasks ?? []
+    }
+
     var displayClientName: String {
         let trimmed = clientName.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? "Ohne Kunde" : trimmed
@@ -76,11 +84,11 @@ extension ClientProject {
     }
 
     var sortedSessions: [WorkSession] {
-        sessions.sorted { $0.startedAt > $1.startedAt }
+        sessionList.sorted { $0.startedAt > $1.startedAt }
     }
 
     var sortedTasks: [ProjectTask] {
-        tasks.sorted { lhs, rhs in
+        taskList.sorted { lhs, rhs in
             let titleComparison = lhs.displayTitle.localizedCaseInsensitiveCompare(rhs.displayTitle)
 
             if titleComparison == .orderedSame {
