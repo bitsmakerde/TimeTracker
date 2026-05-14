@@ -26,3 +26,13 @@ struct PlatformSummaryCard: View {
         .background(.thinMaterial, in: .rect(cornerRadius: 16))
     }
 }
+
+
+#Preview {
+    PlatformSummaryCard(
+        title: "iOS",
+        subtitle: "Letzte Woche: 12h 30m",
+        systemImage: "iphone"
+    )
+    .padding()
+}

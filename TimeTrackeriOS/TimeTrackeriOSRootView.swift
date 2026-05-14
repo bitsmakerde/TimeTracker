@@ -5,26 +5,31 @@ struct ContentView: View {
     let trackingStatus: TrackingStatusStore
     let dependencies: AppDependencies
 
+    @AppStorage("tt.projectColorVariant") private var variantRaw: String = ProjectColorVariant.chromed.rawValue
+
+    private var variant: ProjectColorVariant {
+        ProjectColorVariant(rawValue: variantRaw) ?? .chromed
+    }
+
     var body: some View {
         TabView {
             Tab("Aufnehmen", systemImage: "record.circle") {
-                WorkspaceRootView(
-                    trackingStatus: trackingStatus,
-                    dependencies: dependencies,
-                    forcedWorkspaceSection: .tracking,
-                    showsWorkspaceSectionPicker: false
-                )
+                NavigationStack {
+                    TrackingScreen(
+                        trackingStatus: trackingStatus,
+                        dependencies: dependencies
+                    )
+                }
             }
 
             Tab("Auswertung", systemImage: "chart.bar.xaxis") {
-                WorkspaceRootView(
-                    trackingStatus: trackingStatus,
-                    dependencies: dependencies,
-                    forcedWorkspaceSection: .analytics,
-                    showsWorkspaceSectionPicker: false
-                )
+                NavigationStack {
+                    AnalyticsScreen()
+                }
             }
         }
+        .tint(TTColors.accent)
+        .environment(\.projectColorVariant, variant)
         .toolbarBackground(.visible, for: .tabBar)
         .toolbarBackground(.regularMaterial, for: .tabBar)
     }

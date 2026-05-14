@@ -447,6 +447,317 @@ struct TrackingManagerTests {
     }
 }
 
+@Suite("Tracking abstractions")
+@MainActor
+struct TrackingAbstractionTests {
+    @Test("SwiftDataTrackingRepository forwards every operation")
+    func swiftDataRepositoryForwardsOperations() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let context = container.mainContext
+        let project = ClientProject(clientName: "A", name: "Project")
+        let task = ProjectTask(title: "Task", project: project)
+        let session = WorkSession(
+            project: project,
+            task: task,
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200)
+        )
+        let spy = TrackingManagerProtocolSpy()
+        let repository = SwiftDataTrackingRepository(trackingManager: spy)
+        let start = Date(timeIntervalSince1970: 1_000)
+        let end = Date(timeIntervalSince1970: 2_000)
+        let now = Date(timeIntervalSince1970: 3_000)
+        let archiveDate = Date(timeIntervalSince1970: 4_000)
+
+        try repository.startTracking(
+            project: project,
+            task: task,
+            in: context,
+            at: start
+        )
+        try repository.stopActiveTracking(in: context, at: end)
+        try repository.addManualSession(
+            for: project,
+            task: task,
+            startedAt: start,
+            endedAt: end,
+            in: context,
+            now: now
+        )
+        try repository.updateManualSession(
+            session,
+            task: task,
+            startedAt: start,
+            endedAt: end,
+            in: context,
+            now: now
+        )
+        try repository.archiveProject(project, in: context, at: archiveDate)
+        try repository.restoreProject(project, in: context)
+        try repository.deleteProject(project, in: context)
+        try repository.deleteSession(session, in: context)
+
+        let expectedCalls: [TrackingOperationCall] = [
+            .start(projectID: project.id, taskID: task.id, referenceDate: start),
+            .stop(referenceDate: end),
+            .add(projectID: project.id, taskID: task.id, startedAt: start, endedAt: end, now: now),
+            .update(sessionID: session.id, taskID: task.id, startedAt: start, endedAt: end, now: now),
+            .archive(projectID: project.id, referenceDate: archiveDate),
+            .restore(projectID: project.id),
+            .deleteProject(projectID: project.id),
+            .deleteSession(sessionID: session.id),
+        ]
+        #expect(spy.calls == expectedCalls)
+    }
+
+    @Test("DefaultWorkspaceTrackingUseCases forwards every operation")
+    func workspaceTrackingUseCasesForwardOperations() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let context = container.mainContext
+        let project = ClientProject(clientName: "A", name: "Project")
+        let task = ProjectTask(title: "Task", project: project)
+        let session = WorkSession(
+            project: project,
+            task: task,
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200)
+        )
+        let spy = TrackingRepositoryProtocolSpy()
+        let useCases = DefaultWorkspaceTrackingUseCases(repository: spy)
+        let start = Date(timeIntervalSince1970: 1_000)
+        let end = Date(timeIntervalSince1970: 2_000)
+        let now = Date(timeIntervalSince1970: 3_000)
+        let archiveDate = Date(timeIntervalSince1970: 4_000)
+
+        try useCases.startTracking(
+            project: project,
+            task: task,
+            in: context,
+            at: start
+        )
+        try useCases.stopActiveTracking(in: context, at: end)
+        try useCases.addManualSession(
+            for: project,
+            task: task,
+            startedAt: start,
+            endedAt: end,
+            in: context,
+            now: now
+        )
+        try useCases.updateManualSession(
+            session,
+            task: task,
+            startedAt: start,
+            endedAt: end,
+            in: context,
+            now: now
+        )
+        try useCases.archiveProject(project, in: context, at: archiveDate)
+        try useCases.restoreProject(project, in: context)
+        try useCases.deleteProject(project, in: context)
+        try useCases.deleteSession(session, in: context)
+
+        let expectedCalls: [TrackingOperationCall] = [
+            .start(projectID: project.id, taskID: task.id, referenceDate: start),
+            .stop(referenceDate: end),
+            .add(projectID: project.id, taskID: task.id, startedAt: start, endedAt: end, now: now),
+            .update(sessionID: session.id, taskID: task.id, startedAt: start, endedAt: end, now: now),
+            .archive(projectID: project.id, referenceDate: archiveDate),
+            .restore(projectID: project.id),
+            .deleteProject(projectID: project.id),
+            .deleteSession(sessionID: session.id),
+        ]
+        #expect(spy.calls == expectedCalls)
+    }
+}
+
+@Suite("WorkspaceRootViewModel actions")
+@MainActor
+struct WorkspaceRootViewModelActionTests {
+    @Test("presentation helpers and selected project lookup update state")
+    func presentationAndSelectionState() {
+        let firstProject = ClientProject(clientName: "Alpha", name: "One")
+        let secondProject = ClientProject(clientName: "Beta", name: "Two")
+        let session = WorkSession(project: secondProject)
+        let viewModel = WorkspaceRootViewModel()
+
+        #expect(viewModel.selectedProject(in: [firstProject, secondProject])?.id == firstProject.id)
+        #expect(viewModel.activeWorkspaceSection(forcedWorkspaceSection: nil) == .tracking)
+        #expect(viewModel.activeWorkspaceSection(forcedWorkspaceSection: .analytics) == .analytics)
+        #expect(viewModel.projectIDList(from: [firstProject, secondProject]) == [firstProject.id, secondProject.id])
+
+        viewModel.selectProject(secondProject)
+        #expect(viewModel.selectedProject(in: [firstProject, secondProject])?.id == secondProject.id)
+
+        viewModel.presentNewProjectSheet(for: "Neuer Kunde")
+        #expect(viewModel.initialClientNameForNewProject == "Neuer Kunde")
+        #expect(viewModel.isPresentingNewProjectSheet)
+
+        viewModel.presentManualSessionSheet()
+        #expect(viewModel.isPresentingManualSessionSheet)
+
+        viewModel.editSession(session, project: secondProject)
+        #expect(viewModel.sessionEditor?.id == session.id)
+
+        viewModel.errorMessage = "Fehler"
+        #expect(viewModel.isPresentingError)
+        viewModel.isPresentingError = false
+        #expect(viewModel.errorMessage == nil)
+    }
+
+    @Test("saveNewProject persists and selects the new project")
+    func saveNewProjectPersistsAndSelectsProject() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let context = container.mainContext
+        let project = ClientProject(clientName: "A", name: "Saved")
+        let viewModel = WorkspaceRootViewModel()
+
+        let didSave = viewModel.saveNewProject(project, in: context)
+        let projects = try context.fetch(FetchDescriptor<ClientProject>())
+
+        #expect(didSave)
+        #expect(projects.map(\.id) == [project.id])
+        #expect(viewModel.selectedProjectID == project.id)
+    }
+
+    @Test("tracking actions call dependencies and maintain local state")
+    func trackingActionsCallDependencies() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let context = container.mainContext
+        let trackingStatus = TrackingStatusStore(
+            modelContainer: container,
+            crossDeviceChannel: NoopCrossDeviceTrackingChannel()
+        )
+        let project = ClientProject(clientName: "A", name: "Project")
+        let task = ProjectTask(title: "Task", project: project)
+        let session = WorkSession(
+            project: project,
+            task: task,
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200)
+        )
+        let spy = WorkspaceTrackingUseCasesProtocolSpy()
+        let dependencies = AppDependencies(
+            configuration: TimeTrackerTargetConfiguration.macOS,
+            workspaceTrackingUseCases: spy
+        )
+        let viewModel = WorkspaceRootViewModel()
+        viewModel.selectedProjectID = project.id
+        viewModel.sessionEditor = SessionEditor(project: project, session: session)
+
+        viewModel.startTracking(
+            project,
+            task: task,
+            dependencies: dependencies,
+            modelContext: context,
+            trackingStatus: trackingStatus
+        )
+        viewModel.stopActiveTracking(
+            dependencies: dependencies,
+            modelContext: context,
+            trackingStatus: trackingStatus
+        )
+        let didAdd = viewModel.addManualSession(
+            for: project,
+            task: task,
+            startedAt: Date(timeIntervalSince1970: 1_000),
+            endedAt: Date(timeIntervalSince1970: 2_000),
+            dependencies: dependencies,
+            modelContext: context
+        )
+        let didUpdate = viewModel.updateManualSession(
+            session,
+            task: task,
+            startedAt: Date(timeIntervalSince1970: 1_000),
+            endedAt: Date(timeIntervalSince1970: 2_000),
+            dependencies: dependencies,
+            modelContext: context
+        )
+        viewModel.deleteSession(
+            session,
+            dependencies: dependencies,
+            modelContext: context,
+            trackingStatus: trackingStatus
+        )
+        viewModel.archiveProject(
+            project,
+            dependencies: dependencies,
+            modelContext: context,
+            trackingStatus: trackingStatus
+        )
+        viewModel.restoreProject(
+            project,
+            dependencies: dependencies,
+            modelContext: context,
+            trackingStatus: trackingStatus
+        )
+        viewModel.deleteProject(
+            project,
+            dependencies: dependencies,
+            modelContext: context,
+            trackingStatus: trackingStatus
+        )
+
+        #expect(didAdd)
+        #expect(didUpdate)
+        #expect(
+            spy.calls.map(\.kind) == [
+                .start,
+                .stop,
+                .add,
+                .update,
+                .deleteSession,
+                .archive,
+                .restore,
+                .deleteProject,
+            ]
+        )
+        #expect(viewModel.sessionEditor == nil)
+        #expect(viewModel.selectedProjectID == nil)
+        #expect(viewModel.errorMessage == nil)
+    }
+
+    @Test("tracking action errors expose user-facing messages")
+    func trackingActionErrorsExposeMessages() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let context = container.mainContext
+        let trackingStatus = TrackingStatusStore(
+            modelContainer: container,
+            crossDeviceChannel: NoopCrossDeviceTrackingChannel()
+        )
+        let project = ClientProject(clientName: "A", name: "Project")
+        let spy = WorkspaceTrackingUseCasesProtocolSpy()
+        let dependencies = AppDependencies(
+            configuration: TimeTrackerTargetConfiguration.macOS,
+            workspaceTrackingUseCases: spy
+        )
+        let viewModel = WorkspaceRootViewModel()
+
+        spy.errorToThrow = TrackingManagerError.archivedProjectNotEditable
+        viewModel.startTracking(
+            project,
+            dependencies: dependencies,
+            modelContext: context,
+            trackingStatus: trackingStatus
+        )
+        #expect(viewModel.errorMessage == TrackingManagerError.archivedProjectNotEditable.errorDescription)
+
+        viewModel.isPresentingError = false
+        spy.errorToThrow = WorkspaceTrackingUseCasesProtocolSpy.Failure()
+        let didAdd = viewModel.addManualSession(
+            for: project,
+            task: nil,
+            startedAt: Date(timeIntervalSince1970: 1_000),
+            endedAt: Date(timeIntervalSince1970: 2_000),
+            dependencies: dependencies,
+            modelContext: context
+        )
+
+        #expect(didAdd == false)
+        #expect(viewModel.errorMessage == "Der Zeiteintrag konnte nicht gespeichert werden.")
+    }
+}
+
 @Suite("TrackingStatusStore")
 @MainActor
 struct TrackingStatusStoreTests {
@@ -955,5 +1266,278 @@ private final class CrossDeviceTrackingChannelSpy: CrossDeviceTrackingChannelPro
 
     func emitIncomingSnapshot(_ snapshot: CrossDeviceTrackingSnapshot?) {
         onChange?(snapshot)
+    }
+}
+
+private enum TrackingOperationCall: Equatable {
+    enum Kind: Equatable {
+        case start
+        case stop
+        case add
+        case update
+        case archive
+        case restore
+        case deleteProject
+        case deleteSession
+    }
+
+    case start(projectID: UUID, taskID: UUID?, referenceDate: Date)
+    case stop(referenceDate: Date)
+    case add(projectID: UUID, taskID: UUID?, startedAt: Date, endedAt: Date, now: Date)
+    case update(sessionID: UUID, taskID: UUID?, startedAt: Date, endedAt: Date, now: Date)
+    case archive(projectID: UUID, referenceDate: Date)
+    case restore(projectID: UUID)
+    case deleteProject(projectID: UUID)
+    case deleteSession(sessionID: UUID)
+
+    var kind: Kind {
+        switch self {
+        case .start:
+            return .start
+        case .stop:
+            return .stop
+        case .add:
+            return .add
+        case .update:
+            return .update
+        case .archive:
+            return .archive
+        case .restore:
+            return .restore
+        case .deleteProject:
+            return .deleteProject
+        case .deleteSession:
+            return .deleteSession
+        }
+    }
+}
+
+private final class TrackingManagerProtocolSpy: TrackingManagerProtocol {
+    private(set) var calls: [TrackingOperationCall] = []
+
+    func startTracking(
+        project: ClientProject,
+        task: ProjectTask?,
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws {
+        calls.append(.start(projectID: project.id, taskID: task?.id, referenceDate: referenceDate))
+    }
+
+    func stopActiveTracking(
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws {
+        calls.append(.stop(referenceDate: referenceDate))
+    }
+
+    func addManualSession(
+        for project: ClientProject,
+        task: ProjectTask?,
+        startedAt: Date,
+        endedAt: Date,
+        in context: ModelContext,
+        now: Date
+    ) throws {
+        calls.append(.add(projectID: project.id, taskID: task?.id, startedAt: startedAt, endedAt: endedAt, now: now))
+    }
+
+    func updateManualSession(
+        _ session: WorkSession,
+        task: ProjectTask?,
+        startedAt: Date,
+        endedAt: Date,
+        in context: ModelContext,
+        now: Date
+    ) throws {
+        calls.append(.update(sessionID: session.id, taskID: task?.id, startedAt: startedAt, endedAt: endedAt, now: now))
+    }
+
+    func archiveProject(
+        _ project: ClientProject,
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws {
+        calls.append(.archive(projectID: project.id, referenceDate: referenceDate))
+    }
+
+    func restoreProject(
+        _ project: ClientProject,
+        in context: ModelContext
+    ) throws {
+        calls.append(.restore(projectID: project.id))
+    }
+
+    func deleteProject(
+        _ project: ClientProject,
+        in context: ModelContext
+    ) throws {
+        calls.append(.deleteProject(projectID: project.id))
+    }
+
+    func deleteSession(
+        _ session: WorkSession,
+        in context: ModelContext
+    ) throws {
+        calls.append(.deleteSession(sessionID: session.id))
+    }
+}
+
+private final class TrackingRepositoryProtocolSpy: TrackingRepositoryProtocol {
+    private(set) var calls: [TrackingOperationCall] = []
+
+    func startTracking(
+        project: ClientProject,
+        task: ProjectTask?,
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws {
+        calls.append(.start(projectID: project.id, taskID: task?.id, referenceDate: referenceDate))
+    }
+
+    func stopActiveTracking(
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws {
+        calls.append(.stop(referenceDate: referenceDate))
+    }
+
+    func addManualSession(
+        for project: ClientProject,
+        task: ProjectTask?,
+        startedAt: Date,
+        endedAt: Date,
+        in context: ModelContext,
+        now: Date
+    ) throws {
+        calls.append(.add(projectID: project.id, taskID: task?.id, startedAt: startedAt, endedAt: endedAt, now: now))
+    }
+
+    func updateManualSession(
+        _ session: WorkSession,
+        task: ProjectTask?,
+        startedAt: Date,
+        endedAt: Date,
+        in context: ModelContext,
+        now: Date
+    ) throws {
+        calls.append(.update(sessionID: session.id, taskID: task?.id, startedAt: startedAt, endedAt: endedAt, now: now))
+    }
+
+    func archiveProject(
+        _ project: ClientProject,
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws {
+        calls.append(.archive(projectID: project.id, referenceDate: referenceDate))
+    }
+
+    func restoreProject(
+        _ project: ClientProject,
+        in context: ModelContext
+    ) throws {
+        calls.append(.restore(projectID: project.id))
+    }
+
+    func deleteProject(
+        _ project: ClientProject,
+        in context: ModelContext
+    ) throws {
+        calls.append(.deleteProject(projectID: project.id))
+    }
+
+    func deleteSession(
+        _ session: WorkSession,
+        in context: ModelContext
+    ) throws {
+        calls.append(.deleteSession(sessionID: session.id))
+    }
+}
+
+private final class WorkspaceTrackingUseCasesProtocolSpy: WorkspaceTrackingUseCasesProtocol {
+    struct Failure: Error {}
+
+    var errorToThrow: Error?
+    private(set) var calls: [TrackingOperationCall] = []
+
+    func startTracking(
+        project: ClientProject,
+        task: ProjectTask?,
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws {
+        calls.append(.start(projectID: project.id, taskID: task?.id, referenceDate: referenceDate))
+        try throwIfNeeded()
+    }
+
+    func stopActiveTracking(
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws {
+        calls.append(.stop(referenceDate: referenceDate))
+        try throwIfNeeded()
+    }
+
+    func addManualSession(
+        for project: ClientProject,
+        task: ProjectTask?,
+        startedAt: Date,
+        endedAt: Date,
+        in context: ModelContext,
+        now: Date
+    ) throws {
+        calls.append(.add(projectID: project.id, taskID: task?.id, startedAt: startedAt, endedAt: endedAt, now: now))
+        try throwIfNeeded()
+    }
+
+    func updateManualSession(
+        _ session: WorkSession,
+        task: ProjectTask?,
+        startedAt: Date,
+        endedAt: Date,
+        in context: ModelContext,
+        now: Date
+    ) throws {
+        calls.append(.update(sessionID: session.id, taskID: task?.id, startedAt: startedAt, endedAt: endedAt, now: now))
+        try throwIfNeeded()
+    }
+
+    func archiveProject(
+        _ project: ClientProject,
+        in context: ModelContext,
+        at referenceDate: Date
+    ) throws {
+        calls.append(.archive(projectID: project.id, referenceDate: referenceDate))
+        try throwIfNeeded()
+    }
+
+    func restoreProject(
+        _ project: ClientProject,
+        in context: ModelContext
+    ) throws {
+        calls.append(.restore(projectID: project.id))
+        try throwIfNeeded()
+    }
+
+    func deleteProject(
+        _ project: ClientProject,
+        in context: ModelContext
+    ) throws {
+        calls.append(.deleteProject(projectID: project.id))
+        try throwIfNeeded()
+    }
+
+    func deleteSession(
+        _ session: WorkSession,
+        in context: ModelContext
+    ) throws {
+        calls.append(.deleteSession(sessionID: session.id))
+        try throwIfNeeded()
+    }
+
+    private func throwIfNeeded() throws {
+        if let errorToThrow {
+            throw errorToThrow
+        }
     }
 }

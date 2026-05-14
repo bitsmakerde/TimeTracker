@@ -570,7 +570,7 @@ private struct AnalyticsCard<Content: View>: View {
     }
 }
 
-private struct AnalyticsSnapshot {
+struct AnalyticsSnapshot {
     let projectTotals: [AnalyticsProjectTotal]
     let weeklyPoints: [AnalyticsStackedPoint]
     let dailyPoints: [AnalyticsStackedPoint]
@@ -624,7 +624,7 @@ private struct AnalyticsSnapshot {
     }
 }
 
-private struct AnalyticsProjectTotal: Identifiable {
+struct AnalyticsProjectTotal: Identifiable {
     let id: UUID
     let projectName: String
     let clientName: String
@@ -649,7 +649,7 @@ private struct AnalyticsProjectTotal: Identifiable {
     }
 }
 
-private struct AnalyticsStackedPoint: Identifiable {
+struct AnalyticsStackedPoint: Identifiable {
     let periodStart: Date
     let periodLabel: String
     let projectID: UUID
@@ -666,7 +666,7 @@ private struct AnalyticsStackedPoint: Identifiable {
     }
 }
 
-private struct AnalyticsHourlyPoint: Identifiable {
+struct AnalyticsHourlyPoint: Identifiable {
     let hour: Int
     let projectID: UUID
     let legendLabel: String
@@ -691,7 +691,7 @@ private struct AnalyticsProjectMetadata {
     let hourlyRate: Double?
 }
 
-private enum AnalyticsCalculator {
+enum AnalyticsCalculator {
     private static let weeklyWindowCount = 8
     private static let dailyWindowCount = 14
 

@@ -5,6 +5,167 @@ import UniformTypeIdentifiers
 import AppKit
 #endif
 
+enum ProjectDetailLogic {
+    static func selectedTaskForStart(
+        project: ClientProject,
+        selectedTaskID: UUID?
+    ) -> ProjectTask? {
+        if let selectedTaskID,
+           let selectedTask = project.taskList.first(where: { $0.id == selectedTaskID }) {
+            return selectedTask
+        }
+
+        return project.sortedTasks.first
+    }
+
+    static func synchronizedSelectedTaskID(
+        project: ClientProject,
+        selectedTaskID: UUID?
+    ) -> UUID? {
+        guard !project.sortedTasks.isEmpty else {
+            return nil
+        }
+
+        if let selectedTaskID,
+           project.taskList.contains(where: { $0.id == selectedTaskID }) {
+            return selectedTaskID
+        }
+
+        return project.sortedTasks.first?.id
+    }
+
+    static func hourlyRateText(for project: ClientProject) -> String {
+        TimeFormatting.decimalInput(project.hourlyRate)
+    }
+
+    static func parsedHourlyRate(from text: String) -> Double? {
+        TimeFormatting.parseDecimalInput(text)
+    }
+
+    static func hasInvalidHourlyRate(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmed.isEmpty else {
+            return false
+        }
+
+        guard let parsedHourlyRate = parsedHourlyRate(from: text) else {
+            return true
+        }
+
+        return parsedHourlyRate < 0
+    }
+
+    static func hourlyRateHint(for text: String) -> String {
+        if hasInvalidHourlyRate(text) {
+            return "Bitte gib einen gueltigen nicht-negativen Betrag ein."
+        }
+
+        return "Leer lassen, wenn das Projekt noch keinen Stundensatz hat."
+    }
+
+    static func toggledHourlyRateEditing(
+        currentlyEditing: Bool,
+        hasHourlyRate: Bool
+    ) -> Bool {
+        hasHourlyRate ? !currentlyEditing : true
+    }
+
+    static func budgetUnit(for project: ClientProject) -> ProjectBudgetUnit {
+        project.budgetUnit ?? .hours
+    }
+
+    static func budgetTargetText(for project: ClientProject) -> String {
+        TimeFormatting.decimalInput(project.effectiveBudgetTarget)
+    }
+
+    static func parsedBudgetTarget(from text: String) -> Double? {
+        TimeFormatting.parseDecimalInput(text)
+    }
+
+    static func hasInvalidBudgetTarget(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmed.isEmpty else {
+            return false
+        }
+
+        guard let parsedBudgetTarget = parsedBudgetTarget(from: text) else {
+            return true
+        }
+
+        return parsedBudgetTarget <= 0
+    }
+
+    static func convertedBudgetEditorText(
+        _ text: String,
+        project: ClientProject,
+        from oldUnit: ProjectBudgetUnit,
+        to newUnit: ProjectBudgetUnit
+    ) -> String? {
+        guard oldUnit != newUnit,
+              let parsedBudgetTarget = parsedBudgetTarget(from: text),
+              let convertedBudgetTarget = project.convertedBudgetValue(
+                parsedBudgetTarget,
+                from: oldUnit,
+                to: newUnit
+              ) else {
+            return nil
+        }
+
+        return TimeFormatting.decimalInput(convertedBudgetTarget)
+    }
+
+    static func availableExportModes(hasHourlyRate: Bool) -> [ProjectExportContentMode] {
+        hasHourlyRate ? ProjectExportContentMode.allCases : [.hoursOnly]
+    }
+
+    static func normalizedExportContentMode(
+        selectedMode: ProjectExportContentMode,
+        hasHourlyRate: Bool
+    ) -> ProjectExportContentMode {
+        hasHourlyRate ? selectedMode : .hoursOnly
+    }
+
+    static func currentExportSelection(
+        format: ProjectExportFormat,
+        selectedMode: ProjectExportContentMode,
+        project: ClientProject
+    ) -> ProjectExportSelection {
+        ProjectExportSelection.current(
+            format: format,
+            selectedMode: selectedMode,
+            hasHourlyRate: project.hasHourlyRate
+        )
+    }
+
+    static func hasPreparedExport(
+        preparedURL: URL?,
+        preparedSelection: ProjectExportSelection?,
+        currentSelection: ProjectExportSelection
+    ) -> Bool {
+        guard preparedURL != nil else {
+            return false
+        }
+
+        return preparedSelection == currentSelection
+    }
+
+    static func alertMessageAfterPresentationChange(
+        currentMessage: String?,
+        isPresented: Bool
+    ) -> String? {
+        isPresented ? currentMessage : nil
+    }
+
+    static func pendingSessionAfterDeletionPresentationChange(
+        currentSession: WorkSession?,
+        isPresented: Bool
+    ) -> WorkSession? {
+        isPresented ? currentSession : nil
+    }
+}
+
 extension ProjectDetailView {
     func totalDuration(referenceDate: Date) -> TimeInterval {
         project.sessionList.reduce(into: 0) { partialResult, session in
@@ -141,25 +302,16 @@ extension ProjectDetailView {
         newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     var selectedTaskForStart: ProjectTask? {
-        if let selectedTaskID,
-           let selectedTask = project.taskList.first(where: { $0.id == selectedTaskID }) {
-            return selectedTask
-        }
-
-        return project.sortedTasks.first
+        ProjectDetailLogic.selectedTaskForStart(
+            project: project,
+            selectedTaskID: selectedTaskID
+        )
     }
     func syncSelectedTaskForStart() {
-        guard !project.sortedTasks.isEmpty else {
-            selectedTaskID = nil
-            return
-        }
-
-        if let selectedTaskID,
-           project.taskList.contains(where: { $0.id == selectedTaskID }) {
-            return
-        }
-
-        selectedTaskID = project.sortedTasks.first?.id
+        selectedTaskID = ProjectDetailLogic.synchronizedSelectedTaskID(
+            project: project,
+            selectedTaskID: selectedTaskID
+        )
     }
     func selectTaskForStart(_ task: ProjectTask) {
         selectedTaskID = task.id
@@ -276,27 +428,13 @@ extension ProjectDetailView {
         }
     }
     var parsedHourlyRate: Double? {
-        TimeFormatting.parseDecimalInput(hourlyRateText)
+        ProjectDetailLogic.parsedHourlyRate(from: hourlyRateText)
     }
     var hasInvalidHourlyRate: Bool {
-        let trimmed = hourlyRateText.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !trimmed.isEmpty else {
-            return false
-        }
-
-        guard let parsedHourlyRate else {
-            return true
-        }
-
-        return parsedHourlyRate < 0
+        ProjectDetailLogic.hasInvalidHourlyRate(hourlyRateText)
     }
     var hourlyRateHint: String {
-        if hasInvalidHourlyRate {
-            return "Bitte gib einen gueltigen nicht-negativen Betrag ein."
-        }
-
-        return "Leer lassen, wenn das Projekt noch keinen Stundensatz hat."
+        ProjectDetailLogic.hourlyRateHint(for: hourlyRateText)
     }
     var hourlyRateSummary: String {
         guard project.hasHourlyRate else {
@@ -306,20 +444,10 @@ extension ProjectDetailView {
         return TimeFormatting.euroAmount(project.effectiveHourlyRate)
     }
     var parsedBudgetTarget: Double? {
-        TimeFormatting.parseDecimalInput(budgetTargetText)
+        ProjectDetailLogic.parsedBudgetTarget(from: budgetTargetText)
     }
     var hasInvalidBudgetTarget: Bool {
-        let trimmed = budgetTargetText.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !trimmed.isEmpty else {
-            return false
-        }
-
-        guard let parsedBudgetTarget else {
-            return true
-        }
-
-        return parsedBudgetTarget <= 0
+        ProjectDetailLogic.hasInvalidBudgetTarget(budgetTargetText)
     }
     var budgetHintText: String {
         if hasInvalidBudgetTarget {
@@ -385,11 +513,7 @@ extension ProjectDetailView {
         }
     }
     var availableExportModes: [ProjectExportContentMode] {
-        if project.hasHourlyRate {
-            return ProjectExportContentMode.allCases
-        }
-
-        return [.hoursOnly]
+        ProjectDetailLogic.availableExportModes(hasHourlyRate: project.hasHourlyRate)
     }
     func budgetSnapshot(referenceDate: Date) -> ProjectBudgetSnapshot? {
         guard let unit = project.budgetUnit,
@@ -425,21 +549,17 @@ extension ProjectDetailView {
         to newUnit: ProjectBudgetUnit
     ) {
         guard !isSyncingBudgetEditor,
-              oldUnit != newUnit,
-              let parsedBudgetTarget else {
-            return
-        }
-
-        guard let convertedBudgetTarget = project.convertedBudgetValue(
-            parsedBudgetTarget,
-            from: oldUnit,
-            to: newUnit
-        ) else {
+              let convertedBudgetTarget = ProjectDetailLogic.convertedBudgetEditorText(
+                budgetTargetText,
+                project: project,
+                from: oldUnit,
+                to: newUnit
+              ) else {
             return
         }
 
         isSyncingBudgetEditor = true
-        budgetTargetText = TimeFormatting.decimalInput(convertedBudgetTarget)
+        budgetTargetText = convertedBudgetTarget
         isSyncingBudgetEditor = false
     }
     var shouldShowBillingCard: Bool {
@@ -456,9 +576,10 @@ extension ProjectDetailView {
         Binding(
             get: { billingErrorMessage != nil },
             set: { isPresented in
-                if !isPresented {
-                    billingErrorMessage = nil
-                }
+                billingErrorMessage = ProjectDetailLogic.alertMessageAfterPresentationChange(
+                    currentMessage: billingErrorMessage,
+                    isPresented: isPresented
+                )
             }
         )
     }
@@ -466,9 +587,10 @@ extension ProjectDetailView {
         Binding(
             get: { sessionPendingDeletion != nil },
             set: { isPresented in
-                if !isPresented {
-                    sessionPendingDeletion = nil
-                }
+                sessionPendingDeletion = ProjectDetailLogic.pendingSessionAfterDeletionPresentationChange(
+                    currentSession: sessionPendingDeletion,
+                    isPresented: isPresented
+                )
             }
         )
     }
@@ -480,14 +602,13 @@ extension ProjectDetailView {
         return TimeFormatting.euroAmount(billedAmount)
     }
     func syncHourlyRateText() {
-        hourlyRateText = TimeFormatting.decimalInput(project.hourlyRate)
+        hourlyRateText = ProjectDetailLogic.hourlyRateText(for: project)
     }
     func toggleHourlyRateEditing() {
-        if project.hasHourlyRate {
-            isEditingHourlyRate.toggle()
-        } else {
-            isEditingHourlyRate = true
-        }
+        isEditingHourlyRate = ProjectDetailLogic.toggledHourlyRateEditing(
+            currentlyEditing: isEditingHourlyRate,
+            hasHourlyRate: project.hasHourlyRate
+        )
 
         syncHourlyRateText()
     }
@@ -513,29 +634,32 @@ extension ProjectDetailView {
         isSyncingBudgetEditor = true
         defer { isSyncingBudgetEditor = false }
 
-        selectedBudgetUnit = project.budgetUnit ?? .hours
-        budgetTargetText = TimeFormatting.decimalInput(project.effectiveBudgetTarget)
+        selectedBudgetUnit = ProjectDetailLogic.budgetUnit(for: project)
+        budgetTargetText = ProjectDetailLogic.budgetTargetText(for: project)
     }
     func syncExportConfiguration() {
         if !project.hasHourlyRate {
-            exportContentMode = .hoursOnly
+            exportContentMode = ProjectDetailLogic.normalizedExportContentMode(
+                selectedMode: exportContentMode,
+                hasHourlyRate: false
+            )
         }
 
         invalidatePreparedExport()
     }
     var currentExportSelection: ProjectExportSelection {
-        ProjectExportSelection.current(
+        ProjectDetailLogic.currentExportSelection(
             format: exportFormat,
             selectedMode: exportContentMode,
-            hasHourlyRate: project.hasHourlyRate
+            project: project
         )
     }
     var hasPreparedExportForCurrentSelection: Bool {
-        guard preparedExportURL != nil else {
-            return false
-        }
-
-        return preparedExportSelection == currentExportSelection
+        ProjectDetailLogic.hasPreparedExport(
+            preparedURL: preparedExportURL,
+            preparedSelection: preparedExportSelection,
+            currentSelection: currentExportSelection
+        )
     }
     func invalidatePreparedExport() {
         preparedExportURL = nil

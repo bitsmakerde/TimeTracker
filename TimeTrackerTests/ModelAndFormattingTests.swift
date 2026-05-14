@@ -473,6 +473,44 @@ struct ModelAndFormattingTests {
         )
     }
 
+    @MainActor
+    @Test("Workspace root view model groups active projects and sorts archived projects")
+    func workspaceRootViewModelProjectCollections() {
+        let betaProject = ClientProject(clientName: "Beta", name: "Zeiterfassung")
+        let alphaProject = ClientProject(clientName: "Alpha", name: "Abrechnung")
+        let archivedNewest = ClientProject(clientName: "Archiv", name: "Neu", archivedAt: Date(timeIntervalSince1970: 200))
+        let archivedOldest = ClientProject(clientName: "Archiv", name: "Alt", archivedAt: Date(timeIntervalSince1970: 100))
+        let viewModel = WorkspaceRootViewModel()
+
+        let groups = viewModel.groupedProjects(from: [betaProject, archivedNewest, alphaProject, archivedOldest])
+        #expect(groups.map(\.displayName) == ["Alpha", "Beta"])
+        #expect(groups.first?.projects.map(\.displayName) == ["Abrechnung"])
+
+        let archived = viewModel.archivedProjects(from: [archivedOldest, betaProject, archivedNewest])
+        #expect(archived.map(\.displayName) == ["Neu", "Alt"])
+    }
+
+    @MainActor
+    @Test("Workspace root view model keeps project selection in sync")
+    func workspaceRootViewModelSelectionSync() {
+        let firstProject = ClientProject(clientName: "Alpha", name: "Erstes Projekt")
+        let secondProject = ClientProject(clientName: "Beta", name: "Zweites Projekt")
+        let viewModel = WorkspaceRootViewModel()
+
+        viewModel.ensureInitialSelection(projects: [firstProject, secondProject])
+        #expect(viewModel.selectedProjectID == firstProject.id)
+
+        viewModel.selectedProjectID = secondProject.id
+        viewModel.synchronizeSelection(with: [firstProject.id])
+        #expect(viewModel.selectedProjectID == firstProject.id)
+
+        viewModel.synchronizeSelection(with: [])
+        #expect(viewModel.selectedProjectID == nil)
+
+        viewModel.synchronizeSelection(with: [secondProject.id])
+        #expect(viewModel.selectedProjectID == secondProject.id)
+    }
+
     @Test("Project export selection normalizes mode without hourly rate")
     func projectExportSelectionNormalization() {
         let normalizedWithoutRate = ProjectExportSelection.current(
@@ -490,6 +528,230 @@ struct ModelAndFormattingTests {
         #expect(withRate == ProjectExportSelection(format: .csv, mode: .hoursAndCosts))
 
         #expect(normalizedWithoutRate != withRate)
+    }
+
+    @Test("Project creation draft validates input and applies custom color")
+    func projectCreationDraftValidationAndCustomColor() throws {
+        var invalidDraft = ProjectCreationDraft(initialClientName: "Bestandskunde")
+        invalidDraft.projectName = "   "
+        invalidDraft.hourlyRateText = "-1"
+
+        #expect(invalidDraft.hasInvalidHourlyRate)
+        #expect(invalidDraft.canSave == false)
+        #expect(invalidDraft.makeProject() == nil)
+
+        var draft = ProjectCreationDraft(initialClientName: "  Kunde A  ")
+        draft.projectName = "  Launch  "
+        draft.notes = "Konzeption"
+        draft.hourlyRateText = "120,5"
+        draft.usesCustomProjectColor = true
+        draft.projectColor = .orange
+
+        let project = try #require(draft.makeProject())
+        #expect(project.displayClientName == "Kunde A")
+        #expect(project.displayName == "Launch")
+        #expect(project.notes == "Konzeption")
+        #expect(project.hourlyRate == 120.5)
+        #expect(project.hasCustomAccentColor)
+    }
+
+    @Test("Shared metadata exposes stable labels and identifiers")
+    func sharedMetadataLabelsAndIdentifiers() {
+        #expect(ProjectBudgetUnit.allCases.map(\.id) == ["hours", "amount"])
+        #expect(ProjectColorVariant.allCases.map(\.label) == ["Wash", "Bar"])
+        #expect(WorkspaceSection.allCases.map(\.title) == ["Aufnehmen", "Auswertung"])
+        #expect(WorkspaceSection.allCases.map(\.systemImage) == ["record.circle", "chart.bar.xaxis"])
+
+        let project = ClientProject(clientName: "  acme  ", name: "Website")
+        let fallbackProject = ClientProject(clientName: "   ", name: "Fallback")
+        let session = WorkSession(project: project)
+        let group = ClientGroup(displayName: "Acme", rawClientName: "  acme  ", projects: [project])
+
+        #expect(project.clientInitial == "A")
+        #expect(fallbackProject.clientInitial == "O")
+        #expect(SessionEditor(project: project, session: session).id == session.id)
+        #expect(group.client == "Acme")
+    }
+
+    @Test("Target configurations expose expected feature flags")
+    func targetConfigurationsExposeExpectedFeatureFlags() {
+        #expect(TimeTrackerTargetConfiguration.macOS.platform == .macOS)
+        #expect(TimeTrackerTargetConfiguration.macOS.featureFlags.usesNativeCompactTabBar == false)
+        #expect(TimeTrackerTargetConfiguration.macOS.featureFlags.showsMenuBarModule)
+        #expect(TimeTrackerTargetConfiguration.macOS.featureFlags.enablesPreparedExports)
+
+        #expect(TimeTrackerTargetConfiguration.iOS.platform == .iOS)
+        #expect(TimeTrackerTargetConfiguration.iOS.featureFlags.usesNativeCompactTabBar)
+        #expect(TimeTrackerTargetConfiguration.iOS.featureFlags.showsMenuBarModule == false)
+        #expect(TimeTrackerTargetConfiguration.iOS.featureFlags.enablesPreparedExports)
+    }
+
+    @Test("Analytics aggregator counts overlapping periods and excludes archived projects")
+    func analyticsAggregatorCountsOverlapsAndExcludesArchivedProjects() throws {
+        let calendar = Calendar.current
+        let referenceDate = try #require(
+            calendar.date(from: DateComponents(year: 2026, month: 5, day: 14, hour: 12))
+        )
+        let startOfToday = calendar.startOfDay(for: referenceDate)
+        let startOfWeek = try #require(
+            calendar.dateInterval(of: .weekOfYear, for: referenceDate)?.start
+        )
+        let yesterdayStart = try #require(
+            calendar.date(byAdding: .day, value: -1, to: startOfToday)
+        )
+
+        let mainProject = ClientProject(
+            clientName: "Acme",
+            name: "Website",
+            hourlyRate: 100
+        )
+        let supportProject = ClientProject(clientName: "Beta", name: "Support")
+        let archivedProject = ClientProject(
+            clientName: "Archiv",
+            name: "Alt",
+            archivedAt: referenceDate
+        )
+
+        mainProject.sessions = [
+            WorkSession(
+                project: mainProject,
+                startedAt: startOfToday.addingTimeInterval(-1_800),
+                endedAt: startOfToday.addingTimeInterval(1_800)
+            ),
+            WorkSession(
+                project: mainProject,
+                startedAt: startOfToday.addingTimeInterval(10 * 3_600),
+                endedAt: nil
+            ),
+            WorkSession(
+                project: mainProject,
+                startedAt: startOfWeek.addingTimeInterval(-7_200),
+                endedAt: startOfWeek.addingTimeInterval(3_600)
+            ),
+        ]
+        supportProject.sessions = [
+            WorkSession(
+                project: supportProject,
+                startedAt: yesterdayStart.addingTimeInterval(14 * 3_600),
+                endedAt: yesterdayStart.addingTimeInterval(15 * 3_600)
+            ),
+        ]
+        archivedProject.sessions = [
+            WorkSession(
+                project: archivedProject,
+                startedAt: startOfToday.addingTimeInterval(8 * 3_600),
+                endedAt: startOfToday.addingTimeInterval(9 * 3_600)
+            ),
+        ]
+
+        let snapshot = AnalyticsAggregator.snapshot(
+            projects: [supportProject, archivedProject, mainProject],
+            referenceDate: referenceDate
+        )
+
+        #expect(snapshot.totalDuration == 25_200)
+        #expect(snapshot.totalValue == 600)
+        #expect(snapshot.todayDuration == 9_000)
+        #expect(snapshot.weekDuration == 18_000)
+        #expect(snapshot.entryCount == 4)
+        #expect(snapshot.projectBars.map(\.projectId) == [mainProject.id, supportProject.id])
+        #expect(abs(snapshot.projectBars[0].percentage - (6.0 / 7.0)) < 0.0001)
+
+        let todayBar = try #require(snapshot.weekBars.first { $0.isToday })
+        #expect(todayBar.totalMinutes == 150)
+
+        let midnightBucket = try #require(snapshot.day.first { $0.hour == 0 })
+        let tenOClockBucket = try #require(snapshot.day.first { $0.hour == 10 })
+        let elevenOClockBucket = try #require(snapshot.day.first { $0.hour == 11 })
+
+        #expect(midnightBucket.parts.map(\.minutes).reduce(0, +) == 30)
+        #expect(tenOClockBucket.parts.map(\.minutes).reduce(0, +) == 60)
+        #expect(elevenOClockBucket.parts.map(\.minutes).reduce(0, +) == 60)
+    }
+
+    @Test("Analytics aggregator returns stable empty chart buckets")
+    func analyticsAggregatorEmptySnapshotBuckets() throws {
+        let referenceDate = try #require(
+            Calendar.current.date(from: DateComponents(year: 2026, month: 5, day: 14, hour: 12))
+        )
+
+        let snapshot = AnalyticsAggregator.snapshot(projects: [], referenceDate: referenceDate)
+
+        #expect(snapshot.totalDuration == 0)
+        #expect(snapshot.totalValue == 0)
+        #expect(snapshot.todayDuration == 0)
+        #expect(snapshot.weekDuration == 0)
+        #expect(snapshot.entryCount == 0)
+        #expect(snapshot.projectBars.isEmpty)
+        #expect(snapshot.weekBars.count == 7)
+        #expect(snapshot.day.count == 24)
+    }
+
+    @Test("Workspace analytics calculator splits overnight sessions")
+    func workspaceAnalyticsCalculatorSplitsOvernightSessions() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
+
+        func date(
+            year: Int,
+            month: Int,
+            day: Int,
+            hour: Int
+        ) throws -> Date {
+            try #require(
+                calendar.date(
+                    from: DateComponents(
+                        timeZone: calendar.timeZone,
+                        year: year,
+                        month: month,
+                        day: day,
+                        hour: hour
+                    )
+                )
+            )
+        }
+
+        let project = ClientProject(
+            clientName: "Acme",
+            name: "Overnight",
+            hourlyRate: 100
+        )
+        project.sessions = [
+            WorkSession(
+                project: project,
+                startedAt: try date(year: 2026, month: 5, day: 13, hour: 23),
+                endedAt: try date(year: 2026, month: 5, day: 14, hour: 1)
+            ),
+        ]
+
+        let snapshot = AnalyticsCalculator.makeSnapshot(
+            projects: [project],
+            referenceDate: try date(year: 2026, month: 5, day: 14, hour: 12),
+            calendar: calendar
+        )
+
+        let hourZero = try #require(
+            snapshot.hourlyPoints.first { point in
+                point.hour == 0 && point.projectID == project.id
+            }
+        )
+        let hourTwentyThree = try #require(
+            snapshot.hourlyPoints.first { point in
+                point.hour == 23 && point.projectID == project.id
+            }
+        )
+
+        #expect(snapshot.hasData)
+        #expect(snapshot.hasHourlyData)
+        #expect(snapshot.subtitle == "1 Projekte mit Zeiten aus 1 Eintraegen.")
+        #expect(snapshot.totalDuration == 7_200)
+        #expect(snapshot.todayDuration == 3_600)
+        #expect(snapshot.currentWeekDuration == 7_200)
+        #expect(snapshot.totalBilledAmount == 200)
+        #expect(snapshot.totalValueText == TimeFormatting.euroAmount(200))
+        #expect(snapshot.projectTotals.first?.duration == 7_200)
+        #expect(abs(hourZero.averageDuration - (3_600.0 / 14.0)) < 0.0001)
+        #expect(abs(hourTwentyThree.averageDuration - (3_600.0 / 14.0)) < 0.0001)
     }
 
     private func pdfContentStreamText(from pdfData: Data) -> String? {

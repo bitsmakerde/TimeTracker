@@ -3,12 +3,7 @@ import SwiftUI
 struct NewProjectSheet: View {
     @Environment(\.dismiss) private var dismiss
 
-    @State private var clientName: String
-    @State private var projectName = ""
-    @State private var notes = ""
-    @State private var hourlyRateText = ""
-    @State private var usesCustomProjectColor = false
-    @State private var projectColor = Color.teal
+    @State private var draft: ProjectCreationDraft
 
     let onSave: (ClientProject) -> Bool
 
@@ -16,31 +11,8 @@ struct NewProjectSheet: View {
         initialClientName: String = "",
         onSave: @escaping (ClientProject) -> Bool
     ) {
-        _clientName = State(initialValue: initialClientName)
+        _draft = State(initialValue: ProjectCreationDraft(initialClientName: initialClientName))
         self.onSave = onSave
-    }
-
-    private var parsedHourlyRate: Double? {
-        TimeFormatting.parseDecimalInput(hourlyRateText)
-    }
-
-    private var hasInvalidHourlyRate: Bool {
-        let trimmed = hourlyRateText.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !trimmed.isEmpty else {
-            return false
-        }
-
-        guard let parsedHourlyRate else {
-            return true
-        }
-
-        return parsedHourlyRate < 0
-    }
-
-    private var canSave: Bool {
-        !projectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && !hasInvalidHourlyRate
     }
 
     var body: some View {
@@ -52,16 +24,16 @@ struct NewProjectSheet: View {
                 .foregroundStyle(.secondary)
 
             Form {
-                TextField("Kunde", text: $clientName)
-                TextField("Projektname", text: $projectName)
-                TextField("Stundensatz in EUR", text: $hourlyRateText)
+                TextField("Kunde", text: $draft.clientName)
+                TextField("Projektname", text: $draft.projectName)
+                TextField("Stundensatz in EUR", text: $draft.hourlyRateText)
 
-                Toggle("Eigene Projektfarbe verwenden", isOn: $usesCustomProjectColor)
+                Toggle("Eigene Projektfarbe verwenden", isOn: $draft.usesCustomProjectColor)
 
-                if usesCustomProjectColor {
+                if draft.usesCustomProjectColor {
                     ColorPicker(
                         "Projektfarbe",
-                        selection: $projectColor,
+                        selection: $draft.projectColor,
                         supportsOpacity: false
                     )
                 }
@@ -70,13 +42,13 @@ struct NewProjectSheet: View {
                     Text("Notiz")
                         .font(.subheadline.weight(.medium))
 
-                    TextEditor(text: $notes)
+                    TextEditor(text: $draft.notes)
                         .frame(minHeight: 120)
                 }
             }
             .formStyle(.grouped)
 
-            if hasInvalidHourlyRate {
+            if draft.hasInvalidHourlyRate {
                 Text("Bitte gib einen gueltigen nicht-negativen Stundensatz ein.")
                     .font(.subheadline)
                     .foregroundStyle(.red)
@@ -94,15 +66,8 @@ struct NewProjectSheet: View {
                 }
 
                 Button("Projekt speichern") {
-                    let project = ClientProject(
-                        clientName: clientName,
-                        name: projectName,
-                        notes: notes,
-                        hourlyRate: parsedHourlyRate
-                    )
-
-                    if usesCustomProjectColor {
-                        project.setCustomAccentColor(projectColor)
+                    guard let project = draft.makeProject() else {
+                        return
                     }
 
                     if onSave(project) {
@@ -111,7 +76,7 @@ struct NewProjectSheet: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(ClientProject.primaryActionColor)
-                .disabled(!canSave)
+                .disabled(!draft.canSave)
             }
         }
         .padding(24)
