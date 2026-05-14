@@ -381,7 +381,13 @@ struct MacAufnehmenPane: View {
     let onEditEntry: (WorkSession) -> Void
     let onAddTask: (String) -> Void
 
+    @Environment(\.modelContext) private var modelContext
     @State private var newTaskText: String = ""
+    @State private var showRatePopover = false
+    @State private var showBudgetPopover = false
+    @State private var rateInputText = ""
+    @State private var budgetInputText = ""
+    @State private var budgetInputUnit: ProjectBudgetUnit = .hours
 
     private var isRunningOnThisProject: Bool {
         activeSession?.project?.id == project.id
@@ -488,8 +494,18 @@ struct MacAufnehmenPane: View {
             StatTile("Gesamtzeit", value: TimeFormatting.compactDuration(total), sub: "\(project.sessionList.count) Einträge")
             StatTile("Gesamtwert", value: TimeFormatting.euroAmount(value), sub: "Zeit × Satz")
             StatTile("Heute", value: TimeFormatting.compactDuration(today), sub: "Seit 00:00")
-            StatTile("Stundensatz", value: project.hourlyRate.map { TimeFormatting.euroAmount($0) } ?? "—", sub: "Pro Stunde")
-            StatTile("Budget", value: project.effectiveBudgetTarget.map { String(format: "%.0f", $0) } ?? "Offen", sub: project.hasBudget ? "Aktiv" : "Keine Grenze")
+            StatTile("Stundensatz", value: project.hourlyRate.map { TimeFormatting.euroAmount($0) } ?? "—", sub: "Pro Stunde", action: {
+                rateInputText = project.hourlyRate.map { "\(Int($0))" } ?? ""
+                showRatePopover = true
+            })
+            .popover(isPresented: $showRatePopover) { rateEditorPopover }
+
+            StatTile("Budget", value: macBudgetDisplayValue, sub: macBudgetDisplaySub, action: {
+                budgetInputUnit = project.budgetUnit ?? .hours
+                budgetInputText = project.effectiveBudgetTarget.map { String(format: "%.0f", $0) } ?? ""
+                showBudgetPopover = true
+            })
+            .popover(isPresented: $showBudgetPopover) { budgetEditorPopover }
         }
     }
 
@@ -595,6 +611,110 @@ struct MacAufnehmenPane: View {
         let start = TimeFormatting.shortTime(session.startedAt)
         let end = session.endedAt.map { TimeFormatting.shortTime($0) } ?? "…"
         return "\(start)–\(end)"
+    }
+
+    @ViewBuilder
+    private var rateEditorPopover: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Stundensatz").font(.headline)
+            HStack(spacing: 8) {
+                TextField("z. B. 85", text: $rateInputText)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 100)
+                Text("€/h").foregroundStyle(.secondary)
+            }
+            HStack(spacing: 8) {
+                Button("Speichern") {
+                    let n = rateInputText.replacingOccurrences(of: ",", with: ".")
+                    if let v = Double(n), v > 0 {
+                        project.hourlyRate = v
+                    } else if rateInputText.trimmingCharacters(in: .whitespaces).isEmpty {
+                        project.hourlyRate = nil
+                    }
+                    try? modelContext.save()
+                    showRatePopover = false
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(project.projectAccentColor)
+                Button("Abbrechen") { showRatePopover = false }
+                    .buttonStyle(.bordered)
+            }
+        }
+        .padding()
+        .frame(width: 220)
+    }
+
+    @ViewBuilder
+    private var budgetEditorPopover: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Budget").font(.headline)
+            Picker("", selection: $budgetInputUnit) {
+                Label("Stunden", systemImage: "clock").tag(ProjectBudgetUnit.hours)
+                Label("Euro", systemImage: "eurosign.circle").tag(ProjectBudgetUnit.amount)
+            }
+            .pickerStyle(.segmented)
+            HStack(spacing: 8) {
+                TextField(budgetInputUnit == .hours ? "z. B. 20" : "z. B. 2500", text: $budgetInputText)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 120)
+                Text(budgetInputUnit == .hours ? "Std." : "EUR")
+                    .foregroundStyle(.secondary)
+            }
+            if budgetInputUnit == .amount && !project.hasHourlyRate {
+                Label("Stundensatz erforderlich.", systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+            HStack(spacing: 8) {
+                Button("Speichern") {
+                    saveBudgetMac()
+                    showBudgetPopover = false
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(project.projectAccentColor)
+                .disabled(budgetInputUnit == .amount && !project.hasHourlyRate)
+                if project.hasBudget {
+                    Button("Entfernen", role: .destructive) {
+                        project.clearBudget()
+                        try? modelContext.save()
+                        showBudgetPopover = false
+                    }
+                    .buttonStyle(.bordered)
+                }
+                Button("Abbrechen") { showBudgetPopover = false }
+                    .buttonStyle(.bordered)
+            }
+        }
+        .padding()
+        .frame(width: 260)
+    }
+
+    private func saveBudgetMac() {
+        let n = budgetInputText.replacingOccurrences(of: ",", with: ".")
+        if let v = Double(n), v > 0 {
+            project.setBudget(unit: budgetInputUnit, target: v)
+        } else {
+            project.clearBudget()
+        }
+        try? modelContext.save()
+    }
+
+    private var macBudgetDisplayValue: String {
+        guard let unit = project.budgetUnit, let target = project.effectiveBudgetTarget else {
+            return "Offen"
+        }
+        switch unit {
+        case .hours: return TimeFormatting.compactDuration(target * 3600)
+        case .amount: return TimeFormatting.euroAmount(target)
+        }
+    }
+
+    private var macBudgetDisplaySub: String {
+        switch project.budgetUnit {
+        case .hours: return "Std.-Budget"
+        case .amount: return "€-Budget"
+        case nil: return "Keine Grenze"
+        }
     }
 }
 

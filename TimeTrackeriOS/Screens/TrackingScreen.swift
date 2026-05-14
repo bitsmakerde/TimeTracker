@@ -30,6 +30,7 @@ struct TrackingScreen: View {
     @State private var newProjectPresentation: NewProjectPresentation?
     @State private var showRateEditor = false
     @State private var rateInputText = ""
+    @State private var showBudgetEditor = false
 
     private var variant: ProjectColorVariant {
         ProjectColorVariant(rawValue: variantRaw) ?? .chromed
@@ -149,6 +150,11 @@ struct TrackingScreen: View {
         }, message: {
             Text(errorMessage ?? "")
         })
+        .sheet(isPresented: $showBudgetEditor) {
+            if let project = selectedProject {
+                BudgetEditorSheet(project: project, isPresented: $showBudgetEditor)
+            }
+        }
         .alert("Stundensatz", isPresented: $showRateEditor) {
             TextField("z. B. 85", text: $rateInputText)
                 .keyboardType(.decimalPad)
@@ -236,20 +242,26 @@ struct TrackingScreen: View {
             return acc + max(end.timeIntervalSince(start), 0)
         }
 
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
-            StatTile("Gesamtzeit", value: TimeFormatting.compactDuration(total))
-            StatTile("Gesamtwert", value: TimeFormatting.euroAmount(value))
-            StatTile("Heute", value: TimeFormatting.compactDuration(today))
-            Button {
-                rateInputText = project.hourlyRate.map { "\(Int($0))" } ?? ""
-                showRateEditor = true
-            } label: {
+        VStack(spacing: 10) {
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                StatTile("Gesamtzeit", value: TimeFormatting.compactDuration(total))
+                StatTile("Gesamtwert", value: TimeFormatting.euroAmount(value))
+                StatTile("Heute", value: TimeFormatting.compactDuration(today))
                 StatTile(
                     "Stundensatz",
-                    value: project.hourlyRate.map { "\(Int($0)) €" } ?? "—"
+                    value: project.hourlyRate.map { "\(Int($0)) €" } ?? "—",
+                    action: {
+                        rateInputText = project.hourlyRate.map { "\(Int($0))" } ?? ""
+                        showRateEditor = true
+                    }
                 )
             }
-            .buttonStyle(.plain)
+            StatTile(
+                "Budget",
+                value: budgetDisplayValue(for: project),
+                sub: budgetDisplaySub(for: project),
+                action: { showBudgetEditor = true }
+            )
         }
     }
 
@@ -457,11 +469,123 @@ struct TrackingScreen: View {
             return false
         }
     }
+
+    private func budgetDisplayValue(for project: ClientProject) -> String {
+        guard let unit = project.budgetUnit, let target = project.effectiveBudgetTarget else {
+            return "—"
+        }
+        switch unit {
+        case .hours: return TimeFormatting.compactDuration(target * 3600)
+        case .amount: return TimeFormatting.euroAmount(target)
+        }
+    }
+
+    private func budgetDisplaySub(for project: ClientProject) -> String? {
+        switch project.budgetUnit {
+        case .hours: return "Std.-Budget"
+        case .amount: return "€-Budget"
+        case nil: return "Kein Budget"
+        }
+    }
 }
 
 private struct NewProjectPresentation: Identifiable {
     let id = UUID()
     let initialClientName: String
+}
+
+private struct BudgetEditorSheet: View {
+    let project: ClientProject
+    @Binding var isPresented: Bool
+    @Environment(\.modelContext) private var modelContext
+
+    @State private var unit: ProjectBudgetUnit
+    @State private var targetText: String
+
+    init(project: ClientProject, isPresented: Binding<Bool>) {
+        self.project = project
+        self._isPresented = isPresented
+        self._unit = State(initialValue: project.budgetUnit ?? .hours)
+        self._targetText = State(initialValue: project.effectiveBudgetTarget.map {
+            String(format: "%.0f", $0)
+        } ?? "")
+    }
+
+    private var parsedTarget: Double? {
+        let n = targetText.replacingOccurrences(of: ",", with: ".")
+        guard let v = Double(n), v > 0 else { return nil }
+        return v
+    }
+
+    private var canSave: Bool {
+        let t = targetText.trimmingCharacters(in: .whitespaces)
+        if t.isEmpty { return true }
+        guard parsedTarget != nil else { return false }
+        return !(unit == .amount && !project.hasHourlyRate)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Picker("Budgettyp", selection: $unit) {
+                        Label("Stunden", systemImage: "clock").tag(ProjectBudgetUnit.hours)
+                        Label("Euro", systemImage: "eurosign.circle").tag(ProjectBudgetUnit.amount)
+                    }
+                    .pickerStyle(.segmented)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                }
+                Section {
+                    TextField(unit == .hours ? "z. B. 20" : "z. B. 2500", text: $targetText)
+                        .keyboardType(.decimalPad)
+                }
+                if unit == .amount && !project.hasHourlyRate {
+                    Section {
+                        Label(
+                            "Für ein €-Budget bitte zuerst einen Stundensatz hinterlegen.",
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .foregroundStyle(.orange)
+                        .font(.subheadline)
+                    }
+                }
+                if project.hasBudget {
+                    Section {
+                        Button("Budget entfernen", role: .destructive) {
+                            project.clearBudget()
+                            try? modelContext.save()
+                            isPresented = false
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Budget")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Abbrechen") { isPresented = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Speichern") {
+                        save()
+                        isPresented = false
+                    }
+                    .disabled(!canSave)
+                }
+            }
+        }
+    }
+
+    private func save() {
+        let n = targetText.replacingOccurrences(of: ",", with: ".")
+        if let v = Double(n), v > 0 {
+            project.setBudget(unit: unit, target: v)
+        } else {
+            project.clearBudget()
+        }
+        try? modelContext.save()
+    }
 }
 
 #Preview("Tracking screen") {
