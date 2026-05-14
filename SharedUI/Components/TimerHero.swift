@@ -11,6 +11,8 @@ struct TimerHero: View {
     let budgetProgress: Double?
     let runningSinceLabel: String?
     let compact: Bool
+    let isThisRunning: Bool
+    let onStart: (() -> Void)?
     let onPause: (() -> Void)?
     let onStop: (() -> Void)?
 
@@ -27,7 +29,11 @@ struct TimerHero: View {
                 if let budgetProgress {
                     budgetBar(progress: budgetProgress)
                 }
-                actionRow
+                if isThisRunning {
+                    actionRow
+                } else {
+                    startButton
+                }
             }
             .padding(16)
         }
@@ -71,7 +77,9 @@ struct TimerHero: View {
     private var topRow: some View {
         HStack(alignment: .center) {
             HStack(spacing: 8) {
-                PulseDot(color: TTColors.live, size: 8)
+                if isThisRunning {
+                    PulseDot(color: TTColors.live, size: 8)
+                }
                 Text(statusText)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(TTColors.text2)
@@ -160,6 +168,23 @@ struct TimerHero: View {
         }
     }
 
+    @ViewBuilder
+    private var startButton: some View {
+        if let onStart {
+            Button(action: onStart) {
+                HStack {
+                    Image(systemName: "play.fill")
+                    Text("Starten")
+                }.font(.system(size: 18, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+            }
+            .buttonStyle(
+                PillButtonStyle(variant: .primary, tint: projectColor)
+            )
+        }
+    }
+
     private var actionRow: some View {
         HStack(spacing: 10) {
             if let onPause {
@@ -187,6 +212,10 @@ struct TimerHero: View {
     }
 
     private var statusText: String {
+        guard isThisRunning else {
+            return "Bereit"
+        }
+
         if let runningSinceLabel {
             return "Aktiv · seit \(runningSinceLabel)"
         }
@@ -219,6 +248,8 @@ struct ClientBadge: View {
         budgetProgress: 0.75,
         runningSinceLabel: "2h 1m",
         compact: false,
+        isThisRunning: true,
+        onStart: nil,
         onPause: {},
         onStop: {}
     )

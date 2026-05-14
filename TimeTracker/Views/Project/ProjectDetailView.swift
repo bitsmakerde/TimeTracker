@@ -91,10 +91,6 @@ struct ProjectExportSelection: Equatable {
 }
 
 struct ProjectDetailView: View {
-    @Environment(\.modelContext) var modelContext
-    @Environment(\.colorScheme) var colorScheme
-    @Environment(\.horizontalSizeClass) var horizontalSizeClass
-
     let project: ClientProject
     let activeSession: WorkSession?
     let onStart: () -> Void
@@ -136,13 +132,56 @@ struct ProjectDetailView: View {
         _viewModel = State(initialValue: ProjectDetailViewModel(project: project, activeSession: activeSession))
     }
 
+    var body: some View {
+        ProjectDetailContentView(
+            viewModel: viewModel,
+            onStart: onStart,
+            onStartTask: onStartTask,
+            onStop: onStop,
+            onAddManualEntry: onAddManualEntry,
+            onEditSession: onEditSession,
+            onArchiveProject: onArchiveProject,
+            onRestoreProject: onRestoreProject,
+            onDeleteProject: onDeleteProject
+        )
+        .modifier(
+            ProjectDetailLifecycleModifier(
+                project: project,
+                activeSession: activeSession,
+                viewModel: viewModel
+            )
+        )
+        .modifier(
+            ProjectDetailDialogsModifier(
+                viewModel: viewModel,
+                onArchiveProject: onArchiveProject,
+                onDeleteProject: onDeleteProject,
+                onDeleteSession: onDeleteSession
+            )
+        )
+        .modifier(ProjectDetailSheetsModifier(viewModel: viewModel))
+    }
+}
+
+private struct ProjectDetailContentView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    let viewModel: ProjectDetailViewModel
+    let onStart: () -> Void
+    let onStartTask: (ProjectTask) -> Void
+    let onStop: () -> Void
+    let onAddManualEntry: () -> Void
+    let onEditSession: (WorkSession) -> Void
+    let onArchiveProject: () -> Void
+    let onRestoreProject: () -> Void
+    let onDeleteProject: () -> Void
+
     var contentPadding: CGFloat {
         ProjectDetailLayoutMetrics.contentPadding(horizontalSizeClass: horizontalSizeClass)
     }
 
     var body: some View {
-        @Bindable var vm = viewModel
-
         ZStack {
             pageBackgroundGradient
                 .ignoresSafeArea()
@@ -181,93 +220,6 @@ struct ProjectDetailView: View {
                 .padding(contentPadding)
             }
         }
-        .onAppear {
-            viewModel.syncHourlyRateText()
-            viewModel.syncBudgetEditor()
-            viewModel.syncExportConfiguration()
-            viewModel.syncSelectedTaskForStart()
-        }
-        .onChange(of: project.id) { _, _ in
-            viewModel.project = project
-            viewModel.activeSession = activeSession
-            viewModel.onProjectChanged()
-        }
-        .onChange(of: activeSession?.id) { _, _ in
-            viewModel.activeSession = activeSession
-        }
-        .onChange(of: viewModel.exportFormat) { _, _ in
-            viewModel.invalidatePreparedExport()
-        }
-        .onChange(of: viewModel.exportContentMode) { _, _ in
-            viewModel.invalidatePreparedExport()
-        }
-        .onChange(of: viewModel.selectedBudgetUnit) { oldUnit, newUnit in
-            viewModel.convertBudgetEditorValue(from: oldUnit, to: newUnit)
-        }
-        .onChange(of: viewModel.isPresentingBudgetSheet) { _, isPresented in
-            if !isPresented {
-                viewModel.isEditingBudgetInSheet = false
-            }
-        }
-        .alert("Speichern fehlgeschlagen", isPresented: vm.billingAlertIsPresented) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(viewModel.billingErrorMessage ?? "")
-        }
-        .confirmationDialog(
-            "Projekt abschliessen?",
-            isPresented: $vm.isConfirmingProjectArchive,
-            titleVisibility: .visible
-        ) {
-            Button("Projekt archivieren", role: .destructive, action: onArchiveProject)
-            Button("Abbrechen", role: .cancel) {}
-        } message: {
-            Text("Das Projekt wird ins Archiv verschoben und nicht mehr bei den aktiven Kundenprojekten angezeigt.")
-        }
-        .confirmationDialog(
-            "Projekt loeschen?",
-            isPresented: $vm.isConfirmingProjectDeletion,
-            titleVisibility: .visible
-        ) {
-            Button("Projekt loeschen", role: .destructive, action: onDeleteProject)
-            Button("Abbrechen", role: .cancel) {}
-        } message: {
-            Text("Das Projekt und alle zugehoerigen Zeiteintraege werden dauerhaft geloescht.")
-        }
-        .confirmationDialog(
-            "Zeiteintrag loeschen?",
-            isPresented: vm.sessionDeletionIsPresented,
-            titleVisibility: .visible
-        ) {
-            if let sessionPendingDeletion = viewModel.sessionPendingDeletion {
-                Button("Zeiteintrag loeschen", role: .destructive) {
-                    onDeleteSession(sessionPendingDeletion)
-                    viewModel.sessionPendingDeletion = nil
-                }
-            }
-
-            Button("Abbrechen", role: .cancel) {
-                viewModel.sessionPendingDeletion = nil
-            }
-        } message: {
-            if let sessionPendingDeletion = viewModel.sessionPendingDeletion {
-                Text("Der Eintrag vom \(TimeFormatting.shortDate(sessionPendingDeletion.startedAt)) wird dauerhaft geloescht.")
-            }
-        }
-        .sheet(item: $vm.sessionPendingTaskCreation) { session in
-            NewTaskAssignmentSheet(
-                project: viewModel.project,
-                session: session
-            ) { title in
-                viewModel.createTaskAndAssignSession(title: title, to: session, modelContext: modelContext)
-            }
-        }
-        .sheet(isPresented: $vm.isPresentingBudgetSheet) {
-            ProjectDetailBudgetSheet(viewModel: viewModel)
-        }
-        .sheet(isPresented: $vm.isPresentingExportSheet) {
-            ProjectDetailExportSheet(viewModel: viewModel)
-        }
     }
 
     var pageBackgroundGradient: LinearGradient {
@@ -295,6 +247,149 @@ struct ProjectDetailView: View {
     }
 }
 
+private struct ProjectDetailLifecycleModifier: ViewModifier {
+    let project: ClientProject
+    let activeSession: WorkSession?
+    let viewModel: ProjectDetailViewModel
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear {
+                viewModel.syncHourlyRateText()
+                viewModel.syncBudgetEditor()
+                viewModel.syncExportConfiguration()
+                viewModel.syncSelectedTaskForStart()
+            }
+            .onChange(of: project.id) { _, _ in
+                viewModel.project = project
+                viewModel.activeSession = activeSession
+                viewModel.onProjectChanged()
+            }
+            .onChange(of: activeSession?.id) { _, _ in
+                viewModel.activeSession = activeSession
+            }
+            .onChange(of: viewModel.exportFormat) { _, _ in
+                viewModel.invalidatePreparedExport()
+            }
+            .onChange(of: viewModel.exportContentMode) { _, _ in
+                viewModel.invalidatePreparedExport()
+            }
+            .onChange(of: viewModel.selectedBudgetUnit) { oldUnit, newUnit in
+                viewModel.convertBudgetEditorValue(from: oldUnit, to: newUnit)
+            }
+            .onChange(of: viewModel.isPresentingBudgetSheet) { _, isPresented in
+                if !isPresented {
+                    viewModel.isEditingBudgetInSheet = false
+                }
+            }
+    }
+}
+
+private struct ProjectDetailDialogsModifier: ViewModifier {
+    @Bindable var viewModel: ProjectDetailViewModel
+
+    let onArchiveProject: () -> Void
+    let onDeleteProject: () -> Void
+    let onDeleteSession: (WorkSession) -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .alert("Speichern fehlgeschlagen", isPresented: viewModel.billingAlertIsPresented) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(viewModel.billingErrorMessage ?? "")
+            }
+            .confirmationDialog(
+                "Projekt abschliessen?",
+                isPresented: $viewModel.isConfirmingProjectArchive,
+                titleVisibility: .visible
+            ) {
+                Button("Projekt archivieren", role: .destructive, action: onArchiveProject)
+                Button("Abbrechen", role: .cancel) {}
+            } message: {
+                Text("Das Projekt wird ins Archiv verschoben und nicht mehr bei den aktiven Kundenprojekten angezeigt.")
+            }
+            .confirmationDialog(
+                "Projekt loeschen?",
+                isPresented: $viewModel.isConfirmingProjectDeletion,
+                titleVisibility: .visible
+            ) {
+                Button("Projekt loeschen", role: .destructive, action: onDeleteProject)
+                Button("Abbrechen", role: .cancel) {}
+            } message: {
+                Text("Das Projekt und alle zugehoerigen Zeiteintraege werden dauerhaft geloescht.")
+            }
+            .confirmationDialog(
+                "Zeiteintrag loeschen?",
+                isPresented: viewModel.sessionDeletionIsPresented,
+                titleVisibility: .visible
+            ) {
+                if let sessionPendingDeletion = viewModel.sessionPendingDeletion {
+                    Button("Zeiteintrag loeschen", role: .destructive) {
+                        onDeleteSession(sessionPendingDeletion)
+                        viewModel.sessionPendingDeletion = nil
+                    }
+                }
+
+                Button("Abbrechen", role: .cancel) {
+                    viewModel.sessionPendingDeletion = nil
+                }
+            } message: {
+                if let sessionPendingDeletion = viewModel.sessionPendingDeletion {
+                    Text("Der Eintrag vom \(TimeFormatting.shortDate(sessionPendingDeletion.startedAt)) wird dauerhaft geloescht.")
+                }
+            }
+    }
+}
+
+private struct ProjectDetailSheetsModifier: ViewModifier {
+    @Environment(\.modelContext) private var modelContext
+    @Bindable var viewModel: ProjectDetailViewModel
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(item: $viewModel.sessionPendingTaskCreation) { session in
+                NewTaskAssignmentSheet(
+                    project: viewModel.project,
+                    session: session
+                ) { title in
+                    viewModel.createTaskAndAssignSession(title: title, to: session, modelContext: modelContext)
+                }
+            }
+            .sheet(isPresented: $viewModel.isPresentingBudgetSheet) {
+                ProjectDetailBudgetSheet(viewModel: viewModel)
+            }
+            .sheet(isPresented: $viewModel.isPresentingExportSheet) {
+                ProjectDetailExportSheet(viewModel: viewModel)
+            }
+    }
+}
+
+enum ProjectDetailPreviewFactory {
+    @MainActor
+    static func makeView() -> some View {
+        let container = ModelContainer.preview
+        let projects = ClientProject.sampleData
+        let project = projects[0]
+        projects.forEach(container.mainContext.insert)
+
+        return ProjectDetailView(
+            project: project,
+            activeSession: project.sessionList.first(where: \.isActive),
+            onStart: {},
+            onStartTask: { _ in },
+            onStop: {},
+            onAddManualEntry: {},
+            onEditSession: { _ in },
+            onDeleteSession: { _ in },
+            onArchiveProject: {},
+            onRestoreProject: {},
+            onDeleteProject: {}
+        )
+        .modelContainer(container)
+    }
+}
+
 private extension Color {
     static var platformWindowBackground: Color {
 #if canImport(AppKit)
@@ -308,27 +403,5 @@ private extension Color {
 }
 
 #Preview {
-    let project = ClientProject(
-        clientName: "Acme Corp",
-        name: "Website Redesign",
-        hourlyRate: 85,
-        budgetUnitRaw: ProjectBudgetUnit.hours.rawValue,
-        budgetTarget: 20,
-        accentRed: 0.0,
-        accentGreen: 0.5,
-        accentBlue: 1.0
-    )
-    ProjectDetailView(
-        project: project,
-        activeSession: nil,
-        onStart: {},
-        onStartTask: { _ in },
-        onStop: {},
-        onAddManualEntry: {},
-        onEditSession: { _ in },
-        onDeleteSession: { _ in },
-        onArchiveProject: {},
-        onRestoreProject: {},
-        onDeleteProject: {}
-    )
+    ProjectDetailPreviewFactory.makeView()
 }

@@ -29,9 +29,10 @@ struct ProjectDetailBudgetSheetTests {
         #expect(vm.budgetSummarySubtitle(referenceDate: referenceDate) == "Wert: Offen")
 
         project.setBudget(unit: .hours, target: 4)
+        let amountSummary = "\(TimeFormatting.euroAmount(200)) / \(TimeFormatting.euroAmount(400))"
         #expect(vm.budgetHoursSummary(referenceDate: referenceDate) == "2h / 4h")
-        #expect(vm.budgetAmountSummary(referenceDate: referenceDate) == "200,00 € / 400,00 €")
-        #expect(vm.secondaryBudgetSummary(referenceDate: referenceDate, primaryUnit: .hours) == "Wert: 200,00 € / 400,00 €")
+        #expect(vm.budgetAmountSummary(referenceDate: referenceDate) == amountSummary)
+        #expect(vm.secondaryBudgetSummary(referenceDate: referenceDate, primaryUnit: .hours) == "Wert: \(amountSummary)")
 
         project.setBudget(unit: .amount, target: 250)
         let snapshot = vm.budgetSnapshot(referenceDate: referenceDate)

@@ -206,3 +206,113 @@ struct TimeTrackeriOSTests {
         #expect(snapshot.projectTotals.last?.valueText == "Kein Stundensatz")
     }
 }
+
+@Suite("iOS View Rendering")
+@MainActor
+struct TimeTrackeriOSViewRenderingTests {
+    @Test("iOS screens render with preview data")
+    func iOSViewsRender() throws {
+        let preview = PreviewWorkspaceSnapshot()
+        let dependencies = AppDependencies.preview
+        let viewModel = WorkspaceRootViewModel()
+        viewModel.ensureInitialSelection(projects: preview.projects)
+
+        ViewRenderTestSupport.assertRenders(
+            ContentView(
+                trackingStatus: preview.trackingStatus,
+                dependencies: dependencies
+            )
+            .modelContainer(preview.modelContainer),
+            width: 430,
+            height: 932
+        )
+        ViewRenderTestSupport.assertRenders(
+            TrackingScreen(
+                trackingStatus: preview.trackingStatus,
+                dependencies: dependencies
+            )
+            .modelContainer(preview.modelContainer),
+            width: 430,
+            height: 1200
+        )
+        ViewRenderTestSupport.assertRenders(
+            AnalyticsScreen()
+                .modelContainer(preview.modelContainer),
+            width: 430,
+            height: 1200
+        )
+        ViewRenderTestSupport.assertRenders(
+            ProjectsDrawer(
+                projects: preview.projects,
+                activeProjectId: preview.activeSessions.first?.project?.id,
+                onSelect: { _ in },
+                onAddProject: { _ in }
+            ),
+            width: 430,
+            height: 900
+        )
+        ViewRenderTestSupport.assertRenders(
+            WorkspaceCompactTabRootView(
+                viewModel: viewModel,
+                projects: preview.projects,
+                activeSessions: preview.activeSessions,
+                dependencies: dependencies,
+                modelContext: preview.modelContainer.mainContext,
+                trackingStatus: preview.trackingStatus
+            )
+            .modelContainer(preview.modelContainer),
+            width: 430,
+            height: 932
+        )
+        ViewRenderTestSupport.assertRenders(
+            ToolbarRenderHost(
+                content: WorkspaceCompactTrackingToolbar(
+                    viewModel: viewModel,
+                    activeProjects: viewModel.activeProjects(from: preview.projects),
+                    hasActiveSession: preview.activeSessions.isEmpty == false,
+                    dependencies: dependencies,
+                    modelContext: preview.modelContainer.mainContext,
+                    trackingStatus: preview.trackingStatus
+                )
+            ),
+            width: 430,
+            height: 120
+        )
+    }
+
+    @Test("iOS app can be constructed in tests")
+    func iOSAppCanBeConstructed() {
+        let app = TimeTrackeriOSApp()
+
+        _ = app.body
+    }
+}
+
+@MainActor
+private enum ViewRenderTestSupport {
+    static func assertRenders<V: View>(
+        _ view: V,
+        width: CGFloat,
+        height: CGFloat
+    ) {
+        let renderer = ImageRenderer(
+            content: view
+                .frame(width: width, height: height, alignment: .topLeading)
+        )
+        renderer.scale = 1
+        #expect(renderer.uiImage != nil)
+    }
+}
+
+private struct ToolbarRenderHost<Content: ToolbarContent>: View {
+    let content: Content
+
+    var body: some View {
+        NavigationStack {
+            Text("Toolbar")
+        }
+        .toolbar {
+            content
+        }
+    }
+}

@@ -28,6 +28,8 @@ struct TrackingScreen: View {
     @State private var errorMessage: String?
     @State private var showProjectsDrawer = false
     @State private var newProjectPresentation: NewProjectPresentation?
+    @State private var showRateEditor = false
+    @State private var rateInputText = ""
 
     private var variant: ProjectColorVariant {
         ProjectColorVariant(rawValue: variantRaw) ?? .chromed
@@ -147,6 +149,23 @@ struct TrackingScreen: View {
         }, message: {
             Text(errorMessage ?? "")
         })
+        .alert("Stundensatz", isPresented: $showRateEditor) {
+            TextField("z. B. 85", text: $rateInputText)
+                .keyboardType(.decimalPad)
+            Button("Speichern") {
+                let normalized = rateInputText.replacingOccurrences(of: ",", with: ".")
+                if let value = Double(normalized), value > 0 {
+                    selectedProject?.hourlyRate = value
+                } else if normalized.trimmingCharacters(in: .whitespaces).isEmpty {
+                    selectedProject?.hourlyRate = nil
+                }
+                try? modelContext.save()
+                rateInputText = ""
+            }
+            Button("Abbrechen", role: .cancel) { rateInputText = "" }
+        } message: {
+            Text("Gib den Stundensatz in € ein oder lass das Feld leer, um ihn zu entfernen.")
+        }
     }
 
     private var errorBinding: Binding<Bool> {
@@ -176,27 +195,14 @@ struct TrackingScreen: View {
                 hourlyRate: project.hourlyRate,
                 billed: project.billedAmount(for: live),
                 budgetProgress: project.budgetProgressFraction(for: totalProjectDuration(project, including: live, isRunning: isThisRunning)),
-                runningSinceLabel: activeSession.map { TimeFormatting.shortTime($0.startedAt) },
+                runningSinceLabel: isThisRunning ? activeSession.map { TimeFormatting.shortTime($0.startedAt) } : nil,
                 compact: true,
+                isThisRunning: isThisRunning,
+                onStart: isThisRunning ? nil : { startTracking(project: project, task: nil) },
                 onPause: isThisRunning ? { stopActiveTracking() } : nil,
                 onStop: isThisRunning ? { stopActiveTracking() } : nil
             )
             .opacity(isThisRunning ? 1 : 0.96)
-            .overlay(alignment: .bottom) {
-                if !isThisRunning {
-                    Button {
-                        startTracking(project: project, task: nil)
-                    } label: {
-                        Label("Starten", systemImage: "play.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 48)
-                    }
-                    .buttonStyle(PillButtonStyle(variant: .primary, tint: project.projectAccentColor))
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
-                }
-            }
         }
     }
 
@@ -234,10 +240,16 @@ struct TrackingScreen: View {
             StatTile("Gesamtzeit", value: TimeFormatting.compactDuration(total))
             StatTile("Gesamtwert", value: TimeFormatting.euroAmount(value))
             StatTile("Heute", value: TimeFormatting.compactDuration(today))
-            StatTile(
-                "Stundensatz",
-                value: project.hourlyRate.map { "\(Int($0)) €" } ?? "—"
-            )
+            Button {
+                rateInputText = project.hourlyRate.map { "\(Int($0))" } ?? ""
+                showRateEditor = true
+            } label: {
+                StatTile(
+                    "Stundensatz",
+                    value: project.hourlyRate.map { "\(Int($0)) €" } ?? "—"
+                )
+            }
+            .buttonStyle(.plain)
         }
     }
 

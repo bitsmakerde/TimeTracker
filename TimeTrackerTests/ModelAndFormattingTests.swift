@@ -186,6 +186,17 @@ struct ModelAndFormattingTests {
         #expect(project.accentBlue == nil)
     }
 
+    @Test("Project color helpers expose variant ids and tinted accents")
+    func projectColorHelpers() {
+        let project = ClientProject(clientName: "Acme", name: "Website")
+        let tint = project.accentTint(0.2)
+
+        #expect(ProjectColorVariant.tinted.id == "tinted")
+        #expect(ProjectColorVariant.chromed.id == "chromed")
+
+        _ = tint
+    }
+
     @Test("WorkSession duration helpers reflect active and ended states")
     func workSessionDurationHelpers() {
         let project = ClientProject(clientName: "A", name: "B")

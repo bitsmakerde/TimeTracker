@@ -454,33 +454,22 @@ struct MacAufnehmenPane: View {
             let live: TimeInterval = isRunningOnThisProject
                 ? (activeSession.map { context.date.timeIntervalSince($0.startedAt) } ?? 0)
                 : 0
-            ZStack(alignment: .bottom) {
-                TimerHero(
-                    clientName: project.displayClientName,
-                    projectName: project.displayName,
-                    taskName: activeSession?.task?.displayTitle,
-                    projectColor: project.projectAccentColor,
-                    elapsed: live,
-                    hourlyRate: project.hourlyRate,
-                    billed: project.billedAmount(for: live),
-                    budgetProgress: nil,
-                    runningSinceLabel: activeSession.map { TimeFormatting.shortTime($0.startedAt) },
-                    compact: false,
-                    onPause: isRunningOnThisProject ? onStop : nil,
-                    onStop: isRunningOnThisProject ? onStop : nil
-                )
-                if !isRunningOnThisProject {
-                    Button(action: onStartProject) {
-                        Label("Starten", systemImage: "play.fill")
-                            .font(.system(size: 14, weight: .semibold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 40)
-                    }
-                    .buttonStyle(PillButtonStyle(variant: .primary, tint: project.projectAccentColor))
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
-                }
-            }
+            TimerHero(
+                clientName: project.displayClientName,
+                projectName: project.displayName,
+                taskName: activeSession?.task?.displayTitle,
+                projectColor: project.projectAccentColor,
+                elapsed: live,
+                hourlyRate: project.hourlyRate,
+                billed: project.billedAmount(for: live),
+                budgetProgress: nil,
+                runningSinceLabel: isRunningOnThisProject ? activeSession.map { TimeFormatting.shortTime($0.startedAt) } : nil,
+                compact: false,
+                isThisRunning: isRunningOnThisProject,
+                onStart: isRunningOnThisProject ? nil : onStartProject,
+                onPause: isRunningOnThisProject ? onStop : nil,
+                onStop: isRunningOnThisProject ? onStop : nil
+            )
         }
     }
 

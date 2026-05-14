@@ -11,7 +11,6 @@
 		65317F322FB58F3A00E8C9E3 /* WorkspaceRootViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F302FB58F3A00E8C9E3 /* WorkspaceRootViewModel.swift */; };
 		65317F342FB5924F00E8C9E3 /* WorkspaceTabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F332FB5924F00E8C9E3 /* WorkspaceTabBarView.swift */; };
 		65317F352FB5924F00E8C9E3 /* WorkspaceTabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F332FB5924F00E8C9E3 /* WorkspaceTabBarView.swift */; };
-		65317F372FB5925000E8C9E3 /* WorkspaceSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F362FB5925000E8C9E3 /* WorkspaceSidebarView.swift */; };
 		65317F382FB5925000E8C9E3 /* WorkspaceSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F362FB5925000E8C9E3 /* WorkspaceSidebarView.swift */; };
 		65317F3A2FB5926400E8C9E3 /* WorkspaceDetailAreaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F392FB5926400E8C9E3 /* WorkspaceDetailAreaView.swift */; };
 		65317F3B2FB5926400E8C9E3 /* WorkspaceDetailAreaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F392FB5926400E8C9E3 /* WorkspaceDetailAreaView.swift */; };
@@ -43,7 +42,6 @@
 		65BE5A332FB5FD7E00052284 /* ProjectDetailBudgetSheetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A322FB5FD7E00052284 /* ProjectDetailBudgetSheetTests.swift */; };
 		65BE5A352FB5FD8500052284 /* ProjectDetailSessionsCardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A342FB5FD8500052284 /* ProjectDetailSessionsCardTests.swift */; };
 		65BE5A372FB5FD8E00052284 /* ProjectDetailExportSheetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A362FB5FD8E00052284 /* ProjectDetailExportSheetTests.swift */; };
-		65F0C9E12FC95A6B0099A001 /* ViewPreviewCoverageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65F0C9E22FC95A6B0099A001 /* ViewPreviewCoverageTests.swift */; };
 		65E888E92FB2610A007E10CE /* WorkspaceSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888E82FB2610A007E10CE /* WorkspaceSection.swift */; };
 		65E888EA2FB2610A007E10CE /* WorkspaceSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888E82FB2610A007E10CE /* WorkspaceSection.swift */; };
 		65E888EC2FB2610A007E10CE /* WorkspaceRootLayoutRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888EB2FB2610A007E10CE /* WorkspaceRootLayoutRules.swift */; };
@@ -55,13 +53,11 @@
 		65E888F52FB26121007E10CE /* SessionEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888F42FB26121007E10CE /* SessionEditor.swift */; };
 		65E888F62FB26121007E10CE /* SessionEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888F42FB26121007E10CE /* SessionEditor.swift */; };
 		65E888F82FB26121007E10CE /* ClientSectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888F72FB26121007E10CE /* ClientSectionHeader.swift */; };
-		65E888F92FB26121007E10CE /* ClientSectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888F72FB26121007E10CE /* ClientSectionHeader.swift */; };
 		65E888FB2FB26121007E10CE /* ProjectSidebarRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888FA2FB26121007E10CE /* ProjectSidebarRow.swift */; };
-		65E888FC2FB26121007E10CE /* ProjectSidebarRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888FA2FB26121007E10CE /* ProjectSidebarRow.swift */; };
 		65E888FE2FB26122007E10CE /* ActiveSidebarCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888FD2FB26122007E10CE /* ActiveSidebarCard.swift */; };
-		65E888FF2FB26122007E10CE /* ActiveSidebarCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888FD2FB26122007E10CE /* ActiveSidebarCard.swift */; };
 		65E889012FB26131007E10CE /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E889002FB26131007E10CE /* EmptyStateView.swift */; };
 		65E889022FB26131007E10CE /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E889002FB26131007E10CE /* EmptyStateView.swift */; };
+		65F0C9E12FC95A6B0099A001 /* ViewPreviewCoverageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65F0C9E22FC95A6B0099A001 /* ViewPreviewCoverageTests.swift */; };
 		A00000000000000000000001 /* TimeTrackerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000001 /* TimeTrackerApp.swift */; };
 		A00000000000000000000006 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000006 /* ContentView.swift */; };
 		A00000000000000000000007 /* ProjectDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000007 /* ProjectDetailView.swift */; };
@@ -114,7 +110,6 @@
 		C30000000000000000000008 /* PlatformSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000008 /* PlatformSummaryCard.swift */; };
 		C30000000000000000000009 /* ProjectExportFileNaming.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000009 /* ProjectExportFileNaming.swift */; };
 		C3000000000000000000000A /* ProjectExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000015 /* ProjectExportService.swift */; };
-		C3000000000000000000000B /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000006 /* ContentView.swift */; };
 		C3000000000000000000000C /* ProjectDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000007 /* ProjectDetailView.swift */; };
 		C3000000000000000000000D /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000008 /* NewProjectSheet.swift */; };
 		C3000000000000000000000E /* ManualSessionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000B /* ManualSessionSheet.swift */; };
@@ -192,7 +187,6 @@
 		65BE5A322FB5FD7E00052284 /* ProjectDetailBudgetSheetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailBudgetSheetTests.swift; sourceTree = "<group>"; };
 		65BE5A342FB5FD8500052284 /* ProjectDetailSessionsCardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailSessionsCardTests.swift; sourceTree = "<group>"; };
 		65BE5A362FB5FD8E00052284 /* ProjectDetailExportSheetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailExportSheetTests.swift; sourceTree = "<group>"; };
-		65F0C9E22FC95A6B0099A001 /* ViewPreviewCoverageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewPreviewCoverageTests.swift; sourceTree = "<group>"; };
 		65E888E82FB2610A007E10CE /* WorkspaceSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceSection.swift; sourceTree = "<group>"; };
 		65E888EB2FB2610A007E10CE /* WorkspaceRootLayoutRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceRootLayoutRules.swift; sourceTree = "<group>"; };
 		65E888EE2FB2610B007E10CE /* WorkspaceTabButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceTabButton.swift; sourceTree = "<group>"; };
@@ -202,6 +196,7 @@
 		65E888FA2FB26121007E10CE /* ProjectSidebarRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectSidebarRow.swift; sourceTree = "<group>"; };
 		65E888FD2FB26122007E10CE /* ActiveSidebarCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveSidebarCard.swift; sourceTree = "<group>"; };
 		65E889002FB26131007E10CE /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
+		65F0C9E22FC95A6B0099A001 /* ViewPreviewCoverageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewPreviewCoverageTests.swift; sourceTree = "<group>"; };
 		B00000000000000000000001 /* TimeTrackerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeTrackerApp.swift; sourceTree = "<group>"; };
 		B00000000000000000000002 /* ClientProject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientProject.swift; sourceTree = "<group>"; };
 		B00000000000000000000003 /* WorkSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkSession.swift; sourceTree = "<group>"; };
@@ -315,7 +310,6 @@
 			children = (
 				65317F492FB597A400E8C9E3 /* ViewModels */,
 				65317F642FB5E58B00E8C9E3 /* TabBar */,
-				65317F362FB5925000E8C9E3 /* WorkspaceSidebarView.swift */,
 				65317F392FB5926400E8C9E3 /* WorkspaceDetailAreaView.swift */,
 				65317F3C2FB5926500E8C9E3 /* WorkspaceTrackingDetailView.swift */,
 				65E888E82FB2610A007E10CE /* WorkspaceSection.swift */,
@@ -357,6 +351,25 @@
 				65E888EE2FB2610B007E10CE /* WorkspaceTabButton.swift */,
 			);
 			path = TabBar;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000002A /* Workspace */ = {
+			isa = PBXGroup;
+			children = (
+				A1000000000000000000002B /* Sidebar */,
+			);
+			path = Workspace;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000002B /* Sidebar */ = {
+			isa = PBXGroup;
+			children = (
+				65E888FD2FB26122007E10CE /* ActiveSidebarCard.swift */,
+				65E888F72FB26121007E10CE /* ClientSectionHeader.swift */,
+				65E888FA2FB26121007E10CE /* ProjectSidebarRow.swift */,
+				65317F362FB5925000E8C9E3 /* WorkspaceSidebarView.swift */,
+			);
+			path = Sidebar;
 			sourceTree = "<group>";
 		};
 		D00000000000000000000001 = {
@@ -433,6 +446,7 @@
 			children = (
 				B00000000000000000000006 /* ContentView.swift */,
 				B00000000000000000000017 /* WorkspaceAnalyticsView.swift */,
+				A1000000000000000000002A /* Workspace */,
 				B0000000000000000000000C /* MenuBarTrackingView.swift */,
 				65317F462FB5931000E8C9E3 /* Project */,
 				B0000000000000000000001A /* MacRedesignedRootView.swift */,
@@ -518,9 +532,6 @@
 				C10000000000000000000008 /* PlatformSummaryCard.swift */,
 				65E888F12FB2610B007E10CE /* ClientGroup.swift */,
 				65E888F42FB26121007E10CE /* SessionEditor.swift */,
-				65E888F72FB26121007E10CE /* ClientSectionHeader.swift */,
-				65E888FA2FB26121007E10CE /* ProjectSidebarRow.swift */,
-				65E888FD2FB26122007E10CE /* ActiveSidebarCard.swift */,
 				65E889002FB26131007E10CE /* EmptyStateView.swift */,
 				65317F452FB592FC00E8C9E3 /* Workspace */,
 			);
@@ -761,7 +772,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				65BE5A1C2FB5FCCD00052284 /* ProjectDetailSummaryRow.swift in Sources */,
-				C3000000000000000000000B /* ContentView.swift in Sources */,
 				C3000000000000000000000F /* WorkspaceAnalyticsView.swift in Sources */,
 				65BE5A192FB5FCC300052284 /* ProjectDetailHeaderCard.swift in Sources */,
 				C3000000000000000000000D /* NewProjectSheet.swift in Sources */,
@@ -787,7 +797,6 @@
 				65BE5A1F2FB5FCE300052284 /* ProjectDetailBillingCard.swift in Sources */,
 				653180392FB5F1DD00E8C9E3 /* ProjectDetailViewModel.swift in Sources */,
 				C30000000000000000000040 /* ProjectCreationDraft.swift in Sources */,
-				65E888FC2FB26121007E10CE /* ProjectSidebarRow.swift in Sources */,
 				C30000000000000000000020 /* Tokens.swift in Sources */,
 				C30000000000000000000021 /* GlassCard.swift in Sources */,
 				C30000000000000000000022 /* PillButton.swift in Sources */,
@@ -800,15 +809,12 @@
 				C30000000000000000000032 /* StatTile.swift in Sources */,
 				C30000000000000000000033 /* SyncBanner.swift in Sources */,
 				C30000000000000000000034 /* TimerHero.swift in Sources */,
-				65E888FF2FB26122007E10CE /* ActiveSidebarCard.swift in Sources */,
 				C30000000000000000000035 /* TaskRow.swift in Sources */,
 				C30000000000000000000036 /* EntryRow.swift in Sources */,
 				65E888ED2FB2610A007E10CE /* WorkspaceRootLayoutRules.swift in Sources */,
 				65BE5A2B2FB5FD3800052284 /* ProjectDetailExportSheet.swift in Sources */,
 				C30000000000000000000037 /* ProjectBar.swift in Sources */,
-				65317F372FB5925000E8C9E3 /* WorkspaceSidebarView.swift in Sources */,
 				65317F3B2FB5926400E8C9E3 /* WorkspaceDetailAreaView.swift in Sources */,
-				65E888F92FB26121007E10CE /* ClientSectionHeader.swift in Sources */,
 				65BE5A282FB5FD2B00052284 /* ProjectDetailBudgetSheet.swift in Sources */,
 				65E888E92FB2610A007E10CE /* WorkspaceSection.swift in Sources */,
 				C30000000000000000000038 /* WeekBars.swift in Sources */,
