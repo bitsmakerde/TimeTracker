@@ -21,33 +21,30 @@ struct ManualSessionSheet: View {
         self.sessionToEdit = sessionToEdit
         self.onSave = onSave
 
-        let now = Date()
-        let roundedEnd = Calendar.current.date(
-            bySetting: .second,
-            value: 0,
-            of: now
-        ) ?? now
-        let roundedStart = Calendar.current.date(
-            byAdding: .hour,
-            value: -1,
-            to: roundedEnd
-        ) ?? roundedEnd.addingTimeInterval(-3600)
+        let initialState = ManualSessionLogic.initialState(
+            sessionToEdit: sessionToEdit,
+            now: Date(),
+            calendar: .current
+        )
 
-        _startedAt = State(initialValue: sessionToEdit?.startedAt ?? roundedStart)
-        _endedAt = State(initialValue: sessionToEdit?.endedAt ?? roundedEnd)
-        _selectedTaskID = State(initialValue: sessionToEdit?.task?.id)
+        _startedAt = State(initialValue: initialState.startedAt)
+        _endedAt = State(initialValue: initialState.endedAt)
+        _selectedTaskID = State(initialValue: initialState.selectedTaskID)
     }
 
     private var durationText: String {
-        TimeFormatting.digitalDuration(max(endedAt.timeIntervalSince(startedAt), 0))
+        ManualSessionLogic.durationText(
+            startedAt: startedAt,
+            endedAt: endedAt
+        )
     }
 
     private var titleText: String {
-        sessionToEdit == nil ? "Zeiteintrag nachtragen" : "Zeiteintrag bearbeiten"
+        ManualSessionLogic.titleText(isEditing: sessionToEdit != nil)
     }
 
     private var submitButtonTitle: String {
-        sessionToEdit == nil ? "Eintrag speichern" : "Aenderungen speichern"
+        ManualSessionLogic.submitButtonTitle(isEditing: sessionToEdit != nil)
     }
 
     private var availableTasks: [ProjectTask] {
@@ -55,11 +52,10 @@ struct ManualSessionSheet: View {
     }
 
     private var selectedTask: ProjectTask? {
-        guard let selectedTaskID else {
-            return nil
-        }
-
-        return availableTasks.first { $0.id == selectedTaskID }
+        ManualSessionLogic.selectedTask(
+            tasks: availableTasks,
+            selectedTaskID: selectedTaskID
+        )
     }
 
     var body: some View {
@@ -120,13 +116,12 @@ struct ManualSessionSheet: View {
                 Button(submitButtonTitle) {
                     validationMessage = nil
 
-                    guard endedAt > startedAt else {
-                        validationMessage = "Das Enddatum muss nach dem Startdatum liegen."
-                        return
-                    }
-
-                    guard startedAt <= Date(), endedAt <= Date() else {
-                        validationMessage = "Nachgetragene Zeiteintraege duerfen nicht in der Zukunft liegen."
+                    if let message = ManualSessionLogic.validationMessage(
+                        startedAt: startedAt,
+                        endedAt: endedAt,
+                        now: Date()
+                    ) {
+                        validationMessage = message
                         return
                     }
 
@@ -146,5 +141,73 @@ struct ManualSessionSheet: View {
 #else
         .frame(maxWidth: .infinity, alignment: .leading)
 #endif
+    }
+}
+
+enum ManualSessionLogic {
+    static func initialState(
+        sessionToEdit: WorkSession?,
+        now: Date,
+        calendar: Calendar
+    ) -> (startedAt: Date, endedAt: Date, selectedTaskID: UUID?) {
+        let roundedEnd = calendar.dateInterval(
+            of: .minute,
+            for: now
+        )?.start ?? now
+        let roundedStart = calendar.date(
+            byAdding: .hour,
+            value: -1,
+            to: roundedEnd
+        ) ?? roundedEnd.addingTimeInterval(-3600)
+
+        return (
+            startedAt: sessionToEdit?.startedAt ?? roundedStart,
+            endedAt: sessionToEdit?.endedAt ?? roundedEnd,
+            selectedTaskID: sessionToEdit?.task?.id
+        )
+    }
+
+    static func durationText(
+        startedAt: Date,
+        endedAt: Date
+    ) -> String {
+        TimeFormatting.digitalDuration(
+            max(endedAt.timeIntervalSince(startedAt), 0)
+        )
+    }
+
+    static func titleText(isEditing: Bool) -> String {
+        isEditing ? "Zeiteintrag bearbeiten" : "Zeiteintrag nachtragen"
+    }
+
+    static func submitButtonTitle(isEditing: Bool) -> String {
+        isEditing ? "Aenderungen speichern" : "Eintrag speichern"
+    }
+
+    static func selectedTask(
+        tasks: [ProjectTask],
+        selectedTaskID: UUID?
+    ) -> ProjectTask? {
+        guard let selectedTaskID else {
+            return nil
+        }
+
+        return tasks.first { $0.id == selectedTaskID }
+    }
+
+    static func validationMessage(
+        startedAt: Date,
+        endedAt: Date,
+        now: Date
+    ) -> String? {
+        guard endedAt > startedAt else {
+            return "Das Enddatum muss nach dem Startdatum liegen."
+        }
+
+        guard startedAt <= now, endedAt <= now else {
+            return "Nachgetragene Zeiteintraege duerfen nicht in der Zukunft liegen."
+        }
+
+        return nil
     }
 }

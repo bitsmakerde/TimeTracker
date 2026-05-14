@@ -1,5 +1,6 @@
 import Foundation
 import CoreGraphics
+import SwiftData
 import SwiftUI
 import Testing
 @testable import TimeTracker
@@ -372,6 +373,54 @@ struct ModelAndFormattingTests {
         #expect(pdfName == "Projekt A-Export-2024-01-01.pdf")
     }
 
+    @Test("Project export metadata and CSV payload escape special values")
+    func projectExportMetadataAndCSVEscaping() throws {
+        #expect(ProjectExportContentMode.hoursOnly.title == "Nur Stunden")
+        #expect(ProjectExportContentMode.hoursAndCosts.title == "Stunden + Kosten")
+        #expect(ProjectExportFormat.csv.title == "CSV")
+        #expect(ProjectExportFormat.pdf.title == "PDF")
+        #expect(ProjectExportFormat.csv.fileExtension == "csv")
+        #expect(ProjectExportFormat.pdf.fileExtension == "pdf")
+
+        let project = ClientProject(
+            clientName: "ACME \"Nord\"",
+            name: "Export; Projekt",
+            hourlyRate: 90
+        )
+        let removedTask = ProjectTask(title: "Plan;\"A\"", project: project)
+        project.sessions = [
+            WorkSession(
+                project: project,
+                task: removedTask,
+                startedAt: Date(timeIntervalSince1970: 100),
+                endedAt: Date(timeIntervalSince1970: 3_700)
+            ),
+            WorkSession(
+                project: project,
+                startedAt: Date(timeIntervalSince1970: 5_000),
+                endedAt: nil
+            ),
+        ]
+        project.tasks = []
+
+        let document = ProjectExportService.makeDocument(
+            for: project,
+            mode: .hoursAndCosts,
+            referenceDate: Date(timeIntervalSince1970: 7_000)
+        )
+        let csvData = ProjectExportService.exportData(
+            document: document,
+            format: .csv
+        )
+        let csv = try #require(String(data: csvData, encoding: .utf8))
+
+        #expect(document.taskSummaries.map(\.taskTitle).contains("Aufgabe entfernt"))
+        #expect(csv.localizedStandardContains("\"Export; Projekt\""))
+        #expect(csv.localizedStandardContains("\"ACME \"\"Nord\"\"\""))
+        #expect(csv.localizedStandardContains("\"Plan;\"\"A\"\"\""))
+        #expect(csv.localizedStandardContains("Aktiv"))
+    }
+
     @Test("Project detail layout metrics adapt to compact and accessibility sizes")
     func projectDetailLayoutMetrics() {
         #expect(ProjectDetailLayoutMetrics.contentPadding(horizontalSizeClass: .compact) == 16)
@@ -553,6 +602,33 @@ struct ModelAndFormattingTests {
         #expect(project.notes == "Konzeption")
         #expect(project.hourlyRate == 120.5)
         #expect(project.hasCustomAccentColor)
+    }
+
+    @MainActor
+    @Test("Preview helpers provide a usable store and iOS-flavored dependencies")
+    func previewHelpersProvideStoreAndDependencies() throws {
+        let container = ModelContainer.preview
+        let context = container.mainContext
+        let project = ClientProject(clientName: "Preview", name: "Store")
+        let session = WorkSession(
+            project: project,
+            startedAt: Date(timeIntervalSince1970: 100)
+        )
+
+        context.insert(project)
+        context.insert(session)
+        try context.save()
+
+        let activeSampleSessions = WorkSession.sampleActiveData(for: ClientProject.sampleData)
+        let trackingStatus = TrackingStatusStore.preview(modelContainer: container)
+        let dependencies = AppDependencies.preview
+        trackingStatus.refresh()
+
+        #expect(activeSampleSessions.count == 1)
+        #expect(activeSampleSessions.contains { $0.isActive } == true)
+        #expect(dependencies.configuration.platform == .iOS)
+        #expect(trackingStatus.isTracking)
+        #expect(trackingStatus.activeSession?.projectName == "Store")
     }
 
     @Test("Shared metadata exposes stable labels and identifiers")
@@ -752,6 +828,53 @@ struct ModelAndFormattingTests {
         #expect(snapshot.projectTotals.first?.duration == 7_200)
         #expect(abs(hourZero.averageDuration - (3_600.0 / 14.0)) < 0.0001)
         #expect(abs(hourTwentyThree.averageDuration - (3_600.0 / 14.0)) < 0.0001)
+    }
+
+    @Test("Workspace analytics exposes empty fallbacks and unbilled project labels")
+    func workspaceAnalyticsEmptyFallbacksAndUnbilledLabels() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
+        let referenceDate = try #require(
+            calendar.date(
+                from: DateComponents(
+                    timeZone: calendar.timeZone,
+                    year: 2026,
+                    month: 5,
+                    day: 14,
+                    hour: 12
+                )
+            )
+        )
+
+        let emptySnapshot = AnalyticsCalculator.makeSnapshot(
+            projects: [],
+            referenceDate: referenceDate,
+            calendar: calendar
+        )
+        let unbilledTotal = AnalyticsProjectTotal(
+            id: UUID(),
+            projectName: "Ohne Satz",
+            clientName: "Acme",
+            legendLabel: "Ohne Satz (Acme)",
+            color: .orange,
+            duration: 0,
+            billedAmount: 0,
+            hasHourlyRate: false
+        )
+
+        #expect(emptySnapshot.hasData == false)
+        #expect(emptySnapshot.hasHourlyData == false)
+        #expect(emptySnapshot.subtitle == "Noch keine erfassten Zeiten vorhanden.")
+        #expect(emptySnapshot.totalValueText == "Offen")
+        #expect(emptySnapshot.totalValueSubtitle == "Keine Stundensaetze hinterlegt")
+        #expect(emptySnapshot.legendLabels.isEmpty)
+        #expect(emptySnapshot.legendColors.isEmpty)
+        #expect(emptySnapshot.weeklyPoints.isEmpty)
+        #expect(emptySnapshot.dailyPoints.isEmpty)
+        #expect(emptySnapshot.hourlyPoints.isEmpty)
+        #expect(emptySnapshot.peakHourSummary == "Noch keine Aktivitaet im betrachteten Zeitraum.")
+        #expect(unbilledTotal.valueText == "Kein Stundensatz")
+        #expect(unbilledTotal.shareText(totalDuration: 0).localizedStandardContains("0"))
     }
 
     private func pdfContentStreamText(from pdfData: Data) -> String? {

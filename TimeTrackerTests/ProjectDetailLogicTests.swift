@@ -6,77 +6,6 @@ import UniformTypeIdentifiers
 @Suite("Project Detail Logic")
 @MainActor
 struct ProjectDetailLogicTests {
-    @Test("Project detail totals include ended and active sessions")
-    func totalDurationIncludesEndedAndActiveSessions() {
-        let referenceDate = Date(timeIntervalSince1970: 10_000)
-        let project = ClientProject(clientName: "Acme", name: "Website", hourlyRate: 100)
-        project.sessions = [
-            WorkSession(
-                project: project,
-                startedAt: referenceDate.addingTimeInterval(-7_200),
-                endedAt: referenceDate.addingTimeInterval(-5_400)
-            ),
-            WorkSession(
-                project: project,
-                startedAt: referenceDate.addingTimeInterval(-3_600),
-                endedAt: nil
-            ),
-        ]
-        let view = makeView(project: project)
-
-        #expect(view.totalDuration(referenceDate: referenceDate) == 5_400)
-        #expect(view.totalValueText(referenceDate: referenceDate) == TimeFormatting.euroAmount(150))
-    }
-
-    @Test("Project detail today duration counts only overlapping portions")
-    func todayDurationCountsOnlyOverlappingPortions() throws {
-        let calendar = Calendar(identifier: .gregorian)
-        let referenceDate = try #require(calendar.date(from: DateComponents(year: 2026, month: 5, day: 14, hour: 12)))
-        let dayStart = calendar.startOfDay(for: referenceDate)
-        let project = ClientProject(clientName: "Acme", name: "Website")
-        project.sessions = [
-            WorkSession(
-                project: project,
-                startedAt: dayStart.addingTimeInterval(-1_800),
-                endedAt: dayStart.addingTimeInterval(1_800)
-            ),
-            WorkSession(
-                project: project,
-                startedAt: dayStart.addingTimeInterval(3_600),
-                endedAt: dayStart.addingTimeInterval(7_200)
-            ),
-            WorkSession(
-                project: project,
-                startedAt: dayStart.addingTimeInterval(-7_200),
-                endedAt: dayStart.addingTimeInterval(-3_600)
-            ),
-        ]
-        let view = makeView(project: project)
-
-        #expect(view.todayDuration(referenceDate: referenceDate) == 5_400)
-    }
-
-    @Test("Project detail action metadata follows project and tracking state")
-    func actionMetadataFollowsProjectAndTrackingState() {
-        let project = ClientProject(clientName: "Acme", name: "Website")
-        let activeSession = WorkSession(project: project, startedAt: .now)
-        let archivedProject = ClientProject(clientName: "Acme", name: "Archive", archivedAt: .now)
-
-        let idleView = makeView(project: project)
-        #expect(idleView.actionButtonTitle == "Zeiterfassung starten")
-        #expect(idleView.actionButtonSystemImage == "play.fill")
-
-        let activeView = makeView(project: project, activeSession: activeSession)
-        #expect(activeView.actionButtonTitle == "Zeiterfassung stoppen")
-        #expect(activeView.actionButtonSystemImage == "stop.fill")
-        #expect(activeView.isActiveProject)
-        #expect(activeView.isProjectRunningWithoutTask)
-
-        let archivedView = makeView(project: archivedProject)
-        #expect(archivedView.actionButtonTitle == "Projekt reaktivieren")
-        #expect(archivedView.actionButtonSystemImage == "arrow.uturn.backward.circle.fill")
-    }
-
     @Test("Project detail selected task falls back to first sorted task")
     func selectedTaskFallsBackToFirstSortedTask() throws {
         let project = ClientProject(clientName: "Acme", name: "Website")
@@ -104,41 +33,6 @@ struct ProjectDetailLogicTests {
         )
     }
 
-    @Test("Project detail task duration and value aggregate by task")
-    func taskDurationAndValueAggregateByTask() {
-        let referenceDate = Date(timeIntervalSince1970: 20_000)
-        let project = ClientProject(clientName: "Acme", name: "Website", hourlyRate: 120)
-        let designTask = ProjectTask(title: "Design", project: project)
-        let buildTask = ProjectTask(title: "Build", project: project)
-        project.tasks = [designTask, buildTask]
-        project.sessions = [
-            WorkSession(
-                project: project,
-                task: designTask,
-                startedAt: referenceDate.addingTimeInterval(-7_200),
-                endedAt: referenceDate.addingTimeInterval(-5_400)
-            ),
-            WorkSession(
-                project: project,
-                task: designTask,
-                startedAt: referenceDate.addingTimeInterval(-3_600),
-                endedAt: nil
-            ),
-            WorkSession(
-                project: project,
-                task: buildTask,
-                startedAt: referenceDate.addingTimeInterval(-1_800),
-                endedAt: referenceDate
-            ),
-        ]
-        let view = makeView(project: project)
-
-        #expect(view.taskSessionCount(for: designTask) == 2)
-        #expect(view.taskDuration(for: designTask, referenceDate: referenceDate) == 5_400)
-        #expect(view.taskDuration(for: buildTask, referenceDate: referenceDate) == 1_800)
-        #expect(view.taskValueText(for: designTask, referenceDate: referenceDate) == TimeFormatting.euroAmount(180))
-    }
-
     @Test("Project detail input validation reports invalid hourly rates and budgets")
     func inputValidationReportsInvalidHourlyRatesAndBudgets() {
         #expect(ProjectDetailLogic.hasInvalidHourlyRate("abc"))
@@ -151,35 +45,6 @@ struct ProjectDetailLogicTests {
         #expect(ProjectDetailLogic.hasInvalidBudgetTarget("0"))
         #expect(ProjectDetailLogic.hasInvalidBudgetTarget("10") == false)
         #expect(ProjectDetailLogic.parsedBudgetTarget(from: "10") == 10)
-    }
-
-    @Test("Project detail budget summaries cover missing, hour, and amount budgets")
-    func budgetSummariesCoverMissingHourAndAmountBudgets() {
-        let referenceDate = Date(timeIntervalSince1970: 30_000)
-        let project = ClientProject(clientName: "Acme", name: "Website", hourlyRate: 100)
-        project.sessions = [
-            WorkSession(
-                project: project,
-                startedAt: referenceDate.addingTimeInterval(-7_200),
-                endedAt: referenceDate
-            ),
-        ]
-        let view = makeView(project: project)
-
-        #expect(view.budgetSummaryValue(referenceDate: referenceDate) == "Offen")
-        #expect(view.budgetSummarySubtitle(referenceDate: referenceDate) == "Wert: Offen")
-
-        project.setBudget(unit: .hours, target: 4)
-        #expect(view.budgetHoursSummary(referenceDate: referenceDate) == "2h / 4h")
-        #expect(view.budgetAmountSummary(referenceDate: referenceDate) == "200,00 € / 400,00 €")
-        #expect(view.secondaryBudgetSummary(referenceDate: referenceDate, primaryUnit: .hours) == "Wert: 200,00 € / 400,00 €")
-
-        project.setBudget(unit: .amount, target: 250)
-        let snapshot = view.budgetSnapshot(referenceDate: referenceDate)
-        #expect(snapshot?.unit == .amount)
-        #expect(snapshot?.target == 250)
-        #expect(snapshot?.consumed == 200)
-        #expect(snapshot?.remaining == 50)
     }
 
     @Test("Project detail budget editor converts between hours and amount")
@@ -325,46 +190,6 @@ struct ProjectDetailLogicTests {
         )
     }
 
-    @Test("Project detail export configuration follows hourly rate")
-    func exportConfigurationFollowsHourlyRate() {
-        let project = ClientProject(clientName: "Acme", name: "Website")
-        let view = makeView(project: project)
-
-        #expect(
-            ProjectDetailLogic.normalizedExportContentMode(
-                selectedMode: .hoursAndCosts,
-                hasHourlyRate: false
-            ) == .hoursOnly
-        )
-        #expect(ProjectDetailLogic.availableExportModes(hasHourlyRate: false) == [.hoursOnly])
-
-        let staleSelection = ProjectExportSelection(format: .pdf, mode: .hoursAndCosts)
-        let currentSelection = ProjectDetailLogic.currentExportSelection(
-            format: .pdf,
-            selectedMode: .hoursAndCosts,
-            project: project
-        )
-        #expect(
-            ProjectDetailLogic.hasPreparedExport(
-                preparedURL: URL.temporaryDirectory.appending(path: "stale.pdf"),
-                preparedSelection: staleSelection,
-                currentSelection: currentSelection
-            ) == false
-        )
-
-        let preparedURL = view.makePreparedExportURL(for: .csv)
-        #expect(preparedURL.pathExtension == "csv")
-        #expect(preparedURL.lastPathComponent.localizedStandardContains("Website-Export"))
-
-        project.hourlyRate = 120
-        #expect(ProjectDetailLogic.availableExportModes(hasHourlyRate: project.hasHourlyRate) == ProjectExportContentMode.allCases)
-
-#if os(macOS)
-        #expect(view.utType(for: .csv) == .commaSeparatedText)
-        #expect(view.utType(for: .pdf) == .pdf)
-#endif
-    }
-
     @Test("Project detail editor helpers sync hourly rate and budget state")
     func editorHelpersSyncHourlyRateAndBudgetState() {
         let project = ClientProject(
@@ -390,25 +215,6 @@ struct ProjectDetailLogicTests {
                 currentlyEditing: false,
                 hasHourlyRate: false
             )
-        )
-    }
-
-    private func makeView(
-        project: ClientProject,
-        activeSession: WorkSession? = nil
-    ) -> ProjectDetailView {
-        ProjectDetailView(
-            project: project,
-            activeSession: activeSession,
-            onStart: {},
-            onStartTask: { _ in },
-            onStop: {},
-            onAddManualEntry: {},
-            onEditSession: { _ in },
-            onDeleteSession: { _ in },
-            onArchiveProject: {},
-            onRestoreProject: {},
-            onDeleteProject: {}
         )
     }
 }

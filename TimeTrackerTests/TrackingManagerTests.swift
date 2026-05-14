@@ -574,6 +574,36 @@ struct TrackingAbstractionTests {
 @Suite("WorkspaceRootViewModel actions")
 @MainActor
 struct WorkspaceRootViewModelActionTests {
+    @Test("collection helpers sort archived ties and grouped project names predictably")
+    func collectionHelpersSortArchivedAndActiveProjects() {
+        let archivedAt = Date(timeIntervalSince1970: 500)
+        let archivedBeta = ClientProject(clientName: "Beta", name: "Alpha", archivedAt: archivedAt)
+        let archivedAlphaZulu = ClientProject(clientName: "Alpha", name: "Zulu", archivedAt: archivedAt)
+        let archivedAlphaEcho = ClientProject(clientName: "Alpha", name: "Echo", archivedAt: archivedAt)
+        let activeZeta = ClientProject(clientName: "  Acme  ", name: "Zeta")
+        let activeAlpha = ClientProject(clientName: "Acme", name: "Alpha")
+        let activeSession = WorkSession(project: activeZeta, startedAt: Date(timeIntervalSince1970: 100))
+        let viewModel = WorkspaceRootViewModel()
+
+        #expect(viewModel.activeSession(from: [activeSession])?.id == activeSession.id)
+        #expect(
+            viewModel.activeProjects(
+                from: [archivedBeta, activeZeta, archivedAlphaZulu, activeAlpha]
+            ).map(\.displayName) == ["Zeta", "Alpha"]
+        )
+
+        let groups = viewModel.groupedProjects(from: [activeZeta, activeAlpha])
+        #expect(groups.count == 1)
+        #expect(groups.first?.displayName == "Acme")
+        #expect(groups.first?.rawClientName == "Acme")
+        #expect(groups.first?.projects.map(\.displayName) == ["Alpha", "Zeta"])
+
+        let archivedProjects = viewModel.archivedProjects(
+            from: [archivedBeta, archivedAlphaZulu, archivedAlphaEcho]
+        )
+        #expect(archivedProjects.map(\.displayName) == ["Echo", "Zulu", "Alpha"])
+    }
+
     @Test("presentation helpers and selected project lookup update state")
     func presentationAndSelectionState() {
         let firstProject = ClientProject(clientName: "Alpha", name: "One")
@@ -755,6 +785,84 @@ struct WorkspaceRootViewModelActionTests {
 
         #expect(didAdd == false)
         #expect(viewModel.errorMessage == "Der Zeiteintrag konnte nicht gespeichert werden.")
+    }
+
+    @Test("tracking action fallback errors cover remaining user-facing messages")
+    func trackingActionFallbackErrorsExposeMessages() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let context = container.mainContext
+        let trackingStatus = TrackingStatusStore(
+            modelContainer: container,
+            crossDeviceChannel: NoopCrossDeviceTrackingChannel()
+        )
+        let project = ClientProject(clientName: "A", name: "Project")
+        let session = WorkSession(
+            project: project,
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200)
+        )
+        let spy = WorkspaceTrackingUseCasesProtocolSpy()
+        let dependencies = AppDependencies(
+            configuration: TimeTrackerTargetConfiguration.macOS,
+            workspaceTrackingUseCases: spy
+        )
+        let viewModel = WorkspaceRootViewModel()
+
+        spy.errorToThrow = WorkspaceTrackingUseCasesProtocolSpy.Failure()
+        viewModel.stopActiveTracking(
+            dependencies: dependencies,
+            modelContext: context,
+            trackingStatus: trackingStatus
+        )
+        #expect(viewModel.errorMessage == "Die laufende Zeiterfassung konnte nicht beendet werden.")
+
+        viewModel.isPresentingError = false
+        let didUpdate = viewModel.updateManualSession(
+            session,
+            task: nil,
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200),
+            dependencies: dependencies,
+            modelContext: context
+        )
+        #expect(didUpdate == false)
+        #expect(viewModel.errorMessage == "Der Zeiteintrag konnte nicht aktualisiert werden.")
+
+        viewModel.isPresentingError = false
+        viewModel.deleteSession(
+            session,
+            dependencies: dependencies,
+            modelContext: context,
+            trackingStatus: trackingStatus
+        )
+        #expect(viewModel.errorMessage == "Der Zeiteintrag konnte nicht geloescht werden.")
+
+        viewModel.isPresentingError = false
+        viewModel.archiveProject(
+            project,
+            dependencies: dependencies,
+            modelContext: context,
+            trackingStatus: trackingStatus
+        )
+        #expect(viewModel.errorMessage == "Das Projekt konnte nicht archiviert werden.")
+
+        viewModel.isPresentingError = false
+        viewModel.restoreProject(
+            project,
+            dependencies: dependencies,
+            modelContext: context,
+            trackingStatus: trackingStatus
+        )
+        #expect(viewModel.errorMessage == "Das Projekt konnte nicht reaktiviert werden.")
+
+        viewModel.isPresentingError = false
+        viewModel.deleteProject(
+            project,
+            dependencies: dependencies,
+            modelContext: context,
+            trackingStatus: trackingStatus
+        )
+        #expect(viewModel.errorMessage == "Das Projekt konnte nicht geloescht werden.")
     }
 }
 

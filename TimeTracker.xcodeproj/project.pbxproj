@@ -20,6 +20,29 @@
 		65317F482FB5938500E8C9E3 /* ProjectDetailLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F472FB5938500E8C9E3 /* ProjectDetailLogicTests.swift */; };
 		65317F622FB59AAA00E8C9E3 /* PreviewSampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F612FB59AAA00E8C9E3 /* PreviewSampleData.swift */; };
 		65317F632FB59AAA00E8C9E3 /* PreviewSampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F612FB59AAA00E8C9E3 /* PreviewSampleData.swift */; };
+		65317F9A2FB5F1B000E8C9E3 /* ManualSessionLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F992FB5F1B000E8C9E3 /* ManualSessionLogicTests.swift */; };
+		653180382FB5F1DD00E8C9E3 /* ProjectDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 653180372FB5F1DD00E8C9E3 /* ProjectDetailViewModel.swift */; };
+		653180392FB5F1DD00E8C9E3 /* ProjectDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 653180372FB5F1DD00E8C9E3 /* ProjectDetailViewModel.swift */; };
+		65BE5A182FB5FCC300052284 /* ProjectDetailHeaderCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A172FB5FCC300052284 /* ProjectDetailHeaderCard.swift */; };
+		65BE5A192FB5FCC300052284 /* ProjectDetailHeaderCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A172FB5FCC300052284 /* ProjectDetailHeaderCard.swift */; };
+		65BE5A1B2FB5FCCD00052284 /* ProjectDetailSummaryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A1A2FB5FCCD00052284 /* ProjectDetailSummaryRow.swift */; };
+		65BE5A1C2FB5FCCD00052284 /* ProjectDetailSummaryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A1A2FB5FCCD00052284 /* ProjectDetailSummaryRow.swift */; };
+		65BE5A1E2FB5FCE300052284 /* ProjectDetailBillingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A1D2FB5FCE300052284 /* ProjectDetailBillingCard.swift */; };
+		65BE5A1F2FB5FCE300052284 /* ProjectDetailBillingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A1D2FB5FCE300052284 /* ProjectDetailBillingCard.swift */; };
+		65BE5A212FB5FCFE00052284 /* ProjectDetailTasksCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A202FB5FCFE00052284 /* ProjectDetailTasksCard.swift */; };
+		65BE5A222FB5FCFE00052284 /* ProjectDetailTasksCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A202FB5FCFE00052284 /* ProjectDetailTasksCard.swift */; };
+		65BE5A242FB5FD0B00052284 /* ProjectDetailSessionsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A232FB5FD0B00052284 /* ProjectDetailSessionsCard.swift */; };
+		65BE5A252FB5FD0B00052284 /* ProjectDetailSessionsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A232FB5FD0B00052284 /* ProjectDetailSessionsCard.swift */; };
+		65BE5A272FB5FD2B00052284 /* ProjectDetailBudgetSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A262FB5FD2B00052284 /* ProjectDetailBudgetSheet.swift */; };
+		65BE5A282FB5FD2B00052284 /* ProjectDetailBudgetSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A262FB5FD2B00052284 /* ProjectDetailBudgetSheet.swift */; };
+		65BE5A2A2FB5FD3800052284 /* ProjectDetailExportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A292FB5FD3800052284 /* ProjectDetailExportSheet.swift */; };
+		65BE5A2B2FB5FD3800052284 /* ProjectDetailExportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A292FB5FD3800052284 /* ProjectDetailExportSheet.swift */; };
+		65BE5A2D2FB5FD6600052284 /* ProjectDetailHeaderCardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A2C2FB5FD6600052284 /* ProjectDetailHeaderCardTests.swift */; };
+		65BE5A2F2FB5FD6F00052284 /* ProjectDetailSummaryRowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A2E2FB5FD6F00052284 /* ProjectDetailSummaryRowTests.swift */; };
+		65BE5A312FB5FD7700052284 /* ProjectDetailTasksCardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A302FB5FD7700052284 /* ProjectDetailTasksCardTests.swift */; };
+		65BE5A332FB5FD7E00052284 /* ProjectDetailBudgetSheetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A322FB5FD7E00052284 /* ProjectDetailBudgetSheetTests.swift */; };
+		65BE5A352FB5FD8500052284 /* ProjectDetailSessionsCardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A342FB5FD8500052284 /* ProjectDetailSessionsCardTests.swift */; };
+		65BE5A372FB5FD8E00052284 /* ProjectDetailExportSheetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A362FB5FD8E00052284 /* ProjectDetailExportSheetTests.swift */; };
 		65E888E92FB2610A007E10CE /* WorkspaceSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888E82FB2610A007E10CE /* WorkspaceSection.swift */; };
 		65E888EA2FB2610A007E10CE /* WorkspaceSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888E82FB2610A007E10CE /* WorkspaceSection.swift */; };
 		65E888EC2FB2610A007E10CE /* WorkspaceRootLayoutRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888EB2FB2610A007E10CE /* WorkspaceRootLayoutRules.swift */; };
@@ -149,10 +172,25 @@
 		65317F3C2FB5926500E8C9E3 /* WorkspaceTrackingDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceTrackingDetailView.swift; sourceTree = "<group>"; };
 		65317F472FB5938500E8C9E3 /* ProjectDetailLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailLogicTests.swift; sourceTree = "<group>"; };
 		65317F612FB59AAA00E8C9E3 /* PreviewSampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewSampleData.swift; sourceTree = "<group>"; };
+		65317F992FB5F1B000E8C9E3 /* ManualSessionLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualSessionLogicTests.swift; sourceTree = "<group>"; };
+		653180372FB5F1DD00E8C9E3 /* ProjectDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailViewModel.swift; sourceTree = "<group>"; };
 		658F65402F8404A00016E346 /* TimeTrackeriOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TimeTrackeriOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		658F654C2F8404A10016E346 /* TimeTrackeriOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TimeTrackeriOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		658F65562F8404A10016E346 /* TimeTrackeriOSUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TimeTrackeriOSUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		658F65D52F84374C0016E346 /* TimeTrackeriOS.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = TimeTrackeriOS.xctestplan; sourceTree = "<group>"; };
+		65BE5A172FB5FCC300052284 /* ProjectDetailHeaderCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailHeaderCard.swift; sourceTree = "<group>"; };
+		65BE5A1A2FB5FCCD00052284 /* ProjectDetailSummaryRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailSummaryRow.swift; sourceTree = "<group>"; };
+		65BE5A1D2FB5FCE300052284 /* ProjectDetailBillingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailBillingCard.swift; sourceTree = "<group>"; };
+		65BE5A202FB5FCFE00052284 /* ProjectDetailTasksCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailTasksCard.swift; sourceTree = "<group>"; };
+		65BE5A232FB5FD0B00052284 /* ProjectDetailSessionsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailSessionsCard.swift; sourceTree = "<group>"; };
+		65BE5A262FB5FD2B00052284 /* ProjectDetailBudgetSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailBudgetSheet.swift; sourceTree = "<group>"; };
+		65BE5A292FB5FD3800052284 /* ProjectDetailExportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailExportSheet.swift; sourceTree = "<group>"; };
+		65BE5A2C2FB5FD6600052284 /* ProjectDetailHeaderCardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailHeaderCardTests.swift; sourceTree = "<group>"; };
+		65BE5A2E2FB5FD6F00052284 /* ProjectDetailSummaryRowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailSummaryRowTests.swift; sourceTree = "<group>"; };
+		65BE5A302FB5FD7700052284 /* ProjectDetailTasksCardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailTasksCardTests.swift; sourceTree = "<group>"; };
+		65BE5A322FB5FD7E00052284 /* ProjectDetailBudgetSheetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailBudgetSheetTests.swift; sourceTree = "<group>"; };
+		65BE5A342FB5FD8500052284 /* ProjectDetailSessionsCardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailSessionsCardTests.swift; sourceTree = "<group>"; };
+		65BE5A362FB5FD8E00052284 /* ProjectDetailExportSheetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailExportSheetTests.swift; sourceTree = "<group>"; };
 		65E888E82FB2610A007E10CE /* WorkspaceSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceSection.swift; sourceTree = "<group>"; };
 		65E888EB2FB2610A007E10CE /* WorkspaceRootLayoutRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceRootLayoutRules.swift; sourceTree = "<group>"; };
 		65E888EE2FB2610B007E10CE /* WorkspaceTabButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceTabButton.swift; sourceTree = "<group>"; };
@@ -290,6 +328,14 @@
 				B00000000000000000000007 /* ProjectDetailView.swift */,
 				B00000000000000000000018 /* ProjectDetailView+Logic.swift */,
 				B00000000000000000000019 /* ProjectDetailComponents.swift */,
+				653180372FB5F1DD00E8C9E3 /* ProjectDetailViewModel.swift */,
+				65BE5A172FB5FCC300052284 /* ProjectDetailHeaderCard.swift */,
+				65BE5A1A2FB5FCCD00052284 /* ProjectDetailSummaryRow.swift */,
+				65BE5A1D2FB5FCE300052284 /* ProjectDetailBillingCard.swift */,
+				65BE5A202FB5FCFE00052284 /* ProjectDetailTasksCard.swift */,
+				65BE5A232FB5FD0B00052284 /* ProjectDetailSessionsCard.swift */,
+				65BE5A262FB5FD2B00052284 /* ProjectDetailBudgetSheet.swift */,
+				65BE5A292FB5FD3800052284 /* ProjectDetailExportSheet.swift */,
 			);
 			path = Project;
 			sourceTree = "<group>";
@@ -401,6 +447,13 @@
 				B00000000000000000000012 /* ModelAndFormattingTests.swift */,
 				B00000000000000000000013 /* TestSupport.swift */,
 				65317F472FB5938500E8C9E3 /* ProjectDetailLogicTests.swift */,
+				65317F992FB5F1B000E8C9E3 /* ManualSessionLogicTests.swift */,
+				65BE5A2C2FB5FD6600052284 /* ProjectDetailHeaderCardTests.swift */,
+				65BE5A2E2FB5FD6F00052284 /* ProjectDetailSummaryRowTests.swift */,
+				65BE5A302FB5FD7700052284 /* ProjectDetailTasksCardTests.swift */,
+				65BE5A322FB5FD7E00052284 /* ProjectDetailBudgetSheetTests.swift */,
+				65BE5A342FB5FD8500052284 /* ProjectDetailSessionsCardTests.swift */,
+				65BE5A362FB5FD8E00052284 /* ProjectDetailExportSheetTests.swift */,
 			);
 			path = TimeTrackerTests;
 			sourceTree = "<group>";
@@ -704,8 +757,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				65BE5A1C2FB5FCCD00052284 /* ProjectDetailSummaryRow.swift in Sources */,
 				C3000000000000000000000B /* ContentView.swift in Sources */,
 				C3000000000000000000000F /* WorkspaceAnalyticsView.swift in Sources */,
+				65BE5A192FB5FCC300052284 /* ProjectDetailHeaderCard.swift in Sources */,
 				C3000000000000000000000D /* NewProjectSheet.swift in Sources */,
 				C3000000000000000000000E /* ManualSessionSheet.swift in Sources */,
 				65E888F62FB26121007E10CE /* SessionEditor.swift in Sources */,
@@ -722,8 +777,12 @@
 				C30000000000000000000005 /* TrackingStatusStore.swift in Sources */,
 				C30000000000000000000006 /* TimeFormatting.swift in Sources */,
 				65317F3D2FB5926500E8C9E3 /* WorkspaceTrackingDetailView.swift in Sources */,
+				65BE5A242FB5FD0B00052284 /* ProjectDetailSessionsCard.swift in Sources */,
 				C30000000000000000000007 /* TimeTrackerSchema.swift in Sources */,
+				65BE5A222FB5FCFE00052284 /* ProjectDetailTasksCard.swift in Sources */,
 				C30000000000000000000008 /* PlatformSummaryCard.swift in Sources */,
+				65BE5A1F2FB5FCE300052284 /* ProjectDetailBillingCard.swift in Sources */,
+				653180392FB5F1DD00E8C9E3 /* ProjectDetailViewModel.swift in Sources */,
 				C30000000000000000000040 /* ProjectCreationDraft.swift in Sources */,
 				65E888FC2FB26121007E10CE /* ProjectSidebarRow.swift in Sources */,
 				C30000000000000000000020 /* Tokens.swift in Sources */,
@@ -742,10 +801,12 @@
 				C30000000000000000000035 /* TaskRow.swift in Sources */,
 				C30000000000000000000036 /* EntryRow.swift in Sources */,
 				65E888ED2FB2610A007E10CE /* WorkspaceRootLayoutRules.swift in Sources */,
+				65BE5A2B2FB5FD3800052284 /* ProjectDetailExportSheet.swift in Sources */,
 				C30000000000000000000037 /* ProjectBar.swift in Sources */,
 				65317F372FB5925000E8C9E3 /* WorkspaceSidebarView.swift in Sources */,
 				65317F3B2FB5926400E8C9E3 /* WorkspaceDetailAreaView.swift in Sources */,
 				65E888F92FB26121007E10CE /* ClientSectionHeader.swift in Sources */,
+				65BE5A282FB5FD2B00052284 /* ProjectDetailBudgetSheet.swift in Sources */,
 				65E888E92FB2610A007E10CE /* WorkspaceSection.swift in Sources */,
 				C30000000000000000000038 /* WeekBars.swift in Sources */,
 				C30000000000000000000039 /* DayProfile.swift in Sources */,
@@ -787,10 +848,13 @@
 				C20000000000000000000020 /* Tokens.swift in Sources */,
 				C20000000000000000000021 /* GlassCard.swift in Sources */,
 				C20000000000000000000022 /* PillButton.swift in Sources */,
+				65BE5A182FB5FCC300052284 /* ProjectDetailHeaderCard.swift in Sources */,
+				65BE5A2A2FB5FD3800052284 /* ProjectDetailExportSheet.swift in Sources */,
 				65E888EA2FB2610A007E10CE /* WorkspaceSection.swift in Sources */,
 				C20000000000000000000023 /* ProjectColor.swift in Sources */,
 				65317F342FB5924F00E8C9E3 /* WorkspaceTabBarView.swift in Sources */,
 				65E888F82FB26121007E10CE /* ClientSectionHeader.swift in Sources */,
+				65BE5A1E2FB5FCE300052284 /* ProjectDetailBillingCard.swift in Sources */,
 				65317F3E2FB5926500E8C9E3 /* WorkspaceTrackingDetailView.swift in Sources */,
 				C20000000000000000000024 /* AppearanceSettings.swift in Sources */,
 				C20000000000000000000030 /* PulseDot.swift in Sources */,
@@ -806,6 +870,7 @@
 				C20000000000000000000037 /* ProjectBar.swift in Sources */,
 				65317F382FB5925000E8C9E3 /* WorkspaceSidebarView.swift in Sources */,
 				65E888F52FB26121007E10CE /* SessionEditor.swift in Sources */,
+				65BE5A1B2FB5FCCD00052284 /* ProjectDetailSummaryRow.swift in Sources */,
 				65E888F32FB2610B007E10CE /* ClientGroup.swift in Sources */,
 				C20000000000000000000038 /* WeekBars.swift in Sources */,
 				C20000000000000000000039 /* DayProfile.swift in Sources */,
@@ -818,16 +883,20 @@
 				65E888FE2FB26122007E10CE /* ActiveSidebarCard.swift in Sources */,
 				A00000000000000000000018 /* ProjectDetailView+Logic.swift in Sources */,
 				A00000000000000000000019 /* ProjectDetailComponents.swift in Sources */,
+				653180382FB5F1DD00E8C9E3 /* ProjectDetailViewModel.swift in Sources */,
 				A0000000000000000000001A /* MacRedesignedRootView.swift in Sources */,
 				C20000000000000000000004 /* TrackingManager.swift in Sources */,
+				65BE5A252FB5FD0B00052284 /* ProjectDetailSessionsCard.swift in Sources */,
 				C20000000000000000000005 /* TrackingStatusStore.swift in Sources */,
 				C20000000000000000000006 /* TimeFormatting.swift in Sources */,
+				65BE5A212FB5FCFE00052284 /* ProjectDetailTasksCard.swift in Sources */,
 				C20000000000000000000009 /* ProjectExportFileNaming.swift in Sources */,
 				C20000000000000000000007 /* TimeTrackerSchema.swift in Sources */,
 				65E888FB2FB26121007E10CE /* ProjectSidebarRow.swift in Sources */,
 				A00000000000000000000001 /* TimeTrackerApp.swift in Sources */,
 				C20000000000000000000003 /* WorkSession.swift in Sources */,
 				65E889012FB26131007E10CE /* EmptyStateView.swift in Sources */,
+				65BE5A272FB5FD2B00052284 /* ProjectDetailBudgetSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -838,7 +907,14 @@
 				A00000000000000000000012 /* ModelAndFormattingTests.swift in Sources */,
 				A00000000000000000000013 /* TestSupport.swift in Sources */,
 				A00000000000000000000011 /* TrackingManagerTests.swift in Sources */,
+				65BE5A352FB5FD8500052284 /* ProjectDetailSessionsCardTests.swift in Sources */,
+				65BE5A332FB5FD7E00052284 /* ProjectDetailBudgetSheetTests.swift in Sources */,
+				65BE5A372FB5FD8E00052284 /* ProjectDetailExportSheetTests.swift in Sources */,
+				65BE5A312FB5FD7700052284 /* ProjectDetailTasksCardTests.swift in Sources */,
+				65BE5A2D2FB5FD6600052284 /* ProjectDetailHeaderCardTests.swift in Sources */,
+				65BE5A2F2FB5FD6F00052284 /* ProjectDetailSummaryRowTests.swift in Sources */,
 				65317F482FB5938500E8C9E3 /* ProjectDetailLogicTests.swift in Sources */,
+				65317F9A2FB5F1B000E8C9E3 /* ManualSessionLogicTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

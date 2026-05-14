@@ -125,4 +125,84 @@ struct TimeTrackeriOSTests {
         #expect(snapshot.projectBars.map(\.projectId) == [project.id])
         #expect(snapshot.day.count == 24)
     }
+
+    @Test("Preview helpers provide iOS dependencies and an active tracking store")
+    func previewHelpersProvideDependenciesAndStore() throws {
+        let container = ModelContainer.preview
+        let context = container.mainContext
+        let project = ClientProject(clientName: "Preview", name: "iOS Store")
+        let session = WorkSession(
+            project: project,
+            startedAt: Date(timeIntervalSince1970: 100)
+        )
+
+        context.insert(project)
+        context.insert(session)
+        try context.save()
+
+        let dependencies = AppDependencies.preview
+        let trackingStatus = TrackingStatusStore.preview(modelContainer: container)
+        trackingStatus.refresh()
+
+        #expect(dependencies.configuration.platform == .iOS)
+        #expect(trackingStatus.isTracking)
+        #expect(trackingStatus.activeSession?.projectName == "iOS Store")
+    }
+
+    @Test("Workspace analytics calculator runs inside the iOS target")
+    func sharedAnalyticsCalculatorRunsInIOSTarget() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
+
+        func date(year: Int, month: Int, day: Int, hour: Int) throws -> Date {
+            try #require(
+                calendar.date(
+                    from: DateComponents(
+                        timeZone: calendar.timeZone,
+                        year: year,
+                        month: month,
+                        day: day,
+                        hour: hour
+                    )
+                )
+            )
+        }
+
+        let billableProject = ClientProject(
+            clientName: "Mobile",
+            name: "App",
+            hourlyRate: 100
+        )
+        let unbilledProject = ClientProject(
+            clientName: "Mobile",
+            name: "Discovery"
+        )
+        billableProject.sessions = [
+            WorkSession(
+                project: billableProject,
+                startedAt: try date(year: 2026, month: 5, day: 14, hour: 9),
+                endedAt: try date(year: 2026, month: 5, day: 14, hour: 11)
+            ),
+        ]
+        unbilledProject.sessions = [
+            WorkSession(
+                project: unbilledProject,
+                startedAt: try date(year: 2026, month: 5, day: 14, hour: 11),
+                endedAt: try date(year: 2026, month: 5, day: 14, hour: 13)
+            ),
+        ]
+
+        let snapshot = AnalyticsCalculator.makeSnapshot(
+            projects: [unbilledProject, billableProject],
+            referenceDate: try date(year: 2026, month: 5, day: 14, hour: 14),
+            calendar: calendar
+        )
+
+        #expect(snapshot.totalDuration == 14_400)
+        #expect(snapshot.totalBilledAmount == 200)
+        #expect(snapshot.totalValueText == TimeFormatting.euroAmount(200))
+        #expect(snapshot.hasHourlyData)
+        #expect(snapshot.projectTotals.map(\.projectName) == ["App", "Discovery"])
+        #expect(snapshot.projectTotals.last?.valueText == "Kein Stundensatz")
+    }
 }
