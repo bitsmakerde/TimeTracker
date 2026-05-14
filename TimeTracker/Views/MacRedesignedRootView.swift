@@ -738,3 +738,87 @@ struct MacAuswertungPane: View {
         }
     }
 }
+
+#Preview("Mac redesigned root") {
+    MacRedesignedRootPreviewHost()
+        .frame(width: 1340, height: 860)
+}
+
+#Preview("Mac sidebar pane") {
+    MacSidebarPanePreviewHost()
+}
+
+#Preview("Mac aufnehmen pane") {
+    MacAufnehmenPanePreviewHost()
+        .frame(width: 1080, height: 760)
+}
+
+#Preview("Mac auswertung pane") {
+    MacAuswertungPanePreviewHost()
+        .frame(width: 1080, height: 760)
+}
+
+@MainActor
+private struct MacRedesignedRootPreviewHost: View {
+    private let preview = PreviewWorkspaceSnapshot()
+
+    var body: some View {
+        MacRedesignedRootView(
+            trackingStatus: preview.trackingStatus,
+            dependencies: .live(configuration: TimeTrackerTargetConfiguration.macOS)
+        )
+        .modelContainer(preview.modelContainer)
+    }
+}
+
+@MainActor
+private struct MacSidebarPanePreviewHost: View {
+    private let preview = PreviewWorkspaceSnapshot()
+    @State private var search = ""
+    @State private var selectedProjectID: UUID?
+
+    var body: some View {
+        MacSidebarPane(
+            projects: preview.projects.filter { !$0.isArchived },
+            activeProjectId: preview.activeSessions.first?.project?.id,
+            search: $search,
+            selectedId: $selectedProjectID,
+            onAddProject: {}
+        )
+        .frame(width: 280, height: 700)
+        .onAppear {
+            if selectedProjectID == nil {
+                selectedProjectID = preview.projects.first?.id
+            }
+        }
+    }
+}
+
+@MainActor
+private struct MacAufnehmenPanePreviewHost: View {
+    private let preview = PreviewWorkspaceSnapshot()
+
+    var body: some View {
+        let project = preview.projects[0]
+
+        MacAufnehmenPane(
+            project: project,
+            activeSession: preview.activeSessions.first,
+            onStartTask: { _ in },
+            onStartProject: {},
+            onStop: {},
+            onAddManualEntry: {},
+            onEditEntry: { _ in },
+            onAddTask: { _ in }
+        )
+    }
+}
+
+@MainActor
+private struct MacAuswertungPanePreviewHost: View {
+    private let preview = PreviewWorkspaceSnapshot()
+
+    var body: some View {
+        MacAuswertungPane(projects: preview.projects)
+    }
+}

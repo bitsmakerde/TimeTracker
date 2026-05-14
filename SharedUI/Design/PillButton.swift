@@ -198,3 +198,31 @@ private struct CircleIconButtonStyle: ButtonStyle {
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
+
+#Preview("Pill buttons") {
+    VStack(spacing: 12) {
+        PillButton(
+            "Timer starten",
+            systemImage: "play.fill",
+            variant: .primary,
+            size: .lg,
+            tint: ClientProject.primaryActionColor
+        ) {}
+
+        PillButton(
+            "Filter",
+            systemImage: "line.3.horizontal.decrease.circle",
+            variant: .tinted,
+            tint: .teal
+        ) {}
+
+        PillButton("Mehr anzeigen", variant: .glass) {}
+
+        CircleIconButton(
+            systemImage: "ellipsis",
+            variant: .default
+        ) {}
+    }
+    .padding()
+    .frame(width: 320)
+}

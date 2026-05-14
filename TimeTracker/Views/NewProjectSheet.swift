@@ -87,3 +87,10 @@ struct NewProjectSheet: View {
 #endif
     }
 }
+
+#Preview("New project sheet") {
+    NavigationStack {
+        NewProjectSheet(initialClientName: "Acme Corp") { _ in true }
+    }
+    .frame(width: 520, height: 640)
+}

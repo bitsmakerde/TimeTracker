@@ -60,3 +60,16 @@ struct ActiveSidebarCard: View {
         )
     }
 }
+
+#Preview("Active sidebar card") {
+    let project = ClientProject.sampleData[0]
+    let session = project.sessionList.first(where: \.isActive) ?? project.sessionList[0]
+
+    return ActiveSidebarCard(
+        project: project,
+        session: session,
+        task: session.task
+    ) {}
+    .padding()
+    .frame(width: 320)
+}

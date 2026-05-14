@@ -109,3 +109,41 @@ extension TrackingStatusStore {
         )
     }
 }
+
+@MainActor
+struct PreviewWorkspaceSnapshot {
+    let modelContainer: ModelContainer
+    let projects: [ClientProject]
+    let activeSessions: [WorkSession]
+    let trackingStatus: TrackingStatusStore
+
+    init(projects: [ClientProject] = ClientProject.sampleData) {
+        let modelContainer = ModelContainer.preview
+
+        Self.insert(projects, into: modelContainer.mainContext)
+
+        let trackingStatus = TrackingStatusStore.preview(modelContainer: modelContainer)
+        trackingStatus.refresh()
+
+        self.modelContainer = modelContainer
+        self.projects = projects
+        self.activeSessions = WorkSession.sampleActiveData(for: projects)
+        self.trackingStatus = trackingStatus
+    }
+
+    private static func insert(_ projects: [ClientProject], into modelContext: ModelContext) {
+        for project in projects {
+            modelContext.insert(project)
+
+            for task in project.taskList {
+                modelContext.insert(task)
+            }
+
+            for session in project.sessionList {
+                modelContext.insert(session)
+            }
+        }
+
+        try? modelContext.save()
+    }
+}

@@ -123,3 +123,16 @@ struct ProjectsDrawer: View {
         .buttonStyle(.plain)
     }
 }
+
+#Preview("Projects drawer") {
+    let projects = ClientProject.sampleData
+
+    return NavigationStack {
+        ProjectsDrawer(
+            projects: projects,
+            activeProjectId: projects[0].id,
+            onSelect: { _ in },
+            onAddProject: { _ in }
+        )
+    }
+}

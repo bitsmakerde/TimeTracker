@@ -1251,3 +1251,8 @@ private struct AnalyticsHourlyComputation {
     let rangeLabel: String
     let peakSummary: String
 }
+
+#Preview("Analytics overview") {
+    AnalyticsOverviewView(projects: ClientProject.sampleData)
+        .frame(width: 1180, height: 860)
+}

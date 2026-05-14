@@ -346,3 +346,36 @@ struct MenuBarStatusLabel: View {
         }
     }
 }
+
+#Preview("Menu bar tracking") {
+    MenuBarTrackingPreviewHost()
+}
+
+#Preview("Menu bar status label") {
+    MenuBarStatusLabelPreviewHost()
+}
+
+@MainActor
+private struct MenuBarTrackingPreviewHost: View {
+    private let preview = PreviewWorkspaceSnapshot()
+
+    var body: some View {
+        MenuBarTrackingView(
+            trackingStatus: preview.trackingStatus,
+            dependencies: .live(configuration: TimeTrackerTargetConfiguration.macOS)
+        )
+        .modelContainer(preview.modelContainer)
+        .padding()
+    }
+}
+
+@MainActor
+private struct MenuBarStatusLabelPreviewHost: View {
+    private let preview = PreviewWorkspaceSnapshot()
+
+    var body: some View {
+        MenuBarStatusLabel(trackingStatus: preview.trackingStatus)
+            .modelContainer(preview.modelContainer)
+            .padding()
+    }
+}

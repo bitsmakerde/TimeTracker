@@ -168,3 +168,19 @@ struct AnalyticsScreen: View {
         }
     }
 }
+
+#Preview("Analytics screen") {
+    NavigationStack {
+        AnalyticsScreenPreviewHost()
+    }
+}
+
+@MainActor
+private struct AnalyticsScreenPreviewHost: View {
+    private let preview = PreviewWorkspaceSnapshot()
+
+    var body: some View {
+        AnalyticsScreen()
+            .modelContainer(preview.modelContainer)
+    }
+}

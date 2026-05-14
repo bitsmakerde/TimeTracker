@@ -20,3 +20,9 @@ struct ClientSectionHeader: View {
         }
     }
 }
+
+#Preview("Client section header") {
+    ClientSectionHeader(title: "Acme Corp") {}
+        .padding()
+        .frame(width: 320)
+}

@@ -451,3 +451,22 @@ private struct NewProjectPresentation: Identifiable {
     let id = UUID()
     let initialClientName: String
 }
+
+#Preview("Tracking screen") {
+    NavigationStack {
+        TrackingScreenPreviewHost()
+    }
+}
+
+@MainActor
+private struct TrackingScreenPreviewHost: View {
+    private let preview = PreviewWorkspaceSnapshot()
+
+    var body: some View {
+        TrackingScreen(
+            trackingStatus: preview.trackingStatus,
+            dependencies: .preview
+        )
+        .modelContainer(preview.modelContainer)
+    }
+}

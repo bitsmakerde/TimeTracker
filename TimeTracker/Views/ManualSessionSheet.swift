@@ -211,3 +211,25 @@ enum ManualSessionLogic {
         return nil
     }
 }
+
+#Preview("Manual session sheet") {
+    let project = ClientProject.sampleData[0]
+
+    return NavigationStack {
+        ManualSessionSheet(project: project) { _, _, _ in true }
+    }
+    .frame(width: 520, height: 560)
+}
+
+#Preview("Manual session edit") {
+    let project = ClientProject.sampleData[0]
+    let session = project.sessionList.first(where: \.isActive) ?? project.sessionList[0]
+
+    return NavigationStack {
+        ManualSessionSheet(
+            project: project,
+            sessionToEdit: session
+        ) { _, _, _ in true }
+    }
+    .frame(width: 520, height: 560)
+}

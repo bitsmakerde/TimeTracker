@@ -192,3 +192,21 @@ struct WorkspaceRootView: View {
         Text(viewModel.errorMessage ?? "")
     }
 }
+
+#Preview("Workspace root") {
+    WorkspaceRootPreviewHost()
+        .frame(width: 1200, height: 760)
+}
+
+@MainActor
+private struct WorkspaceRootPreviewHost: View {
+    private let preview = PreviewWorkspaceSnapshot()
+
+    var body: some View {
+        WorkspaceRootView(
+            trackingStatus: preview.trackingStatus,
+            dependencies: .live(configuration: TimeTrackerTargetConfiguration.macOS)
+        )
+        .modelContainer(preview.modelContainer)
+    }
+}

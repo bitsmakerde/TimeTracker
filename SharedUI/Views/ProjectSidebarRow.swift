@@ -47,3 +47,27 @@ struct ProjectSidebarRow: View {
         return project.projectAccentColor.opacity(0.82)
     }
 }
+
+#Preview("Project sidebar rows") {
+    let projects = ClientProject.sampleData
+
+    return VStack(alignment: .leading, spacing: 12) {
+        ProjectSidebarRow(
+            project: projects[0],
+            isActive: true,
+            isArchived: false
+        )
+        ProjectSidebarRow(
+            project: projects[1],
+            isActive: false,
+            isArchived: false
+        )
+        ProjectSidebarRow(
+            project: projects[2],
+            isActive: false,
+            isArchived: true
+        )
+    }
+    .padding()
+    .frame(width: 320)
+}

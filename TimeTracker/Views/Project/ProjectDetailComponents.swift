@@ -732,3 +732,103 @@ struct SessionDurationText: View {
             .monospacedDigit()
     }
 }
+
+#Preview("Project detail components") {
+    ProjectDetailComponentsPreviewHost()
+        .frame(width: 760, height: 760)
+}
+
+#Preview("New task assignment sheet") {
+    let project = ClientProject.sampleData[0]
+    let session = project.sessionList.first(where: { !$0.isActive }) ?? project.sessionList[0]
+
+    return NavigationStack {
+        NewTaskAssignmentSheet(
+            project: project,
+            session: session
+        ) { _ in true }
+    }
+    .frame(width: 520, height: 320)
+}
+
+private struct ProjectDetailComponentsPreviewHost: View {
+    private let project = ClientProject.sampleData[0]
+
+    private var task: ProjectTask {
+        project.sortedTasks[0]
+    }
+
+    private var activeSession: WorkSession {
+        project.sessionList.first(where: \.isActive) ?? project.sessionList[0]
+    }
+
+    private var completedSession: WorkSession {
+        project.sessionList.first(where: { !$0.isActive }) ?? activeSession
+    }
+
+    private var taskDuration: TimeInterval {
+        task.sessionList.reduce(0) { partialResult, session in
+            partialResult + session.recordedDuration
+        }
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                HStack(alignment: .top, spacing: 20) {
+                    BudgetProgressDonut(
+                        snapshot: ProjectBudgetSnapshot(
+                            unit: .hours,
+                            target: 24,
+                            consumed: 15.5
+                        ),
+                        accentColor: project.projectAccentColor
+                    )
+                    .frame(width: 180, height: 180)
+
+                    VStack(alignment: .leading, spacing: 16) {
+                        SummaryCard(
+                            title: "Gesamtzeit",
+                            value: TimeFormatting.compactDuration(10 * 3_600),
+                            subtitle: "2 Eintraege · diese Woche"
+                        )
+
+                        HStack(spacing: 12) {
+                            Text("Aktive Dauer")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+
+                            SessionDurationText(session: activeSession)
+                        }
+                    }
+                }
+
+                TaskSummaryRow(
+                    title: task.displayTitle,
+                    subtitle: "\(task.sessionList.count) Eintraege",
+                    durationText: TimeFormatting.compactDuration(taskDuration),
+                    valueText: TimeFormatting.euroAmount(project.billedAmount(for: taskDuration) ?? 0),
+                    isActive: activeSession.task?.id == task.id,
+                    isSelectedForStart: true,
+                    isProjectRunningWithoutTask: false,
+                    accentColor: project.projectAccentColor,
+                    isArchived: false,
+                    onSelectForStart: {},
+                    onStart: {},
+                    onStop: {}
+                )
+
+                SessionRow(
+                    session: completedSession,
+                    hourlyRate: project.hourlyRate,
+                    availableTasks: project.sortedTasks,
+                    onAssignToTask: { _ in },
+                    onCreateTaskAndAssign: {},
+                    onEdit: {},
+                    onDelete: {}
+                )
+            }
+            .padding()
+        }
+    }
+}
