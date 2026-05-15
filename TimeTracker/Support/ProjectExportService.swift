@@ -42,6 +42,40 @@ enum ProjectExportFormat: String, CaseIterable, Identifiable {
     }
 }
 
+struct AnalyticsExportDocument {
+    let exportedAt: Date
+    let totalDuration: TimeInterval
+    let totalValue: Double
+    let todayDuration: TimeInterval
+    let weekDuration: TimeInterval
+    let entryCount: Int
+    let projectRows: [AnalyticsExportProjectRow]
+    let weekRows: [AnalyticsExportWeekRow]
+    let dayRows: [AnalyticsExportDayRow]
+}
+
+struct AnalyticsExportProjectRow: Identifiable {
+    let id: UUID
+    let projectName: String
+    let clientName: String
+    let duration: TimeInterval
+    let percentage: Double
+}
+
+struct AnalyticsExportWeekRow: Identifiable {
+    let id: String
+    let dayLabel: String
+    let dateLabel: String
+    let totalMinutes: Double
+    let isToday: Bool
+}
+
+struct AnalyticsExportDayRow: Identifiable {
+    let id: Int
+    let hour: Int
+    let totalMinutes: Double
+}
+
 struct ProjectExportDocument {
     let projectName: String
     let clientName: String
@@ -67,6 +101,278 @@ struct ProjectExportSessionRow: Identifiable {
     let taskTitle: String
     let duration: TimeInterval
     let cost: Double?
+}
+
+enum AnalyticsExportService {
+    static let supportedFormats = ProjectExportFormat.allCases
+
+    private static let locale = Locale(identifier: "de_DE")
+
+    static func makeDocument(
+        snapshot: AnalyticsAggregator.Snapshot,
+        exportedAt: Date
+    ) -> AnalyticsExportDocument {
+        AnalyticsExportDocument(
+            exportedAt: exportedAt,
+            totalDuration: snapshot.totalDuration,
+            totalValue: snapshot.totalValue,
+            todayDuration: snapshot.todayDuration,
+            weekDuration: snapshot.weekDuration,
+            entryCount: snapshot.entryCount,
+            projectRows: snapshot.projectBars.map { aggregate in
+                AnalyticsExportProjectRow(
+                    id: aggregate.projectId,
+                    projectName: aggregate.projectName,
+                    clientName: aggregate.clientName,
+                    duration: aggregate.duration,
+                    percentage: aggregate.percentage
+                )
+            },
+            weekRows: snapshot.weekBars.map { bar in
+                AnalyticsExportWeekRow(
+                    id: "\(bar.dayLabel)-\(bar.dateLabel)",
+                    dayLabel: bar.dayLabel,
+                    dateLabel: bar.dateLabel,
+                    totalMinutes: bar.totalMinutes,
+                    isToday: bar.isToday
+                )
+            },
+            dayRows: snapshot.day.map { bucket in
+                AnalyticsExportDayRow(
+                    id: bucket.hour,
+                    hour: bucket.hour,
+                    totalMinutes: bucket.parts.reduce(0) { $0 + $1.minutes }
+                )
+            }
+        )
+    }
+
+    static func exportData(
+        snapshot: AnalyticsAggregator.Snapshot,
+        format: ProjectExportFormat,
+        exportedAt: Date
+    ) -> Data {
+        let document = makeDocument(snapshot: snapshot, exportedAt: exportedAt)
+
+        switch format {
+        case .csv:
+            return csvData(from: document)
+        case .pdf:
+            return pdfData(from: document)
+        }
+    }
+
+    static func defaultFileName(
+        for format: ProjectExportFormat,
+        exportedAt: Date
+    ) -> String {
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: exportedAt)
+        let year = components.year ?? 0
+        let month = components.month ?? 0
+        let day = components.day ?? 0
+        return "Auswertung-Export-\(year)-\(month)-\(day).\(format.fileExtension)"
+    }
+
+    private static func csvData(from document: AnalyticsExportDocument) -> Data {
+        Data(csvString(from: document).utf8)
+    }
+
+    private static func csvString(from document: AnalyticsExportDocument) -> String {
+        var lines: [String] = []
+
+        lines.append("Auswertung;CSV")
+        lines.append("Exportiert am;\(csvCell(document.exportedAt.formatted(date: .abbreviated, time: .shortened)))")
+        lines.append("Gesamtzeit;\(csvCell(TimeFormatting.compactDuration(document.totalDuration)))")
+        lines.append("Gesamtwert;\(csvCell(formattedAmount(document.totalValue)))")
+        lines.append("Diese Woche;\(csvCell(TimeFormatting.compactDuration(document.weekDuration)))")
+        lines.append("Heute;\(csvCell(TimeFormatting.compactDuration(document.todayDuration)))")
+        lines.append("Einträge;\(document.entryCount)")
+        lines.append("")
+
+        lines.append("Top-Projekte")
+        lines.append("Projekt;Kunde;Stunden;Anteil")
+        for row in document.projectRows {
+            lines.append(
+                [
+                    csvCell(row.projectName),
+                    csvCell(row.clientName),
+                    csvCell(formattedHours(row.duration)),
+                    csvCell(formattedPercentage(row.percentage)),
+                ].joined(separator: ";")
+            )
+        }
+
+        lines.append("")
+        lines.append("Wochenstunden")
+        lines.append("Tag;Datum;Stunden;Heute")
+        for row in document.weekRows {
+            lines.append(
+                [
+                    csvCell(row.dayLabel),
+                    csvCell(row.dateLabel),
+                    csvCell(formattedHours(row.totalMinutes * 60)),
+                    csvCell(row.isToday ? "Ja" : "Nein"),
+                ].joined(separator: ";")
+            )
+        }
+
+        lines.append("")
+        lines.append("Tagesprofil")
+        lines.append("Stunde;Minuten;Stunden")
+        for row in document.dayRows where row.totalMinutes > 0 {
+            lines.append(
+                [
+                    csvCell(hourLabel(for: row.hour)),
+                    csvCell(formattedMinutes(row.totalMinutes)),
+                    csvCell(formattedHours(row.totalMinutes * 60)),
+                ].joined(separator: ";")
+            )
+        }
+
+        return lines.joined(separator: "\n")
+    }
+
+    private static func pdfData(from document: AnalyticsExportDocument) -> Data {
+        let text = pdfText(from: document)
+        let pageSize = CGSize(width: 595, height: 842)
+        let inset: CGFloat = 28
+        let drawingRect = CGRect(
+            x: inset,
+            y: inset,
+            width: pageSize.width - (2 * inset),
+            height: pageSize.height - (2 * inset)
+        )
+
+        let font = CTFontCreateWithName("Menlo" as CFString, 11, nil)
+        let attributedString = NSAttributedString(
+            string: text,
+            attributes: [
+                NSAttributedString.Key(kCTFontAttributeName as String): font,
+            ]
+        )
+        let framesetter = CTFramesetterCreateWithAttributedString(attributedString as CFAttributedString)
+
+        let mutableData = NSMutableData()
+        var mediaBox = CGRect(origin: .zero, size: pageSize)
+
+        guard let dataConsumer = CGDataConsumer(data: mutableData as CFMutableData),
+              let context = CGContext(consumer: dataConsumer, mediaBox: &mediaBox, nil) else {
+            return Data()
+        }
+
+        var currentLocation = 0
+        let fullLength = attributedString.length
+
+        while currentLocation < fullLength {
+            context.beginPDFPage(nil)
+
+            let path = CGMutablePath()
+            path.addRect(drawingRect)
+
+            let frame = CTFramesetterCreateFrame(
+                framesetter,
+                CFRange(location: currentLocation, length: 0),
+                path,
+                nil
+            )
+            CTFrameDraw(frame, context)
+
+            let visibleRange = CTFrameGetVisibleStringRange(frame)
+            context.endPDFPage()
+
+            if visibleRange.length == 0 {
+                break
+            }
+
+            currentLocation += visibleRange.length
+        }
+
+        context.closePDF()
+        return mutableData as Data
+    }
+
+    private static func pdfText(from document: AnalyticsExportDocument) -> String {
+        var lines: [String] = []
+
+        lines.append("Analytics-Export")
+        lines.append("Format: PDF")
+        lines.append("Exportiert am: \(document.exportedAt.formatted(date: .abbreviated, time: .shortened))")
+        lines.append("Gesamtzeit: \(TimeFormatting.compactDuration(document.totalDuration))")
+        lines.append("Gesamtwert: \(formattedAmount(document.totalValue))")
+        lines.append("Diese Woche: \(TimeFormatting.compactDuration(document.weekDuration))")
+        lines.append("Heute: \(TimeFormatting.compactDuration(document.todayDuration))")
+        lines.append("Einträge: \(document.entryCount)")
+        lines.append("")
+        lines.append("TOP-PROJEKTE")
+
+        for row in document.projectRows {
+            lines.append(
+                "\(row.projectName) | \(row.clientName) | \(formattedHours(row.duration)) h | \(formattedPercentage(row.percentage))"
+            )
+        }
+
+        lines.append("")
+        lines.append("WOCHENSTUNDEN")
+
+        for row in document.weekRows {
+            lines.append(
+                "\(row.dayLabel) \(row.dateLabel) | \(formattedHours(row.totalMinutes * 60)) h | Heute: \(row.isToday ? "Ja" : "Nein")"
+            )
+        }
+
+        lines.append("")
+        lines.append("TAGESPROFIL")
+
+        for row in document.dayRows where row.totalMinutes > 0 {
+            lines.append(
+                "\(hourLabel(for: row.hour)) | \(formattedMinutes(row.totalMinutes)) min | \(formattedHours(row.totalMinutes * 60)) h"
+            )
+        }
+
+        return lines.joined(separator: "\n")
+    }
+
+    private static func hourLabel(for hour: Int) -> String {
+        "\(hour)–\(hour + 1)"
+    }
+
+    private static func formattedHours(_ duration: TimeInterval) -> String {
+        max(duration / 3600, 0).formatted(
+            .number
+                .locale(locale)
+                .precision(.fractionLength(2))
+        )
+    }
+
+    private static func formattedMinutes(_ minutes: Double) -> String {
+        max(minutes, 0).formatted(
+            .number
+                .locale(locale)
+                .precision(.fractionLength(0))
+        )
+    }
+
+    private static func formattedPercentage(_ percentage: Double) -> String {
+        percentage.formatted(
+            .percent
+                .locale(locale)
+                .precision(.fractionLength(0))
+        )
+    }
+
+    private static func formattedAmount(_ amount: Double) -> String {
+        amount.formatted(
+            .currency(code: "EUR")
+                .locale(locale)
+        )
+    }
+
+    private static func csvCell(_ value: String) -> String {
+        if value.contains("\"") || value.contains(";") || value.contains("\n") {
+            return "\"\(value.replacing("\"", with: "\"\""))\""
+        }
+        return value
+    }
 }
 
 enum ProjectExportService {

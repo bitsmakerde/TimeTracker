@@ -888,6 +888,72 @@ struct ModelAndFormattingTests {
         #expect(unbilledTotal.shareText(totalDuration: 0).localizedStandardContains("0"))
     }
 
+    @Test("Analytics top projects visualization switches between bars, pie, and empty states")
+    func analyticsTopProjectsVisualizationStates() {
+        let sampleItems = ["Website", "App"]
+
+        #expect(
+            AnalyticsTopProjectsDisplayMode.bar.presentation(for: sampleItems)
+                == .bars(sampleItems)
+        )
+        #expect(
+            AnalyticsTopProjectsDisplayMode.pie.presentation(for: sampleItems)
+                == .pie(sampleItems)
+        )
+        #expect(
+            AnalyticsTopProjectsDisplayMode.pie.presentation(for: [String]())
+                == .empty
+        )
+    }
+
+    @Test("Analytics export supports CSV and PDF output")
+    func analyticsExportSupportsCSVAndPDF() throws {
+        let referenceDate = try #require(
+            Calendar.current.date(from: DateComponents(year: 2026, month: 5, day: 15, hour: 12))
+        )
+        let project = ClientProject(
+            clientName: "Acme",
+            name: "Website",
+            hourlyRate: 100
+        )
+        project.sessions = [
+            WorkSession(
+                project: project,
+                startedAt: referenceDate.addingTimeInterval(-7_200),
+                endedAt: referenceDate.addingTimeInterval(-3_600)
+            ),
+        ]
+
+        let snapshot = AnalyticsAggregator.snapshot(
+            projects: [project],
+            referenceDate: referenceDate
+        )
+
+        #expect(AnalyticsExportService.supportedFormats == ProjectExportFormat.allCases)
+        #expect(
+            AnalyticsExportService.defaultFileName(
+                for: .csv,
+                exportedAt: referenceDate
+            ).hasSuffix(".csv")
+        )
+
+        let csvData = AnalyticsExportService.exportData(
+            snapshot: snapshot,
+            format: .csv,
+            exportedAt: referenceDate
+        )
+        let csvText = String(data: csvData, encoding: .utf8) ?? ""
+        #expect(csvText.localizedStandardContains("Top-Projekte"))
+        #expect(csvText.localizedStandardContains("CSV"))
+
+        let pdfData = AnalyticsExportService.exportData(
+            snapshot: snapshot,
+            format: .pdf,
+            exportedAt: referenceDate
+        )
+        #expect(pdfData.isEmpty == false)
+    }
+
     private func pdfContentStreamText(from pdfData: Data) -> String? {
         guard let provider = CGDataProvider(data: pdfData as CFData),
               let pdfDocument = CGPDFDocument(provider),

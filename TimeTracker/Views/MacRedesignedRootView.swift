@@ -1,5 +1,9 @@
 import SwiftData
 import SwiftUI
+import UniformTypeIdentifiers
+#if canImport(AppKit)
+import AppKit
+#endif
 
 // MARK: - Root
 
@@ -723,13 +727,8 @@ struct MacAufnehmenPane: View {
 struct MacAuswertungPane: View {
     let projects: [ClientProject]
 
-    @State private var topMode: TopMode = .bars
-
-    enum TopMode: String, CaseIterable, Identifiable {
-        case bars, pie
-        var id: String { rawValue }
-        var title: String { self == .bars ? "Balken" : "Kreis" }
-    }
+    @State private var topMode: AnalyticsTopProjectsDisplayMode = .bar
+    @State private var exportErrorMessage: String?
 
     private var snapshot: AnalyticsAggregator.Snapshot {
         AnalyticsAggregator.snapshot(projects: projects)
@@ -749,6 +748,13 @@ struct MacAuswertungPane: View {
                 }
             }
             .padding(16)
+        }
+        .alert("Export fehlgeschlagen", isPresented: exportAlertIsPresented) {
+            Button("OK", role: .cancel) {
+                exportErrorMessage = nil
+            }
+        } message: {
+            Text(exportErrorMessage ?? "")
         }
     }
 
@@ -772,24 +778,40 @@ struct MacAuswertungPane: View {
             .padding(.vertical, 6)
             .background(Capsule().fill(TTColors.fill3))
 
-            HStack(spacing: 6) {
-                Image(systemName: "arrow.down").font(.system(size: 11))
-                Text("Exportieren").font(.system(size: 12, weight: .medium))
+            Menu {
+                ForEach(AnalyticsExportService.supportedFormats) { format in
+                    Button {
+                        exportAnalytics(as: format)
+                    } label: {
+                        Label(format.title, systemImage: exportSystemImage(for: format))
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.down").font(.system(size: 11))
+                    Text("Exportieren").font(.system(size: 12, weight: .medium))
+                }
+                .foregroundStyle(TTColors.text)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Capsule().fill(TTColors.fill3))
             }
-            .foregroundStyle(TTColors.text)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Capsule().fill(TTColors.fill3))
+#if os(macOS)
+            .menuStyle(.borderlessButton)
+#endif
         }
         .padding(20)
         .ttSurface(cornerRadius: 18)
     }
 
     private var monthLabel: String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "de_DE")
-        f.dateFormat = "LLLL yyyy"
-        return f.string(from: .now).capitalized
+        Date.now.formatted(
+            .dateTime
+                .month(.wide)
+                .year()
+                .locale(Locale(identifier: "de_DE"))
+        )
+        .capitalized
     }
 
     private func kpiGrid(_ s: AnalyticsAggregator.Snapshot) -> some View {
@@ -808,20 +830,25 @@ struct MacAuswertungPane: View {
                     .font(.system(size: 11))
                     .foregroundStyle(TTColors.text3)
                 Picker("", selection: $topMode) {
-                    ForEach(TopMode.allCases) { Text($0.title).tag($0) }
+                    ForEach(AnalyticsTopProjectsDisplayMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
                 }
                 .pickerStyle(.segmented)
                 .frame(width: 140)
             }
         } content: {
-            VStack(spacing: 12) {
-                if s.projectBars.isEmpty {
+            switch topMode.presentation(for: s.projectBars) {
+            case .empty:
+                VStack(spacing: 12) {
                     Text("Noch keine Daten")
                         .font(.system(size: 13))
                         .foregroundStyle(TTColors.text2)
                         .padding(.vertical, 8)
-                } else {
-                    ForEach(s.projectBars, id: \.projectId) { agg in
+                }
+            case .bars(let projectBars):
+                VStack(spacing: 12) {
+                    ForEach(projectBars, id: \.projectId) { agg in
                         ProjectBar(
                             projectColor: agg.color,
                             projectName: agg.projectName,
@@ -831,7 +858,71 @@ struct MacAuswertungPane: View {
                         )
                     }
                 }
+            case .pie(let projectBars):
+                MacAnalyticsTopProjectsPieChart(projects: projectBars)
             }
+        }
+    }
+
+    private var exportAlertIsPresented: Binding<Bool> {
+        Binding(
+            get: { exportErrorMessage != nil },
+            set: { isPresented in
+                if isPresented == false {
+                    exportErrorMessage = nil
+                }
+            }
+        )
+    }
+
+    private func exportSystemImage(for format: ProjectExportFormat) -> String {
+        switch format {
+        case .csv:
+            return "tablecells"
+        case .pdf:
+            return "doc.richtext"
+        }
+    }
+
+    private func exportAnalytics(as format: ProjectExportFormat) {
+        let exportData = AnalyticsExportService.exportData(
+            snapshot: snapshot,
+            format: format,
+            exportedAt: .now
+        )
+
+        guard exportData.isEmpty == false else {
+            exportErrorMessage = "Der Export konnte nicht erstellt werden."
+            return
+        }
+
+        let panel = NSSavePanel()
+        panel.canCreateDirectories = true
+        panel.isExtensionHidden = false
+        panel.allowedContentTypes = [utType(for: format)]
+        panel.nameFieldStringValue = AnalyticsExportService.defaultFileName(
+            for: format,
+            exportedAt: .now
+        )
+
+        guard panel.runModal() == .OK,
+              let destinationURL = panel.url else {
+            return
+        }
+
+        do {
+            try exportData.write(to: destinationURL, options: .atomic)
+        } catch {
+            exportErrorMessage = "Die Exportdatei konnte nicht gespeichert werden."
+        }
+    }
+
+    private func utType(for format: ProjectExportFormat) -> UTType {
+        switch format {
+        case .csv:
+            return .commaSeparatedText
+        case .pdf:
+            return .pdf
         }
     }
 
@@ -845,6 +936,69 @@ struct MacAuswertungPane: View {
         SectionCard("Tagesprofil 0–24 Uhr") {
             DayProfile(buckets: s.day)
         }
+    }
+}
+
+private struct MacAnalyticsTopProjectsPieChart: View {
+    let projects: [AnalyticsAggregator.ProjectAggregate]
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 20) {
+            ZStack {
+                ForEach(Array(pieSlices.enumerated()), id: \.offset) { _, slice in
+                    Circle()
+                        .trim(from: slice.start, to: slice.end)
+                        .stroke(slice.color, lineWidth: 24)
+                        .rotationEffect(.degrees(-90))
+                }
+            }
+            .frame(width: 170, height: 170)
+
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(projects.prefix(6), id: \.projectId) { project in
+                    HStack(spacing: 10) {
+                        Circle()
+                            .fill(project.color)
+                            .frame(width: 10, height: 10)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(project.projectName)
+                                .font(.headline)
+                                .lineLimit(1)
+
+                            Text(project.clientName)
+                                .font(.caption)
+                                .foregroundStyle(TTColors.text3)
+                                .lineLimit(1)
+                        }
+
+                        Spacer(minLength: 8)
+
+                        Text(project.percentage, format: .percent.precision(.fractionLength(0)))
+                            .font(.ttMono)
+                            .font(.system(size: 12))
+                            .foregroundStyle(TTColors.text2)
+                    }
+                }
+            }
+        }
+    }
+
+    private var pieSlices: [PieSlice] {
+        var start: CGFloat = 0
+
+        return projects.map { project in
+            let end = start + CGFloat(project.percentage)
+            let slice = PieSlice(start: start, end: end, color: project.color)
+            start = end
+            return slice
+        }
+    }
+
+    private struct PieSlice {
+        let start: CGFloat
+        let end: CGFloat
+        let color: Color
     }
 }
 

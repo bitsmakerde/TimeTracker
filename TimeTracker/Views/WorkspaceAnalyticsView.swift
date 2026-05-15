@@ -6,6 +6,52 @@ import AppKit
 import UIKit
 #endif
 
+enum AnalyticsTopProjectsDisplayMode: String, CaseIterable, Identifiable {
+    case bar
+    case pie
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .bar:
+            return "Balken"
+        case .pie:
+            return "Kreis"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .bar:
+            return "chart.bar.fill"
+        case .pie:
+            return "chart.pie.fill"
+        }
+    }
+
+    func presentation<Item>(for items: [Item]) -> AnalyticsTopProjectsPresentation<Item> {
+        guard items.isEmpty == false else {
+            return .empty
+        }
+
+        switch self {
+        case .bar:
+            return .bars(items)
+        case .pie:
+            return .pie(items)
+        }
+    }
+}
+
+enum AnalyticsTopProjectsPresentation<Item> {
+    case empty
+    case bars([Item])
+    case pie([Item])
+}
+
+extension AnalyticsTopProjectsPresentation: Equatable where Item: Equatable {}
+
 struct AnalyticsOverviewView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -194,7 +240,7 @@ private struct AnalyticsMetricCard: View {
 private struct AnalyticsTopProjectsCard: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
-    @State private var visualization: AnalyticsTopProjectsVisualization = .bar
+    @State private var visualization: AnalyticsTopProjectsDisplayMode = .bar
 
     let snapshot: AnalyticsSnapshot
 
@@ -234,20 +280,21 @@ private struct AnalyticsTopProjectsCard: View {
                     }
                 }
 
-                if topProjects.isEmpty {
+                switch visualization.presentation(for: topProjects) {
+                case .empty:
                     Text("Noch keine erfassten Zeiten. Starte einen Timer oder trage einen Eintrag nach, damit hier die Verteilung erscheint.")
                         .foregroundStyle(.secondary)
                         .padding(.vertical, 12)
-                } else if visualization == .bar {
-                    ForEach(topProjects) { project in
+                case .bars(let projects):
+                    ForEach(projects) { project in
                         AnalyticsProjectShareRow(
                             project: project,
                             totalDuration: snapshot.totalDuration
                         )
                     }
-                } else {
+                case .pie(let projects):
                     AnalyticsTopProjectsPieChart(
-                        projects: topProjects,
+                        projects: projects,
                         totalDuration: snapshot.totalDuration,
                         pieLegendMinimum: pieLegendMinimum
                     )
@@ -258,37 +305,12 @@ private struct AnalyticsTopProjectsCard: View {
 
     private var visualizationPicker: some View {
         Picker("Darstellung", selection: $visualization) {
-            ForEach(AnalyticsTopProjectsVisualization.allCases) { mode in
+            ForEach(AnalyticsTopProjectsDisplayMode.allCases) { mode in
                 Label(mode.title, systemImage: mode.systemImage)
                     .tag(mode)
             }
         }
         .pickerStyle(.segmented)
-    }
-}
-
-private enum AnalyticsTopProjectsVisualization: String, CaseIterable, Identifiable {
-    case bar
-    case pie
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .bar:
-            return "Balken"
-        case .pie:
-            return "Kreis"
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .bar:
-            return "chart.bar.fill"
-        case .pie:
-            return "chart.pie.fill"
-        }
     }
 }
 
