@@ -735,7 +735,6 @@ struct SessionDurationText: View {
 
 #Preview("Project detail components") {
     ProjectDetailComponentsPreviewHost()
-        .frame(width: 760, height: 760)
 }
 
 #Preview("New task assignment sheet") {
@@ -748,7 +747,6 @@ struct SessionDurationText: View {
             session: session
         ) { _ in true }
     }
-    .frame(width: 520, height: 320)
 }
 
 private struct ProjectDetailComponentsPreviewHost: View {
