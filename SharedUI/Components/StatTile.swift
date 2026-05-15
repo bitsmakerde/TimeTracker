@@ -52,7 +52,7 @@ struct StatTile: View {
         .overlay(alignment: .topTrailing) {
             if action != nil {
                 Image(systemName: "pencil")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.title3)
                     .foregroundStyle(TTColors.text3)
                     .padding(8)
             }
@@ -68,7 +68,6 @@ struct StatTile: View {
 
 #Preview {
     HStack(spacing: 12) {
-        StatTile("Heute", value: "3h 45m", sub: "Letzte Woche: 12h 30m")
         StatTile("Stundensatz", value: "85 €", sub: "Pro Stunde", action: {})
         StatTile("Budget", value: "20h", sub: "Std.-Budget", action: {})
     }
