@@ -103,12 +103,45 @@ struct MacRedesignedRootView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .principal) {
-            Picker("", selection: $macMode) {
-                Label("Aufnehmen", systemImage: "clock").tag("rec")
-                Label("Auswertung", systemImage: "chart.bar.xaxis").tag("rep")
+            HStack(spacing: 4) {
+                if macMode == "rec" {
+                    Button(action: { macMode = "rec" }) {
+                        HStack {
+                            Image(systemName: "chart.bar.xaxis")
+                            Text("Erfassen")
+                        }
+                    }
+                    .buttonStyle(.glass)
+                } else {
+                    Button(action: { macMode = "rec" }) {
+                        HStack {
+                            Image(systemName: "chart.bar.xaxis")
+                            Text("Erfassen")
+                        }
+                        .padding(.horizontal,8)
+                    }
+                    .buttonStyle(.bordered)
+                }
+
+                if macMode == "rep" {
+                    Button(action: { macMode = "rep" }) {
+                        HStack {
+                            Image(systemName: "chart.bar.xaxis")
+                            Text("Auswertung")
+                        }
+                    }
+                    .buttonStyle(.glass)
+                } else {
+                    Button(action: { macMode = "rep" }) {
+                        HStack {
+                            Image(systemName: "chart.bar.xaxis")
+                            Text("Auswertung")
+                        }
+                        .padding(.horizontal,8)
+                    }
+                    .buttonStyle(.bordered)
+                }
             }
-            .pickerStyle(.segmented)
-            .frame(width: 240)
         }
         ToolbarItem(placement: .primaryAction) {
             Menu {
