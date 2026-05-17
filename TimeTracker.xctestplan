@@ -1,0 +1,29 @@
+{
+  "configurations" : [
+    {
+      "id" : "F5E1A4C5-923B-4DF0-BD4F-3FDD8CFEA7EE",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:TimeTracker.xcodeproj",
+      "identifier" : "E00000000000000000000001",
+      "name" : "TimeTracker"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:TimeTracker.xcodeproj",
+        "identifier" : "E00000000000000000000004",
+        "name" : "TimeTrackerTests"
+      }
+    }
+  ],
+  "version" : 1
+}

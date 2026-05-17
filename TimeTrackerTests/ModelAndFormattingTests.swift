@@ -501,55 +501,6 @@ struct ModelAndFormattingTests {
         )
     }
 
-    @Test("Workspace layout rules use native tabs only for compact root navigation")
-    func workspaceLayoutRules() {
-        #expect(
-            WorkspaceRootLayoutRules.usesTabRoot(
-                horizontalSizeClass: .compact,
-                forcedWorkspaceSection: nil,
-                prefersNativeTabBar: true
-            )
-        )
-        #expect(
-            WorkspaceRootLayoutRules.usesTabRoot(
-                horizontalSizeClass: .regular,
-                forcedWorkspaceSection: nil,
-                prefersNativeTabBar: true
-            ) == false
-        )
-        #expect(
-            WorkspaceRootLayoutRules.usesTabRoot(
-                horizontalSizeClass: .compact,
-                forcedWorkspaceSection: .analytics,
-                prefersNativeTabBar: true
-            ) == false
-        )
-        #expect(
-            WorkspaceRootLayoutRules.usesTabRoot(
-                horizontalSizeClass: .compact,
-                forcedWorkspaceSection: nil,
-                prefersNativeTabBar: false
-            ) == false
-        )
-    }
-
-    @MainActor
-    @Test("Workspace root view model groups active projects and sorts archived projects")
-    func workspaceRootViewModelProjectCollections() {
-        let betaProject = ClientProject(clientName: "Beta", name: "Zeiterfassung")
-        let alphaProject = ClientProject(clientName: "Alpha", name: "Abrechnung")
-        let archivedNewest = ClientProject(clientName: "Archiv", name: "Neu", archivedAt: Date(timeIntervalSince1970: 200))
-        let archivedOldest = ClientProject(clientName: "Archiv", name: "Alt", archivedAt: Date(timeIntervalSince1970: 100))
-        let viewModel = WorkspaceRootViewModel()
-
-        let groups = viewModel.groupedProjects(from: [betaProject, archivedNewest, alphaProject, archivedOldest])
-        #expect(groups.map(\.displayName) == ["Alpha", "Beta"])
-        #expect(groups.first?.projects.map(\.displayName) == ["Abrechnung"])
-
-        let archived = viewModel.archivedProjects(from: [archivedOldest, betaProject, archivedNewest])
-        #expect(archived.map(\.displayName) == ["Neu", "Alt"])
-    }
-
     @MainActor
     @Test("Mac root view model chooses explicit, active, then first active project")
     func macRootViewModelSelectionPriority() {
@@ -580,27 +531,6 @@ struct ModelAndFormattingTests {
 
         #expect(viewModel.errorMessage == nil)
         #expect(viewModel.errorIsPresented == false)
-    }
-
-    @MainActor
-    @Test("Workspace root view model keeps project selection in sync")
-    func workspaceRootViewModelSelectionSync() {
-        let firstProject = ClientProject(clientName: "Alpha", name: "Erstes Projekt")
-        let secondProject = ClientProject(clientName: "Beta", name: "Zweites Projekt")
-        let viewModel = WorkspaceRootViewModel()
-
-        viewModel.ensureInitialSelection(projects: [firstProject, secondProject])
-        #expect(viewModel.selectedProjectID == firstProject.id)
-
-        viewModel.selectedProjectID = secondProject.id
-        viewModel.synchronizeSelection(with: [firstProject.id])
-        #expect(viewModel.selectedProjectID == firstProject.id)
-
-        viewModel.synchronizeSelection(with: [])
-        #expect(viewModel.selectedProjectID == nil)
-
-        viewModel.synchronizeSelection(with: [secondProject.id])
-        #expect(viewModel.selectedProjectID == secondProject.id)
     }
 
     @Test("Project export selection normalizes mode without hourly rate")
@@ -678,18 +608,12 @@ struct ModelAndFormattingTests {
     func sharedMetadataLabelsAndIdentifiers() {
         #expect(ProjectBudgetUnit.allCases.map(\.id) == ["hours", "amount"])
         #expect(ProjectColorVariant.allCases.map(\.label) == ["Wash", "Bar"])
-        #expect(WorkspaceSection.allCases.map(\.title) == ["Aufnehmen", "Auswertung"])
-        #expect(WorkspaceSection.allCases.map(\.systemImage) == ["record.circle", "chart.bar.xaxis"])
 
         let project = ClientProject(clientName: "  acme  ", name: "Website")
         let fallbackProject = ClientProject(clientName: "   ", name: "Fallback")
-        let session = WorkSession(project: project)
-        let group = ClientGroup(displayName: "Acme", rawClientName: "  acme  ", projects: [project])
 
         #expect(project.clientInitial == "A")
         #expect(fallbackProject.clientInitial == "O")
-        #expect(SessionEditor(project: project, session: session).id == session.id)
-        #expect(group.client == "Acme")
     }
 
     @Test("Target configurations expose expected feature flags")
@@ -804,120 +728,6 @@ struct ModelAndFormattingTests {
         #expect(snapshot.projectBars.isEmpty)
         #expect(snapshot.weekBars.count == 7)
         #expect(snapshot.day.count == 24)
-    }
-
-    @Test("Workspace analytics calculator splits overnight sessions")
-    func workspaceAnalyticsCalculatorSplitsOvernightSessions() throws {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
-
-        func date(
-            year: Int,
-            month: Int,
-            day: Int,
-            hour: Int
-        ) throws -> Date {
-            try #require(
-                calendar.date(
-                    from: DateComponents(
-                        timeZone: calendar.timeZone,
-                        year: year,
-                        month: month,
-                        day: day,
-                        hour: hour
-                    )
-                )
-            )
-        }
-
-        let project = ClientProject(
-            clientName: "Acme",
-            name: "Overnight",
-            hourlyRate: 100
-        )
-        project.sessions = [
-            WorkSession(
-                project: project,
-                startedAt: try date(year: 2026, month: 5, day: 13, hour: 23),
-                endedAt: try date(year: 2026, month: 5, day: 14, hour: 1)
-            ),
-        ]
-
-        let snapshot = AnalyticsCalculator.makeSnapshot(
-            projects: [project],
-            referenceDate: try date(year: 2026, month: 5, day: 14, hour: 12),
-            calendar: calendar
-        )
-
-        let hourZero = try #require(
-            snapshot.hourlyPoints.first { point in
-                point.hour == 0 && point.projectID == project.id
-            }
-        )
-        let hourTwentyThree = try #require(
-            snapshot.hourlyPoints.first { point in
-                point.hour == 23 && point.projectID == project.id
-            }
-        )
-
-        #expect(snapshot.hasData)
-        #expect(snapshot.hasHourlyData)
-        #expect(snapshot.subtitle == "1 Projekte mit Zeiten aus 1 Eintraegen.")
-        #expect(snapshot.totalDuration == 7_200)
-        #expect(snapshot.todayDuration == 3_600)
-        #expect(snapshot.currentWeekDuration == 7_200)
-        #expect(snapshot.totalBilledAmount == 200)
-        #expect(snapshot.totalValueText == TimeFormatting.euroAmount(200))
-        #expect(snapshot.projectTotals.first?.duration == 7_200)
-        #expect(abs(hourZero.averageDuration - (3_600.0 / 14.0)) < 0.0001)
-        #expect(abs(hourTwentyThree.averageDuration - (3_600.0 / 14.0)) < 0.0001)
-    }
-
-    @Test("Workspace analytics exposes empty fallbacks and unbilled project labels")
-    func workspaceAnalyticsEmptyFallbacksAndUnbilledLabels() throws {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
-        let referenceDate = try #require(
-            calendar.date(
-                from: DateComponents(
-                    timeZone: calendar.timeZone,
-                    year: 2026,
-                    month: 5,
-                    day: 14,
-                    hour: 12
-                )
-            )
-        )
-
-        let emptySnapshot = AnalyticsCalculator.makeSnapshot(
-            projects: [],
-            referenceDate: referenceDate,
-            calendar: calendar
-        )
-        let unbilledTotal = AnalyticsProjectTotal(
-            id: UUID(),
-            projectName: "Ohne Satz",
-            clientName: "Acme",
-            legendLabel: "Ohne Satz (Acme)",
-            color: .orange,
-            duration: 0,
-            billedAmount: 0,
-            hasHourlyRate: false
-        )
-
-        #expect(emptySnapshot.hasData == false)
-        #expect(emptySnapshot.hasHourlyData == false)
-        #expect(emptySnapshot.subtitle == "Noch keine erfassten Zeiten vorhanden.")
-        #expect(emptySnapshot.totalValueText == "Offen")
-        #expect(emptySnapshot.totalValueSubtitle == "Keine Stundensaetze hinterlegt")
-        #expect(emptySnapshot.legendLabels.isEmpty)
-        #expect(emptySnapshot.legendColors.isEmpty)
-        #expect(emptySnapshot.weeklyPoints.isEmpty)
-        #expect(emptySnapshot.dailyPoints.isEmpty)
-        #expect(emptySnapshot.hourlyPoints.isEmpty)
-        #expect(emptySnapshot.peakHourSummary == "Noch keine Aktivitaet im betrachteten Zeitraum.")
-        #expect(unbilledTotal.valueText == "Kein Stundensatz")
-        #expect(unbilledTotal.shareText(totalDuration: 0).localizedStandardContains("0"))
     }
 
     @Test("Analytics top projects visualization switches between bars, pie, and empty states")

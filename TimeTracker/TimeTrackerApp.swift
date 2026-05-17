@@ -10,20 +10,15 @@ struct TimeTrackerApp: App {
 
     init() {
         do {
-            let syncMode: TimeTrackerSyncMode = if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
-                .cloudKitPrivate(containerIdentifier: TimeTrackerSchema.defaultCloudKitContainerIdentifier)
-            } else {
-                .localOnly
-            }
-            let container = try TimeTrackerSchema.makeModelContainer(syncMode: syncMode)
-            self.sharedModelContainer = container
+            let launch = try TimeTrackerSchema.makeAppLaunchContainer()
+            self.sharedModelContainer = launch.container
             self.dependencies = AppDependencies.live(
                 configuration: TimeTrackerTargetConfiguration.macOS
             )
             _trackingStatus = State(
                 wrappedValue: TrackingStatusStore(
-                    modelContainer: container,
-                    syncMode: syncMode
+                    modelContainer: launch.container,
+                    syncMode: launch.decision.syncMode
                 )
             )
         } catch {

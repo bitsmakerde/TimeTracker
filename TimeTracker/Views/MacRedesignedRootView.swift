@@ -104,43 +104,18 @@ struct MacRedesignedRootView: View {
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .principal) {
             HStack(spacing: 4) {
-                if macMode == "rec" {
-                    Button(action: { macMode = "rec" }) {
-                        HStack {
-                            Image(systemName: "chart.bar.xaxis")
-                            Text("Erfassen")
-                        }
-                    }
-                    .buttonStyle(.glass)
-                } else {
-                    Button(action: { macMode = "rec" }) {
-                        HStack {
-                            Image(systemName: "chart.bar.xaxis")
-                            Text("Erfassen")
-                        }
-                        .padding(.horizontal,8)
-                    }
-                    .buttonStyle(.bordered)
-                }
-
-                if macMode == "rep" {
-                    Button(action: { macMode = "rep" }) {
-                        HStack {
-                            Image(systemName: "chart.bar.xaxis")
-                            Text("Auswertung")
-                        }
-                    }
-                    .buttonStyle(.glass)
-                } else {
-                    Button(action: { macMode = "rep" }) {
-                        HStack {
-                            Image(systemName: "chart.bar.xaxis")
-                            Text("Auswertung")
-                        }
-                        .padding(.horizontal,8)
-                    }
-                    .buttonStyle(.bordered)
-                }
+                MacModeToolbarButton(
+                    title: "Erfassen",
+                    systemImage: "chart.bar.xaxis",
+                    isSelected: macMode == "rec",
+                    action: { macMode = "rec" }
+                )
+                MacModeToolbarButton(
+                    title: "Auswertung",
+                    systemImage: "chart.bar.xaxis",
+                    isSelected: macMode == "rep",
+                    action: { macMode = "rep" }
+                )
             }
         }
         ToolbarItem(placement: .primaryAction) {
@@ -323,6 +298,33 @@ struct MacRedesignedRootView: View {
             viewModel.errorMessage = "Die Aufgabe konnte nicht gespeichert werden."
             return false
         }
+    }
+}
+
+private struct MacModeToolbarButton: View {
+    let title: LocalizedStringKey
+    let systemImage: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(title, systemImage: systemImage, action: action)
+            .buttonStyle(.plain)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .foregroundStyle(isSelected ? .white : .primary)
+            .background {
+                if isSelected {
+                    Capsule().fill(.tint)
+                } else {
+                    Capsule().fill(.quaternary)
+                }
+            }
+            .overlay {
+                Capsule().stroke(isSelected ? .clear : .secondary.opacity(0.25))
+            }
+            .contentShape(.capsule)
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

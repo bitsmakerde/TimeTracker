@@ -40,35 +40,45 @@ struct ViewPreviewCoverageTests {
         #expect(missingPreviewFiles.isEmpty)
     }
 
-    @Test("Workspace sidebar views stay macOS-only and shared views stay shared")
-    func workspaceSidebarViewsUseExpectedTargets() throws {
+    @Test("Legacy workspace files and duplicate model copies were removed")
+    func legacyWorkspaceFilesWereRemoved() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
 
-        let macOnlySharedPaths = [
-            "SharedUI/Views/Workspace/WorkspaceSidebarView.swift",
-            "SharedUI/Views/ActiveSidebarCard.swift",
-            "SharedUI/Views/ClientSectionHeader.swift",
-            "SharedUI/Views/ProjectSidebarRow.swift",
-        ]
-        let macOnlyTargetPaths = [
-            "TimeTracker/Views/Workspace/Sidebar/WorkspaceSidebarView.swift",
+        let removedPaths = [
+            "SharedUI/Views/ClientGroup.swift",
+            "SharedUI/Views/EmptyStateView.swift",
+            "SharedUI/Views/PlatformSummaryCard.swift",
+            "SharedUI/Views/SessionEditor.swift",
+            "SharedUI/Views/Workspace/TabBar/WorkspaceTabBarView.swift",
+            "SharedUI/Views/Workspace/TabBar/WorkspaceTabButton.swift",
+            "SharedUI/Views/Workspace/ViewModels/WorkspaceRootViewModel.swift",
+            "SharedUI/Views/Workspace/WorkspaceDetailAreaView.swift",
+            "SharedUI/Views/Workspace/WorkspaceRootLayoutRules.swift",
+            "SharedUI/Views/Workspace/WorkspaceSection.swift",
+            "SharedUI/Views/Workspace/WorkspaceTrackingDetailView.swift",
+            "TimeTracker/Models/ClientProject.swift",
+            "TimeTracker/Models/ProjectTask.swift",
+            "TimeTracker/Models/WorkSession.swift",
+            "TimeTracker/Services/TrackingManager.swift",
+            "TimeTracker/Services/TrackingStatusStore.swift",
+            "TimeTracker/Support/TimeFormatting.swift",
+            "TimeTracker/Views/ContentView.swift",
             "TimeTracker/Views/Workspace/Sidebar/ActiveSidebarCard.swift",
             "TimeTracker/Views/Workspace/Sidebar/ClientSectionHeader.swift",
             "TimeTracker/Views/Workspace/Sidebar/ProjectSidebarRow.swift",
+            "TimeTracker/Views/Workspace/Sidebar/WorkspaceSidebarView.swift",
+            "TimeTracker/Views/WorkspaceAnalyticsView.swift",
+            "TimeTrackerTests/ProjectDetailViewPreviewTests.swift",
+            "TimeTrackeriOS/WorkspaceCompactTabRootView.swift",
+            "TimeTrackeriOS/WorkspaceCompactTrackingToolbar.swift",
         ]
-        let macOnlySourceMembershipPaths = [
-            "TimeTracker/Views/ContentView.swift",
-        ]
-        let stillSharedPaths = [
-            "SharedUI/Views/Workspace/WorkspaceDetailAreaView.swift",
-            "SharedUI/Views/Workspace/WorkspaceTrackingDetailView.swift",
-            "SharedUI/Views/Workspace/WorkspaceSection.swift",
-            "SharedUI/Views/Workspace/WorkspaceRootLayoutRules.swift",
-            "SharedUI/Views/Workspace/TabBar/WorkspaceTabBarView.swift",
-            "SharedUI/Views/Workspace/TabBar/WorkspaceTabButton.swift",
-        ]
+
+        for path in removedPaths {
+            #expect(fileExists(path, relativeTo: repositoryRoot) == false)
+        }
+
         let projectSource = try String(
             contentsOf: repositoryRoot.appending(path: "TimeTracker.xcodeproj/project.pbxproj"),
             encoding: .utf8
@@ -77,37 +87,45 @@ struct ViewPreviewCoverageTests {
             inTargetNamed: "TimeTracker",
             projectSource: projectSource
         )
-        let iOSTargetSources = try sourceFileNames(
-            inTargetNamed: "TimeTrackeriOS",
-            projectSource: projectSource
+        let removedMacSourceNames: Set<String> = [
+            "ActiveSidebarCard.swift",
+            "ClientGroup.swift",
+            "ClientSectionHeader.swift",
+            "ContentView.swift",
+            "EmptyStateView.swift",
+            "PlatformSummaryCard.swift",
+            "ProjectSidebarRow.swift",
+            "SessionEditor.swift",
+            "WorkspaceAnalyticsView.swift",
+            "WorkspaceDetailAreaView.swift",
+            "WorkspaceRootLayoutRules.swift",
+            "WorkspaceRootViewModel.swift",
+            "WorkspaceSection.swift",
+            "WorkspaceSidebarView.swift",
+            "WorkspaceTabBarView.swift",
+            "WorkspaceTabButton.swift",
+            "WorkspaceTrackingDetailView.swift",
+        ]
+
+        for fileName in removedMacSourceNames {
+            #expect(macTargetSources.contains(fileName) == false)
+        }
+    }
+
+    @Test("Mac toolbar mode buttons expose selected state")
+    func macToolbarModeButtonsExposeSelectedState() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: repositoryRoot.appending(path: "TimeTracker/Views/MacRedesignedRootView.swift"),
+            encoding: .utf8
         )
 
-        for path in macOnlySharedPaths {
-            #expect(fileExists(path, relativeTo: repositoryRoot) == false)
-        }
-
-        for path in macOnlyTargetPaths {
-            #expect(fileExists(path, relativeTo: repositoryRoot))
-        }
-
-        for path in stillSharedPaths {
-            #expect(fileExists(path, relativeTo: repositoryRoot))
-        }
-
-        for fileName in macOnlyTargetPaths.map(lastPathComponent(of:)) {
-            #expect(macTargetSources.contains(fileName))
-            #expect(iOSTargetSources.contains(fileName) == false)
-        }
-
-        for fileName in macOnlySourceMembershipPaths.map(lastPathComponent(of:)) {
-            #expect(macTargetSources.contains(fileName))
-            #expect(iOSTargetSources.contains(fileName) == false)
-        }
-
-        for fileName in stillSharedPaths.map(lastPathComponent(of:)) {
-            #expect(macTargetSources.contains(fileName))
-            #expect(iOSTargetSources.contains(fileName))
-        }
+        #expect(source.contains("MacModeToolbarButton"))
+        #expect(source.contains("isSelected: macMode == \"rec\""))
+        #expect(source.contains("isSelected: macMode == \"rep\""))
+        #expect(source.contains("accessibilityAddTraits(isSelected ? .isSelected : [])"))
     }
 
     private func swiftFiles(in directory: URL) -> [URL] {
@@ -149,10 +167,6 @@ struct ViewPreviewCoverageTests {
 
     private func fileExists(_ relativePath: String, relativeTo root: URL) -> Bool {
         FileManager.default.fileExists(atPath: root.appending(path: relativePath).path)
-    }
-
-    private func lastPathComponent(of relativePath: String) -> String {
-        URL(filePath: relativePath).lastPathComponent
     }
 
     private func sourceFileNames(
@@ -215,29 +229,12 @@ struct ViewPreviewCoverageTests {
 @Suite("View Rendering")
 @MainActor
 struct ViewRenderingTests {
-    @Test("Shared workspace views render with preview data")
-    func sharedWorkspaceViewsRender() throws {
+    @Test("Current macOS and shared views render with preview data")
+    func currentMacAndSharedViewsRender() throws {
         let preview = PreviewWorkspaceSnapshot()
         let dependencies = AppDependencies.live(configuration: TimeTrackerTargetConfiguration.macOS)
         let activeSession = try #require(preview.activeSessions.first)
         let activeProject = try #require(activeSession.project)
-        let viewModel = WorkspaceRootViewModel()
-        viewModel.ensureInitialSelection(projects: preview.projects)
-
-        ViewRenderTestSupport.assertRenders(
-            EmptyStateView(onAddProject: { }),
-            width: 540,
-            height: 420
-        )
-        ViewRenderTestSupport.assertRenders(
-            PlatformSummaryCard(
-                title: "macOS",
-                subtitle: "Letzte Woche: 8h 15m",
-                systemImage: "desktopcomputer"
-            ),
-            width: 340,
-            height: 120
-        )
         ViewRenderTestSupport.assertRenders(
             SyncBanner(lastSyncedAt: Date(timeIntervalSince1970: 1_779_000_000)),
             width: 620,
@@ -294,119 +291,6 @@ struct ViewRenderingTests {
             height: 260
         )
         ViewRenderTestSupport.assertRenders(
-            WorkspaceTabButton(
-                title: WorkspaceSection.tracking.title,
-                systemImage: WorkspaceSection.tracking.systemImage,
-                isSelected: true,
-                action: { }
-            ),
-            width: 260,
-            height: 64
-        )
-        ViewRenderTestSupport.assertRenders(
-            WorkspaceTabBarView(selectedSection: .analytics) { _ in },
-            width: 640,
-            height: 120
-        )
-        ViewRenderTestSupport.assertRenders(
-            ClientSectionHeader(title: activeProject.displayClientName, onAddProject: { }),
-            width: 320,
-            height: 48
-        )
-        ViewRenderTestSupport.assertRenders(
-            ProjectSidebarRow(
-                project: activeProject,
-                isActive: true,
-                isArchived: false
-            ),
-            width: 320,
-            height: 60
-        )
-        ViewRenderTestSupport.assertRenders(
-            ActiveSidebarCard(
-                project: activeProject,
-                session: activeSession,
-                task: activeSession.task,
-                onStop: { }
-            ),
-            width: 320,
-            height: 280
-        )
-        ViewRenderTestSupport.assertRenders(
-            WorkspaceSidebarView(
-                viewModel: viewModel,
-                projects: preview.projects,
-                activeSessions: preview.activeSessions,
-                dependencies: dependencies,
-                modelContext: preview.modelContainer.mainContext,
-                trackingStatus: preview.trackingStatus
-            )
-            .modelContainer(preview.modelContainer),
-            width: 380,
-            height: 720
-        )
-        ViewRenderTestSupport.assertRenders(
-            WorkspaceDetailAreaView(
-                viewModel: viewModel,
-                section: .tracking,
-                showsWorkspaceTabBar: true,
-                projects: preview.projects,
-                activeSessions: preview.activeSessions,
-                dependencies: dependencies,
-                modelContext: preview.modelContainer.mainContext,
-                trackingStatus: preview.trackingStatus
-            )
-            .modelContainer(preview.modelContainer),
-            width: 1100,
-            height: 900
-        )
-        ViewRenderTestSupport.assertRenders(
-            WorkspaceDetailAreaView(
-                viewModel: viewModel,
-                section: .analytics,
-                showsWorkspaceTabBar: true,
-                projects: preview.projects,
-                activeSessions: preview.activeSessions,
-                dependencies: dependencies,
-                modelContext: preview.modelContainer.mainContext,
-                trackingStatus: preview.trackingStatus
-            )
-            .modelContainer(preview.modelContainer),
-            width: 1100,
-            height: 1100
-        )
-        ViewRenderTestSupport.assertRenders(
-            WorkspaceTrackingDetailView(
-                viewModel: viewModel,
-                projects: preview.projects,
-                activeSessions: preview.activeSessions,
-                dependencies: dependencies,
-                modelContext: preview.modelContainer.mainContext,
-                trackingStatus: preview.trackingStatus
-            )
-            .modelContainer(preview.modelContainer),
-            width: 1100,
-            height: 900
-        )
-        ViewRenderTestSupport.assertRenders(
-            WorkspaceTrackingDetailView(
-                viewModel: WorkspaceRootViewModel(),
-                projects: [],
-                activeSessions: [],
-                dependencies: dependencies,
-                modelContext: preview.modelContainer.mainContext,
-                trackingStatus: preview.trackingStatus
-            )
-            .modelContainer(preview.modelContainer),
-            width: 900,
-            height: 480
-        )
-        ViewRenderTestSupport.assertRenders(
-            AnalyticsOverviewView(projects: preview.projects),
-            width: 1200,
-            height: 1200
-        )
-        ViewRenderTestSupport.assertRenders(
             MacAufnehmenPane(
                 project: activeProject,
                 activeSession: activeSession,
@@ -423,13 +307,21 @@ struct ViewRenderingTests {
             height: 900
         )
         ViewRenderTestSupport.assertRenders(
-            WorkspaceRootView(
+            MacAuswertungPane(
+                projects: preview.projects,
+                syncStatus: preview.trackingStatus.syncStatus
+            ),
+            width: 1200,
+            height: 900
+        )
+        ViewRenderTestSupport.assertRenders(
+            MacRedesignedRootView(
                 trackingStatus: preview.trackingStatus,
                 dependencies: dependencies
             )
             .modelContainer(preview.modelContainer),
-            width: 1200,
-            height: 760
+            width: 1340,
+            height: 860
         )
         ViewRenderTestSupport.assertRenders(
             MenuBarTrackingView(

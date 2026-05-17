@@ -149,62 +149,6 @@ struct TimeTrackeriOSTests {
         #expect(trackingStatus.activeSession?.projectName == "iOS Store")
     }
 
-    @Test("Workspace analytics calculator runs inside the iOS target")
-    func sharedAnalyticsCalculatorRunsInIOSTarget() throws {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
-
-        func date(year: Int, month: Int, day: Int, hour: Int) throws -> Date {
-            try #require(
-                calendar.date(
-                    from: DateComponents(
-                        timeZone: calendar.timeZone,
-                        year: year,
-                        month: month,
-                        day: day,
-                        hour: hour
-                    )
-                )
-            )
-        }
-
-        let billableProject = ClientProject(
-            clientName: "Mobile",
-            name: "App",
-            hourlyRate: 100
-        )
-        let unbilledProject = ClientProject(
-            clientName: "Mobile",
-            name: "Discovery"
-        )
-        billableProject.sessions = [
-            WorkSession(
-                project: billableProject,
-                startedAt: try date(year: 2026, month: 5, day: 14, hour: 9),
-                endedAt: try date(year: 2026, month: 5, day: 14, hour: 11)
-            ),
-        ]
-        unbilledProject.sessions = [
-            WorkSession(
-                project: unbilledProject,
-                startedAt: try date(year: 2026, month: 5, day: 14, hour: 11),
-                endedAt: try date(year: 2026, month: 5, day: 14, hour: 13)
-            ),
-        ]
-
-        let snapshot = AnalyticsCalculator.makeSnapshot(
-            projects: [unbilledProject, billableProject],
-            referenceDate: try date(year: 2026, month: 5, day: 14, hour: 14),
-            calendar: calendar
-        )
-
-        #expect(snapshot.totalDuration == 14_400)
-        #expect(snapshot.totalBilledAmount == 200)
-        #expect(snapshot.totalValueText == TimeFormatting.euroAmount(200))
-        #expect(snapshot.hasHourlyData)
-        #expect(snapshot.projectTotals.map(\.projectName) == ["App", "Discovery"])
-        #expect(snapshot.projectTotals.last?.valueText == "Kein Stundensatz")
-    }
 }
 
 @Suite("iOS View Rendering")
@@ -214,8 +158,6 @@ struct TimeTrackeriOSViewRenderingTests {
     func iOSViewsRender() throws {
         let preview = PreviewWorkspaceSnapshot()
         let dependencies = AppDependencies.preview
-        let viewModel = WorkspaceRootViewModel()
-        viewModel.ensureInitialSelection(projects: preview.projects)
 
         ViewRenderTestSupport.assertRenders(
             ContentView(
@@ -256,33 +198,6 @@ struct TimeTrackeriOSViewRenderingTests {
             width: 430,
             height: 900
         )
-        ViewRenderTestSupport.assertRenders(
-            WorkspaceCompactTabRootView(
-                viewModel: viewModel,
-                projects: preview.projects,
-                activeSessions: preview.activeSessions,
-                dependencies: dependencies,
-                modelContext: preview.modelContainer.mainContext,
-                trackingStatus: preview.trackingStatus
-            )
-            .modelContainer(preview.modelContainer),
-            width: 430,
-            height: 932
-        )
-        ViewRenderTestSupport.assertRenders(
-            ToolbarRenderHost(
-                content: WorkspaceCompactTrackingToolbar(
-                    viewModel: viewModel,
-                    activeProjects: viewModel.activeProjects(from: preview.projects),
-                    hasActiveSession: preview.activeSessions.isEmpty == false,
-                    dependencies: dependencies,
-                    modelContext: preview.modelContainer.mainContext,
-                    trackingStatus: preview.trackingStatus
-                )
-            ),
-            width: 430,
-            height: 120
-        )
     }
 
     @Test("iOS app can be constructed in tests")
@@ -306,18 +221,5 @@ private enum ViewRenderTestSupport {
         )
         renderer.scale = 1
         #expect(renderer.uiImage != nil)
-    }
-}
-
-private struct ToolbarRenderHost<Content: ToolbarContent>: View {
-    let content: Content
-
-    var body: some View {
-        NavigationStack {
-            Text("Toolbar")
-        }
-        .toolbar {
-            content
-        }
     }
 }

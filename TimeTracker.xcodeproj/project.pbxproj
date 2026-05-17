@@ -7,15 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		65317F312FB58F3A00E8C9E3 /* WorkspaceRootViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F302FB58F3A00E8C9E3 /* WorkspaceRootViewModel.swift */; };
-		65317F322FB58F3A00E8C9E3 /* WorkspaceRootViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F302FB58F3A00E8C9E3 /* WorkspaceRootViewModel.swift */; };
-		65317F342FB5924F00E8C9E3 /* WorkspaceTabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F332FB5924F00E8C9E3 /* WorkspaceTabBarView.swift */; };
-		65317F352FB5924F00E8C9E3 /* WorkspaceTabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F332FB5924F00E8C9E3 /* WorkspaceTabBarView.swift */; };
-		65317F382FB5925000E8C9E3 /* WorkspaceSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F362FB5925000E8C9E3 /* WorkspaceSidebarView.swift */; };
-		65317F3A2FB5926400E8C9E3 /* WorkspaceDetailAreaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F392FB5926400E8C9E3 /* WorkspaceDetailAreaView.swift */; };
-		65317F3B2FB5926400E8C9E3 /* WorkspaceDetailAreaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F392FB5926400E8C9E3 /* WorkspaceDetailAreaView.swift */; };
-		65317F3D2FB5926500E8C9E3 /* WorkspaceTrackingDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F3C2FB5926500E8C9E3 /* WorkspaceTrackingDetailView.swift */; };
-		65317F3E2FB5926500E8C9E3 /* WorkspaceTrackingDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F3C2FB5926500E8C9E3 /* WorkspaceTrackingDetailView.swift */; };
 		65317F482FB5938500E8C9E3 /* ProjectDetailLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F472FB5938500E8C9E3 /* ProjectDetailLogicTests.swift */; };
 		65317F622FB59AAA00E8C9E3 /* PreviewSampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F612FB59AAA00E8C9E3 /* PreviewSampleData.swift */; };
 		65317F632FB59AAA00E8C9E3 /* PreviewSampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65317F612FB59AAA00E8C9E3 /* PreviewSampleData.swift */; };
@@ -51,24 +42,8 @@
 		65BE5B0C2FB8A32700052284 /* MacRecordingPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5B0A2FB8A32700052284 /* MacRecordingPane.swift */; };
 		65BE5B0E2FB8A35800052284 /* MacAnalyticsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5B0D2FB8A35800052284 /* MacAnalyticsPane.swift */; };
 		65BE5B0F2FB8A35800052284 /* MacAnalyticsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5B0D2FB8A35800052284 /* MacAnalyticsPane.swift */; };
-		65E888E92FB2610A007E10CE /* WorkspaceSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888E82FB2610A007E10CE /* WorkspaceSection.swift */; };
-		65E888EA2FB2610A007E10CE /* WorkspaceSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888E82FB2610A007E10CE /* WorkspaceSection.swift */; };
-		65E888EC2FB2610A007E10CE /* WorkspaceRootLayoutRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888EB2FB2610A007E10CE /* WorkspaceRootLayoutRules.swift */; };
-		65E888ED2FB2610A007E10CE /* WorkspaceRootLayoutRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888EB2FB2610A007E10CE /* WorkspaceRootLayoutRules.swift */; };
-		65E888EF2FB2610B007E10CE /* WorkspaceTabButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888EE2FB2610B007E10CE /* WorkspaceTabButton.swift */; };
-		65E888F02FB2610B007E10CE /* WorkspaceTabButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888EE2FB2610B007E10CE /* WorkspaceTabButton.swift */; };
-		65E888F22FB2610B007E10CE /* ClientGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888F12FB2610B007E10CE /* ClientGroup.swift */; };
-		65E888F32FB2610B007E10CE /* ClientGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888F12FB2610B007E10CE /* ClientGroup.swift */; };
-		65E888F52FB26121007E10CE /* SessionEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888F42FB26121007E10CE /* SessionEditor.swift */; };
-		65E888F62FB26121007E10CE /* SessionEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888F42FB26121007E10CE /* SessionEditor.swift */; };
-		65E888F82FB26121007E10CE /* ClientSectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888F72FB26121007E10CE /* ClientSectionHeader.swift */; };
-		65E888FB2FB26121007E10CE /* ProjectSidebarRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888FA2FB26121007E10CE /* ProjectSidebarRow.swift */; };
-		65E888FE2FB26122007E10CE /* ActiveSidebarCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888FD2FB26122007E10CE /* ActiveSidebarCard.swift */; };
-		65E889012FB26131007E10CE /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E889002FB26131007E10CE /* EmptyStateView.swift */; };
-		65E889022FB26131007E10CE /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E889002FB26131007E10CE /* EmptyStateView.swift */; };
 		65F0C9E12FC95A6B0099A001 /* ViewPreviewCoverageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65F0C9E22FC95A6B0099A001 /* ViewPreviewCoverageTests.swift */; };
 		A00000000000000000000001 /* TimeTrackerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000001 /* TimeTrackerApp.swift */; };
-		A00000000000000000000006 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000006 /* ContentView.swift */; };
 		A00000000000000000000007 /* ProjectDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000007 /* ProjectDetailView.swift */; };
 		A00000000000000000000008 /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000008 /* NewProjectSheet.swift */; };
 		A00000000000000000000009 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000009 /* Assets.xcassets */; };
@@ -78,10 +53,10 @@
 		A00000000000000000000012 /* ModelAndFormattingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000012 /* ModelAndFormattingTests.swift */; };
 		A00000000000000000000013 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000013 /* TestSupport.swift */; };
 		A00000000000000000000015 /* ProjectExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000015 /* ProjectExportService.swift */; };
-		A00000000000000000000017 /* WorkspaceAnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000017 /* WorkspaceAnalyticsView.swift */; };
 		A00000000000000000000018 /* ProjectDetailView+Logic.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000018 /* ProjectDetailView+Logic.swift */; };
 		A00000000000000000000019 /* ProjectDetailComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000019 /* ProjectDetailComponents.swift */; };
 		A0000000000000000000001A /* MacRedesignedRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001A /* MacRedesignedRootView.swift */; };
+		A00000000000000000000020 /* AppBootstrapResolutionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000020 /* AppBootstrapResolutionTests.swift */; };
 		C20000000000000000000001 /* ClientProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000001 /* ClientProject.swift */; };
 		C20000000000000000000002 /* ProjectTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000002 /* ProjectTask.swift */; };
 		C20000000000000000000003 /* WorkSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000003 /* WorkSession.swift */; };
@@ -89,7 +64,6 @@
 		C20000000000000000000005 /* TrackingStatusStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000005 /* TrackingStatusStore.swift */; };
 		C20000000000000000000006 /* TimeFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000006 /* TimeFormatting.swift */; };
 		C20000000000000000000007 /* TimeTrackerSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000007 /* TimeTrackerSchema.swift */; };
-		C20000000000000000000008 /* PlatformSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000008 /* PlatformSummaryCard.swift */; };
 		C20000000000000000000009 /* ProjectExportFileNaming.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000009 /* ProjectExportFileNaming.swift */; };
 		C20000000000000000000020 /* Tokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000020 /* Tokens.swift */; };
 		C20000000000000000000021 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000021 /* GlassCard.swift */; };
@@ -108,6 +82,7 @@
 		C20000000000000000000039 /* DayProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000039 /* DayProfile.swift */; };
 		C2000000000000000000003A /* ClientSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000003A /* ClientSwitcher.swift */; };
 		C2000000000000000000003B /* AnalyticsAggregator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000003B /* AnalyticsAggregator.swift */; };
+		C20000000000000000000043 /* AnalyticsTopProjectsDisplayMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000003C /* AnalyticsTopProjectsDisplayMode.swift */; };
 		C20000000000000000000040 /* ProjectCreationDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000A /* ProjectCreationDraft.swift */; };
 		C30000000000000000000001 /* ClientProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000001 /* ClientProject.swift */; };
 		C30000000000000000000002 /* ProjectTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000002 /* ProjectTask.swift */; };
@@ -116,13 +91,11 @@
 		C30000000000000000000005 /* TrackingStatusStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000005 /* TrackingStatusStore.swift */; };
 		C30000000000000000000006 /* TimeFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000006 /* TimeFormatting.swift */; };
 		C30000000000000000000007 /* TimeTrackerSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000007 /* TimeTrackerSchema.swift */; };
-		C30000000000000000000008 /* PlatformSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000008 /* PlatformSummaryCard.swift */; };
 		C30000000000000000000009 /* ProjectExportFileNaming.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000009 /* ProjectExportFileNaming.swift */; };
 		C3000000000000000000000A /* ProjectExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000015 /* ProjectExportService.swift */; };
 		C3000000000000000000000C /* ProjectDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000007 /* ProjectDetailView.swift */; };
 		C3000000000000000000000D /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000008 /* NewProjectSheet.swift */; };
 		C3000000000000000000000E /* ManualSessionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000B /* ManualSessionSheet.swift */; };
-		C3000000000000000000000F /* WorkspaceAnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000017 /* WorkspaceAnalyticsView.swift */; };
 		C30000000000000000000010 /* ProjectDetailView+Logic.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000018 /* ProjectDetailView+Logic.swift */; };
 		C30000000000000000000011 /* ProjectDetailComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000019 /* ProjectDetailComponents.swift */; };
 		C30000000000000000000020 /* Tokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000020 /* Tokens.swift */; };
@@ -142,6 +115,7 @@
 		C30000000000000000000039 /* DayProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000039 /* DayProfile.swift */; };
 		C3000000000000000000003A /* ClientSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000003A /* ClientSwitcher.swift */; };
 		C3000000000000000000003B /* AnalyticsAggregator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000003B /* AnalyticsAggregator.swift */; };
+		C30000000000000000000043 /* AnalyticsTopProjectsDisplayMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000003C /* AnalyticsTopProjectsDisplayMode.swift */; };
 		C30000000000000000000040 /* ProjectCreationDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000A /* ProjectCreationDraft.swift */; };
 /* End PBXBuildFile section */
 
@@ -170,11 +144,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		65317F302FB58F3A00E8C9E3 /* WorkspaceRootViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceRootViewModel.swift; sourceTree = "<group>"; };
-		65317F332FB5924F00E8C9E3 /* WorkspaceTabBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceTabBarView.swift; sourceTree = "<group>"; };
-		65317F362FB5925000E8C9E3 /* WorkspaceSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceSidebarView.swift; sourceTree = "<group>"; };
-		65317F392FB5926400E8C9E3 /* WorkspaceDetailAreaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceDetailAreaView.swift; sourceTree = "<group>"; };
-		65317F3C2FB5926500E8C9E3 /* WorkspaceTrackingDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceTrackingDetailView.swift; sourceTree = "<group>"; };
 		65317F472FB5938500E8C9E3 /* ProjectDetailLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailLogicTests.swift; sourceTree = "<group>"; };
 		65317F612FB59AAA00E8C9E3 /* PreviewSampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewSampleData.swift; sourceTree = "<group>"; };
 		65317F992FB5F1B000E8C9E3 /* ManualSessionLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualSessionLogicTests.swift; sourceTree = "<group>"; };
@@ -197,44 +166,28 @@
 		65BE5A342FB5FD8500052284 /* ProjectDetailSessionsCardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailSessionsCardTests.swift; sourceTree = "<group>"; };
 		65BE5A362FB5FD8E00052284 /* ProjectDetailExportSheetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailExportSheetTests.swift; sourceTree = "<group>"; };
 		65BE5B022FB821C800052284 /* SyncBannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncBannerTests.swift; sourceTree = "<group>"; };
-		65BE5B042FB8A1E000052284 /* MacRedesignedRootViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacRedesignedRootViewModel.swift; sourceTree = "<group>"; };
+		65BE5B042FB8A1E000052284 /* MacRedesignedRootViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModels/MacRedesignedRootViewModel.swift; sourceTree = "<group>"; };
 		65BE5B072FB8A2D100052284 /* MacSidebarPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacSidebarPane.swift; sourceTree = "<group>"; };
 		65BE5B0A2FB8A32700052284 /* MacRecordingPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacRecordingPane.swift; sourceTree = "<group>"; };
 		65BE5B0D2FB8A35800052284 /* MacAnalyticsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacAnalyticsPane.swift; sourceTree = "<group>"; };
-		65E888E82FB2610A007E10CE /* WorkspaceSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceSection.swift; sourceTree = "<group>"; };
-		65E888EB2FB2610A007E10CE /* WorkspaceRootLayoutRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceRootLayoutRules.swift; sourceTree = "<group>"; };
-		65E888EE2FB2610B007E10CE /* WorkspaceTabButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceTabButton.swift; sourceTree = "<group>"; };
-		65E888F12FB2610B007E10CE /* ClientGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientGroup.swift; sourceTree = "<group>"; };
-		65E888F42FB26121007E10CE /* SessionEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionEditor.swift; sourceTree = "<group>"; };
-		65E888F72FB26121007E10CE /* ClientSectionHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientSectionHeader.swift; sourceTree = "<group>"; };
-		65E888FA2FB26121007E10CE /* ProjectSidebarRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectSidebarRow.swift; sourceTree = "<group>"; };
-		65E888FD2FB26122007E10CE /* ActiveSidebarCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveSidebarCard.swift; sourceTree = "<group>"; };
-		65E889002FB26131007E10CE /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
 		65F0C9E22FC95A6B0099A001 /* ViewPreviewCoverageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewPreviewCoverageTests.swift; sourceTree = "<group>"; };
 		B00000000000000000000001 /* TimeTrackerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeTrackerApp.swift; sourceTree = "<group>"; };
-		B00000000000000000000002 /* ClientProject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientProject.swift; sourceTree = "<group>"; };
-		B00000000000000000000003 /* WorkSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkSession.swift; sourceTree = "<group>"; };
-		B00000000000000000000004 /* TrackingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingManager.swift; sourceTree = "<group>"; };
-		B00000000000000000000005 /* TimeFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeFormatting.swift; sourceTree = "<group>"; };
-		B00000000000000000000006 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		B00000000000000000000007 /* ProjectDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailView.swift; sourceTree = "<group>"; };
 		B00000000000000000000008 /* NewProjectSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewProjectSheet.swift; sourceTree = "<group>"; };
 		B00000000000000000000009 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B0000000000000000000000A /* TimeTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TimeTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0000000000000000000000B /* ManualSessionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualSessionSheet.swift; sourceTree = "<group>"; };
 		B0000000000000000000000C /* MenuBarTrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarTrackingView.swift; sourceTree = "<group>"; };
-		B0000000000000000000000D /* TrackingStatusStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingStatusStore.swift; sourceTree = "<group>"; };
-		B0000000000000000000000E /* ProjectTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectTask.swift; sourceTree = "<group>"; };
 		B00000000000000000000011 /* TrackingManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingManagerTests.swift; sourceTree = "<group>"; };
 		B00000000000000000000012 /* ModelAndFormattingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelAndFormattingTests.swift; sourceTree = "<group>"; };
 		B00000000000000000000013 /* TestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSupport.swift; sourceTree = "<group>"; };
 		B00000000000000000000014 /* TimeTrackerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TimeTrackerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B00000000000000000000015 /* ProjectExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectExportService.swift; sourceTree = "<group>"; };
 		B00000000000000000000016 /* TimeTracker.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TimeTracker.entitlements; sourceTree = "<group>"; };
-		B00000000000000000000017 /* WorkspaceAnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceAnalyticsView.swift; sourceTree = "<group>"; };
 		B00000000000000000000018 /* ProjectDetailView+Logic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectDetailView+Logic.swift"; sourceTree = "<group>"; };
 		B00000000000000000000019 /* ProjectDetailComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailComponents.swift; sourceTree = "<group>"; };
 		B0000000000000000000001A /* MacRedesignedRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacRedesignedRootView.swift; sourceTree = "<group>"; };
+		B00000000000000000000020 /* AppBootstrapResolutionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBootstrapResolutionTests.swift; sourceTree = "<group>"; };
 		C10000000000000000000001 /* ClientProject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientProject.swift; sourceTree = "<group>"; };
 		C10000000000000000000002 /* ProjectTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectTask.swift; sourceTree = "<group>"; };
 		C10000000000000000000003 /* WorkSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkSession.swift; sourceTree = "<group>"; };
@@ -242,7 +195,6 @@
 		C10000000000000000000005 /* TrackingStatusStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingStatusStore.swift; sourceTree = "<group>"; };
 		C10000000000000000000006 /* TimeFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeFormatting.swift; sourceTree = "<group>"; };
 		C10000000000000000000007 /* TimeTrackerSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeTrackerSchema.swift; sourceTree = "<group>"; };
-		C10000000000000000000008 /* PlatformSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformSummaryCard.swift; sourceTree = "<group>"; };
 		C10000000000000000000009 /* ProjectExportFileNaming.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectExportFileNaming.swift; sourceTree = "<group>"; };
 		C1000000000000000000000A /* ProjectCreationDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectCreationDraft.swift; sourceTree = "<group>"; };
 		C10000000000000000000020 /* Tokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tokens.swift; sourceTree = "<group>"; };
@@ -262,6 +214,8 @@
 		C10000000000000000000039 /* DayProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayProfile.swift; sourceTree = "<group>"; };
 		C1000000000000000000003A /* ClientSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientSwitcher.swift; sourceTree = "<group>"; };
 		C1000000000000000000003B /* AnalyticsAggregator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsAggregator.swift; sourceTree = "<group>"; };
+		C1000000000000000000003C /* AnalyticsTopProjectsDisplayMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsTopProjectsDisplayMode.swift; sourceTree = "<group>"; };
+		65BE5CB32FBA318400052284 /* TimeTracker.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = TimeTracker.xctestplan; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -319,19 +273,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		65317F452FB592FC00E8C9E3 /* Workspace */ = {
-			isa = PBXGroup;
-			children = (
-				65317F492FB597A400E8C9E3 /* ViewModels */,
-				65317F642FB5E58B00E8C9E3 /* TabBar */,
-				65317F392FB5926400E8C9E3 /* WorkspaceDetailAreaView.swift */,
-				65317F3C2FB5926500E8C9E3 /* WorkspaceTrackingDetailView.swift */,
-				65E888E82FB2610A007E10CE /* WorkspaceSection.swift */,
-				65E888EB2FB2610A007E10CE /* WorkspaceRootLayoutRules.swift */,
-			);
-			path = Workspace;
-			sourceTree = "<group>";
-		};
 		65317F462FB5931000E8C9E3 /* Project */ = {
 			isa = PBXGroup;
 			children = (
@@ -350,45 +291,10 @@
 			path = Project;
 			sourceTree = "<group>";
 		};
-		65317F492FB597A400E8C9E3 /* ViewModels */ = {
-			isa = PBXGroup;
-			children = (
-				65317F302FB58F3A00E8C9E3 /* WorkspaceRootViewModel.swift */,
-			);
-			path = ViewModels;
-			sourceTree = "<group>";
-		};
-		65317F642FB5E58B00E8C9E3 /* TabBar */ = {
-			isa = PBXGroup;
-			children = (
-				65317F332FB5924F00E8C9E3 /* WorkspaceTabBarView.swift */,
-				65E888EE2FB2610B007E10CE /* WorkspaceTabButton.swift */,
-			);
-			path = TabBar;
-			sourceTree = "<group>";
-		};
-		A1000000000000000000002A /* Workspace */ = {
-			isa = PBXGroup;
-			children = (
-				A1000000000000000000002B /* Sidebar */,
-			);
-			path = Workspace;
-			sourceTree = "<group>";
-		};
-		A1000000000000000000002B /* Sidebar */ = {
-			isa = PBXGroup;
-			children = (
-				65E888FD2FB26122007E10CE /* ActiveSidebarCard.swift */,
-				65E888F72FB26121007E10CE /* ClientSectionHeader.swift */,
-				65E888FA2FB26121007E10CE /* ProjectSidebarRow.swift */,
-				65317F362FB5925000E8C9E3 /* WorkspaceSidebarView.swift */,
-			);
-			path = Sidebar;
-			sourceTree = "<group>";
-		};
 		D00000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
+				65BE5CB32FBA318400052284 /* TimeTracker.xctestplan */,
 				658F65D52F84374C0016E346 /* TimeTrackeriOS.xctestplan */,
 				D00000000000000000000002 /* TimeTracker */,
 				D00000000000000000000008 /* TimeTrackerTests */,
@@ -405,8 +311,6 @@
 			isa = PBXGroup;
 			children = (
 				B00000000000000000000001 /* TimeTrackerApp.swift */,
-				D00000000000000000000004 /* Models */,
-				D00000000000000000000005 /* Services */,
 				D00000000000000000000006 /* Support */,
 				D00000000000000000000007 /* Views */,
 				B00000000000000000000016 /* TimeTracker.entitlements */,
@@ -427,30 +331,10 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		D00000000000000000000004 /* Models */ = {
-			isa = PBXGroup;
-			children = (
-				B00000000000000000000002 /* ClientProject.swift */,
-				B0000000000000000000000E /* ProjectTask.swift */,
-				B00000000000000000000003 /* WorkSession.swift */,
-			);
-			path = Models;
-			sourceTree = "<group>";
-		};
-		D00000000000000000000005 /* Services */ = {
-			isa = PBXGroup;
-			children = (
-				B00000000000000000000004 /* TrackingManager.swift */,
-				B0000000000000000000000D /* TrackingStatusStore.swift */,
-			);
-			path = Services;
-			sourceTree = "<group>";
-		};
 		D00000000000000000000006 /* Support */ = {
 			isa = PBXGroup;
 			children = (
 				B00000000000000000000015 /* ProjectExportService.swift */,
-				B00000000000000000000005 /* TimeFormatting.swift */,
 			);
 			path = Support;
 			sourceTree = "<group>";
@@ -458,9 +342,6 @@
 		D00000000000000000000007 /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				B00000000000000000000006 /* ContentView.swift */,
-				B00000000000000000000017 /* WorkspaceAnalyticsView.swift */,
-				A1000000000000000000002A /* Workspace */,
 				B0000000000000000000000C /* MenuBarTrackingView.swift */,
 				65317F462FB5931000E8C9E3 /* Project */,
 				B0000000000000000000001A /* MacRedesignedRootView.swift */,
@@ -480,6 +361,7 @@
 				B00000000000000000000011 /* TrackingManagerTests.swift */,
 				B00000000000000000000012 /* ModelAndFormattingTests.swift */,
 				B00000000000000000000013 /* TestSupport.swift */,
+				B00000000000000000000020 /* AppBootstrapResolutionTests.swift */,
 				65317F472FB5938500E8C9E3 /* ProjectDetailLogicTests.swift */,
 				65317F992FB5F1B000E8C9E3 /* ManualSessionLogicTests.swift */,
 				65BE5A2C2FB5FD6600052284 /* ProjectDetailHeaderCardTests.swift */,
@@ -538,23 +420,10 @@
 		D10000000000000000000010 /* SharedUI */ = {
 			isa = PBXGroup;
 			children = (
-				D10000000000000000000011 /* Views */,
 				D10000000000000000000020 /* Design */,
 				D10000000000000000000030 /* Components */,
 			);
 			path = SharedUI;
-			sourceTree = "<group>";
-		};
-		D10000000000000000000011 /* Views */ = {
-			isa = PBXGroup;
-			children = (
-				C10000000000000000000008 /* PlatformSummaryCard.swift */,
-				65E888F12FB2610B007E10CE /* ClientGroup.swift */,
-				65E888F42FB26121007E10CE /* SessionEditor.swift */,
-				65E889002FB26131007E10CE /* EmptyStateView.swift */,
-				65317F452FB592FC00E8C9E3 /* Workspace */,
-			);
-			path = Views;
 			sourceTree = "<group>";
 		};
 		D10000000000000000000020 /* Design */ = {
@@ -584,6 +453,7 @@
 				C10000000000000000000039 /* DayProfile.swift */,
 				C1000000000000000000003A /* ClientSwitcher.swift */,
 				C1000000000000000000003B /* AnalyticsAggregator.swift */,
+				C1000000000000000000003C /* AnalyticsTopProjectsDisplayMode.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -791,13 +661,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				65BE5A1C2FB5FCCD00052284 /* ProjectDetailSummaryRow.swift in Sources */,
-				C3000000000000000000000F /* WorkspaceAnalyticsView.swift in Sources */,
 				65BE5A192FB5FCC300052284 /* ProjectDetailHeaderCard.swift in Sources */,
 				C3000000000000000000000D /* NewProjectSheet.swift in Sources */,
 				C3000000000000000000000E /* ManualSessionSheet.swift in Sources */,
-				65E888F62FB26121007E10CE /* SessionEditor.swift in Sources */,
 				65BE5B082FB8A2D100052284 /* MacSidebarPane.swift in Sources */,
-				65E888F22FB2610B007E10CE /* ClientGroup.swift in Sources */,
 				C3000000000000000000000C /* ProjectDetailView.swift in Sources */,
 				C30000000000000000000010 /* ProjectDetailView+Logic.swift in Sources */,
 				C30000000000000000000011 /* ProjectDetailComponents.swift in Sources */,
@@ -805,16 +672,13 @@
 				C30000000000000000000002 /* ProjectTask.swift in Sources */,
 				C30000000000000000000003 /* WorkSession.swift in Sources */,
 				65BE5B052FB8A1E000052284 /* MacRedesignedRootViewModel.swift in Sources */,
-				65317F322FB58F3A00E8C9E3 /* WorkspaceRootViewModel.swift in Sources */,
 				65317F622FB59AAA00E8C9E3 /* PreviewSampleData.swift in Sources */,
 				C30000000000000000000004 /* TrackingManager.swift in Sources */,
 				C30000000000000000000005 /* TrackingStatusStore.swift in Sources */,
 				C30000000000000000000006 /* TimeFormatting.swift in Sources */,
-				65317F3D2FB5926500E8C9E3 /* WorkspaceTrackingDetailView.swift in Sources */,
 				65BE5A242FB5FD0B00052284 /* ProjectDetailSessionsCard.swift in Sources */,
 				C30000000000000000000007 /* TimeTrackerSchema.swift in Sources */,
 				65BE5A222FB5FCFE00052284 /* ProjectDetailTasksCard.swift in Sources */,
-				C30000000000000000000008 /* PlatformSummaryCard.swift in Sources */,
 				65BE5A1F2FB5FCE300052284 /* ProjectDetailBillingCard.swift in Sources */,
 				653180392FB5F1DD00E8C9E3 /* ProjectDetailViewModel.swift in Sources */,
 				C30000000000000000000040 /* ProjectCreationDraft.swift in Sources */,
@@ -824,8 +688,6 @@
 				C30000000000000000000022 /* PillButton.swift in Sources */,
 				C30000000000000000000023 /* ProjectColor.swift in Sources */,
 				C30000000000000000000024 /* AppearanceSettings.swift in Sources */,
-				65317F352FB5924F00E8C9E3 /* WorkspaceTabBarView.swift in Sources */,
-				65E889022FB26131007E10CE /* EmptyStateView.swift in Sources */,
 				C30000000000000000000030 /* PulseDot.swift in Sources */,
 				C30000000000000000000031 /* SectionCard.swift in Sources */,
 				C30000000000000000000032 /* StatTile.swift in Sources */,
@@ -834,17 +696,14 @@
 				C30000000000000000000034 /* TimerHero.swift in Sources */,
 				C30000000000000000000035 /* TaskRow.swift in Sources */,
 				C30000000000000000000036 /* EntryRow.swift in Sources */,
-				65E888ED2FB2610A007E10CE /* WorkspaceRootLayoutRules.swift in Sources */,
 				65BE5A2B2FB5FD3800052284 /* ProjectDetailExportSheet.swift in Sources */,
 				C30000000000000000000037 /* ProjectBar.swift in Sources */,
-				65317F3B2FB5926400E8C9E3 /* WorkspaceDetailAreaView.swift in Sources */,
 				65BE5A282FB5FD2B00052284 /* ProjectDetailBudgetSheet.swift in Sources */,
-				65E888E92FB2610A007E10CE /* WorkspaceSection.swift in Sources */,
 				C30000000000000000000038 /* WeekBars.swift in Sources */,
 				C30000000000000000000039 /* DayProfile.swift in Sources */,
 				C3000000000000000000003A /* ClientSwitcher.swift in Sources */,
-				65E888EF2FB2610B007E10CE /* WorkspaceTabButton.swift in Sources */,
 				C3000000000000000000003B /* AnalyticsAggregator.swift in Sources */,
+				C30000000000000000000043 /* AnalyticsTopProjectsDisplayMode.swift in Sources */,
 				C30000000000000000000009 /* ProjectExportFileNaming.swift in Sources */,
 				C3000000000000000000000A /* ProjectExportService.swift in Sources */,
 			);
@@ -868,32 +727,23 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A00000000000000000000006 /* ContentView.swift in Sources */,
-				A00000000000000000000017 /* WorkspaceAnalyticsView.swift in Sources */,
 				A0000000000000000000000A /* ManualSessionSheet.swift in Sources */,
 				A0000000000000000000000B /* MenuBarTrackingView.swift in Sources */,
 				A00000000000000000000008 /* NewProjectSheet.swift in Sources */,
 				C20000000000000000000001 /* ClientProject.swift in Sources */,
 				65BE5B092FB8A2D100052284 /* MacSidebarPane.swift in Sources */,
-				65317F312FB58F3A00E8C9E3 /* WorkspaceRootViewModel.swift in Sources */,
 				C20000000000000000000040 /* ProjectCreationDraft.swift in Sources */,
-				C20000000000000000000008 /* PlatformSummaryCard.swift in Sources */,
 				C20000000000000000000020 /* Tokens.swift in Sources */,
 				C20000000000000000000021 /* GlassCard.swift in Sources */,
 				C20000000000000000000022 /* PillButton.swift in Sources */,
 				65BE5A182FB5FCC300052284 /* ProjectDetailHeaderCard.swift in Sources */,
 				65BE5A2A2FB5FD3800052284 /* ProjectDetailExportSheet.swift in Sources */,
-				65E888EA2FB2610A007E10CE /* WorkspaceSection.swift in Sources */,
 				C20000000000000000000023 /* ProjectColor.swift in Sources */,
-				65317F342FB5924F00E8C9E3 /* WorkspaceTabBarView.swift in Sources */,
-				65E888F82FB26121007E10CE /* ClientSectionHeader.swift in Sources */,
 				65BE5A1E2FB5FCE300052284 /* ProjectDetailBillingCard.swift in Sources */,
-				65317F3E2FB5926500E8C9E3 /* WorkspaceTrackingDetailView.swift in Sources */,
 				C20000000000000000000024 /* AppearanceSettings.swift in Sources */,
 				65BE5B0E2FB8A35800052284 /* MacAnalyticsPane.swift in Sources */,
 				C20000000000000000000030 /* PulseDot.swift in Sources */,
 				65BE5B062FB8A1E000052284 /* MacRedesignedRootViewModel.swift in Sources */,
-				65E888F02FB2610B007E10CE /* WorkspaceTabButton.swift in Sources */,
 				C20000000000000000000031 /* SectionCard.swift in Sources */,
 				C20000000000000000000032 /* StatTile.swift in Sources */,
 				C20000000000000000000033 /* SyncBanner.swift in Sources */,
@@ -901,22 +751,17 @@
 				C20000000000000000000035 /* TaskRow.swift in Sources */,
 				65317F632FB59AAA00E8C9E3 /* PreviewSampleData.swift in Sources */,
 				C20000000000000000000036 /* EntryRow.swift in Sources */,
-				65E888EC2FB2610A007E10CE /* WorkspaceRootLayoutRules.swift in Sources */,
 				C20000000000000000000037 /* ProjectBar.swift in Sources */,
-				65317F382FB5925000E8C9E3 /* WorkspaceSidebarView.swift in Sources */,
 				65BE5B0C2FB8A32700052284 /* MacRecordingPane.swift in Sources */,
-				65E888F52FB26121007E10CE /* SessionEditor.swift in Sources */,
 				65BE5A1B2FB5FCCD00052284 /* ProjectDetailSummaryRow.swift in Sources */,
-				65E888F32FB2610B007E10CE /* ClientGroup.swift in Sources */,
 				C20000000000000000000038 /* WeekBars.swift in Sources */,
 				C20000000000000000000039 /* DayProfile.swift in Sources */,
 				C2000000000000000000003A /* ClientSwitcher.swift in Sources */,
 				C2000000000000000000003B /* AnalyticsAggregator.swift in Sources */,
-				65317F3A2FB5926400E8C9E3 /* WorkspaceDetailAreaView.swift in Sources */,
+				C20000000000000000000043 /* AnalyticsTopProjectsDisplayMode.swift in Sources */,
 				A00000000000000000000015 /* ProjectExportService.swift in Sources */,
 				C20000000000000000000002 /* ProjectTask.swift in Sources */,
 				A00000000000000000000007 /* ProjectDetailView.swift in Sources */,
-				65E888FE2FB26122007E10CE /* ActiveSidebarCard.swift in Sources */,
 				A00000000000000000000018 /* ProjectDetailView+Logic.swift in Sources */,
 				A00000000000000000000019 /* ProjectDetailComponents.swift in Sources */,
 				653180382FB5F1DD00E8C9E3 /* ProjectDetailViewModel.swift in Sources */,
@@ -928,10 +773,8 @@
 				65BE5A212FB5FCFE00052284 /* ProjectDetailTasksCard.swift in Sources */,
 				C20000000000000000000009 /* ProjectExportFileNaming.swift in Sources */,
 				C20000000000000000000007 /* TimeTrackerSchema.swift in Sources */,
-				65E888FB2FB26121007E10CE /* ProjectSidebarRow.swift in Sources */,
 				A00000000000000000000001 /* TimeTrackerApp.swift in Sources */,
 				C20000000000000000000003 /* WorkSession.swift in Sources */,
-				65E889012FB26131007E10CE /* EmptyStateView.swift in Sources */,
 				65BE5A272FB5FD2B00052284 /* ProjectDetailBudgetSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -943,6 +786,7 @@
 				A00000000000000000000012 /* ModelAndFormattingTests.swift in Sources */,
 				A00000000000000000000013 /* TestSupport.swift in Sources */,
 				A00000000000000000000011 /* TrackingManagerTests.swift in Sources */,
+				A00000000000000000000020 /* AppBootstrapResolutionTests.swift in Sources */,
 				65BE5B032FB821C800052284 /* SyncBannerTests.swift in Sources */,
 				65BE5A352FB5FD8500052284 /* ProjectDetailSessionsCardTests.swift in Sources */,
 				65BE5A332FB5FD7E00052284 /* ProjectDetailBudgetSheetTests.swift in Sources */,
