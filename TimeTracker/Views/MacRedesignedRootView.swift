@@ -120,25 +120,10 @@ struct MacRedesignedRootView: View {
                 Image(systemName: "paintpalette")
             }
         }
-        ToolbarItem(placement: .primaryAction) {
-            Button {
-                if let project = selectedProject, activeSession?.project?.id != project.id {
-                    startTracking(project: project, task: nil)
-                } else if activeSession != nil {
-                    stopActiveTracking()
-                }
-            } label: {
-                if activeSession != nil {
-                    Label("Stop", systemImage: "stop.fill")
-                } else {
-                    Label("Timer starten", systemImage: "play.fill")
-                }
-            }
-            .disabled(selectedProject == nil)
-        }
+
         ToolbarItem(placement: .primaryAction) {
             SyncBanner(
-                lastSyncedAt: trackingStatus.latestSuccessfulSyncAt,
+                syncStatus: trackingStatus.syncStatus,
                 presentation: .compactExpandable
             )
         }
@@ -165,7 +150,7 @@ struct MacRedesignedRootView: View {
             if macMode == "rep" {
                 MacAuswertungPane(
                     projects: projects,
-                    lastSyncedAt: trackingStatus.latestSuccessfulSyncAt
+                    syncStatus: trackingStatus.syncStatus
                 )
             } else {
                 MacAufnehmenPane(
@@ -313,20 +298,6 @@ struct MacRedesignedRootView: View {
         .frame(width: 1340, height: 860)
 }
 
-#Preview("Mac sidebar pane") {
-    MacSidebarPanePreviewHost()
-}
-
-#Preview("Mac aufnehmen pane") {
-    MacAufnehmenPanePreviewHost()
-        .frame(width: 1080, height: 760)
-}
-
-#Preview("Mac auswertung pane") {
-    MacAuswertungPanePreviewHost()
-        .frame(width: 1080, height: 760)
-}
-
 @MainActor
 private struct MacRedesignedRootPreviewHost: View {
     private let preview = PreviewWorkspaceSnapshot()
@@ -337,61 +308,5 @@ private struct MacRedesignedRootPreviewHost: View {
             dependencies: .live(configuration: TimeTrackerTargetConfiguration.macOS)
         )
         .modelContainer(preview.modelContainer)
-    }
-}
-
-@MainActor
-private struct MacSidebarPanePreviewHost: View {
-    private let preview = PreviewWorkspaceSnapshot()
-    @State private var search = ""
-    @State private var selectedProjectID: UUID?
-
-    var body: some View {
-        MacSidebarPane(
-            projects: preview.projects.filter { !$0.isArchived },
-            activeProjectId: preview.activeSessions.first?.project?.id,
-            search: $search,
-            selectedId: $selectedProjectID,
-            onAddProject: {}
-        )
-        .frame(width: 280, height: 700)
-        .onAppear {
-            if selectedProjectID == nil {
-                selectedProjectID = preview.projects.first?.id
-            }
-        }
-    }
-}
-
-@MainActor
-private struct MacAufnehmenPanePreviewHost: View {
-    private let preview = PreviewWorkspaceSnapshot()
-
-    var body: some View {
-        let project = preview.projects[0]
-
-        MacAufnehmenPane(
-            project: project,
-            activeSession: preview.activeSessions.first,
-            onStartTask: { _ in },
-            onStartProject: {},
-            onStop: {},
-            onAddManualEntry: {},
-            onEditEntry: { _ in },
-            onEditTask: { _ in },
-            onAddTask: { _ in }
-        )
-    }
-}
-
-@MainActor
-private struct MacAuswertungPanePreviewHost: View {
-    private let preview = PreviewWorkspaceSnapshot()
-
-    var body: some View {
-        MacAuswertungPane(
-            projects: preview.projects,
-            lastSyncedAt: Date(timeIntervalSince1970: 1_779_000_000)
-        )
     }
 }

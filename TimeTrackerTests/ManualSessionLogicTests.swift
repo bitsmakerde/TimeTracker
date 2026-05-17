@@ -137,4 +137,82 @@ struct ManualSessionLogicTests {
             ) == nil
         )
     }
+
+    @Test("Manual session can stay locked to a fixed task")
+    func fixedTaskSelection() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
+
+        let now = try #require(
+            calendar.date(
+                from: DateComponents(
+                    timeZone: calendar.timeZone,
+                    year: 2026,
+                    month: 5,
+                    day: 14,
+                    hour: 10,
+                    minute: 30
+                )
+            )
+        )
+
+        let project = ClientProject(clientName: "Acme", name: "Website")
+        let fixedTask = ProjectTask(title: "Konzept", project: project)
+        let otherTask = ProjectTask(title: "Umsetzung", project: project)
+
+        let state = ManualSessionLogic.initialState(
+            sessionToEdit: nil,
+            fixedTask: fixedTask,
+            now: now,
+            calendar: calendar
+        )
+
+        #expect(state.selectedTaskID == fixedTask.id)
+        #expect(
+            ManualSessionLogic.selectedTask(
+                tasks: [fixedTask, otherTask],
+                selectedTaskID: otherTask.id,
+                fixedTask: fixedTask
+            )?.id == fixedTask.id
+        )
+    }
+
+    @Test("Editing a fixed-task session preserves dates and task lock")
+    func fixedTaskEditingPreservesExistingValues() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
+
+        let now = try #require(
+            calendar.date(
+                from: DateComponents(
+                    timeZone: calendar.timeZone,
+                    year: 2026,
+                    month: 5,
+                    day: 14,
+                    hour: 10,
+                    minute: 30
+                )
+            )
+        )
+
+        let project = ClientProject(clientName: "Acme", name: "Website")
+        let fixedTask = ProjectTask(title: "Konzept", project: project)
+        let existingSession = WorkSession(
+            project: project,
+            task: fixedTask,
+            startedAt: now.addingTimeInterval(-5_400),
+            endedAt: now.addingTimeInterval(-1_800)
+        )
+
+        let state = ManualSessionLogic.initialState(
+            sessionToEdit: existingSession,
+            fixedTask: fixedTask,
+            now: now,
+            calendar: calendar
+        )
+
+        #expect(state.startedAt == existingSession.startedAt)
+        #expect(state.endedAt == existingSession.endedAt)
+        #expect(state.selectedTaskID == fixedTask.id)
+    }
 }

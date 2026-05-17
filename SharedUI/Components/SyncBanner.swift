@@ -6,8 +6,31 @@ enum SyncBannerPresentation {
     case compactExpandable
 }
 
+enum SyncBannerStatus: Equatable {
+    case localOnly
+    case waitingForCloud
+    case syncing(operation: CloudKitSyncOperation)
+    case upToDate(lastSyncedAt: Date?)
+    case failed(message: String, at: Date)
+
+    init(cloudSyncStatus: CloudSyncStatus) {
+        switch cloudSyncStatus {
+        case .localOnly:
+            self = .localOnly
+        case .waitingForCloud:
+            self = .waitingForCloud
+        case let .syncing(operation, _):
+            self = .syncing(operation: operation)
+        case let .upToDate(lastSyncAt):
+            self = .upToDate(lastSyncedAt: lastSyncAt)
+        case let .failed(message, at):
+            self = .failed(message: message, at: at)
+        }
+    }
+}
+
 struct SyncBanner: View {
-    let lastSyncedAt: Date?
+    let status: SyncBannerStatus
     let presentation: SyncBannerPresentation
 
     @State private var isExpanded = false
@@ -16,7 +39,15 @@ struct SyncBanner: View {
         lastSyncedAt: Date?,
         presentation: SyncBannerPresentation = .automatic
     ) {
-        self.lastSyncedAt = lastSyncedAt
+        self.status = .upToDate(lastSyncedAt: lastSyncedAt)
+        self.presentation = presentation
+    }
+
+    init(
+        syncStatus: CloudSyncStatus,
+        presentation: SyncBannerPresentation = .automatic
+    ) {
+        self.status = SyncBannerStatus(cloudSyncStatus: syncStatus)
         self.presentation = presentation
     }
 
@@ -24,7 +55,7 @@ struct SyncBanner: View {
         if usesCompactPresentation {
             compactExpandableBanner
         } else {
-            SyncBannerExpandedCard(lastSyncedAt: lastSyncedAt)
+            SyncBannerExpandedCard(status: status)
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(Text(accessibilityText))
         }
@@ -32,22 +63,18 @@ struct SyncBanner: View {
 
     private var compactExpandableBanner: some View {
         Button(action: showExpandedStatus) {
-            SyncBannerToolbarIcon()
+            SyncBannerToolbarIcon(status: status)
         }
         .buttonStyle(.plain)
-        .frame(
-            width: SyncBannerMetrics.toolbarButtonSize,
-            height: SyncBannerMetrics.toolbarButtonSize
-        )
 #if os(macOS)
         .popover(isPresented: $isExpanded, arrowEdge: .bottom) {
-            SyncBannerFloatingCard(lastSyncedAt: lastSyncedAt)
+            SyncBannerFloatingCard(status: status)
                 .padding(TTSpacing.sm)
         }
 #else
         .overlay(alignment: .topTrailing) {
             if isExpanded {
-                SyncBannerFloatingCard(lastSyncedAt: lastSyncedAt)
+                SyncBannerFloatingCard(status: status)
                     .frame(
                         width: SyncBannerMetrics.compactExpandedWidth,
                         alignment: .trailing
@@ -93,41 +120,54 @@ struct SyncBanner: View {
     }
 
     private var accessibilityText: String {
-        "Sync aktuell, \(SyncBannerText.subtitle(lastSyncedAt: lastSyncedAt))"
+        let detail = SyncBannerText.detail(status: status)
+        if detail.isEmpty {
+            return "\(SyncBannerText.title(status: status)), \(SyncBannerText.subtitle(status: status))"
+        }
+
+        return "\(SyncBannerText.title(status: status)), \(SyncBannerText.subtitle(status: status)), \(detail)"
     }
 }
 
 private struct SyncBannerExpandedCard: View {
-    let lastSyncedAt: Date?
+    let status: SyncBannerStatus
 
     var body: some View {
         HStack(spacing: 40) {
             SyncBannerStatusIcon(
+                status: status,
                 size: 84,
                 cornerRadius: 22,
-                iconFont: .largeTitle,
-                background: SyncBannerStyle.darkIconBackground
+                iconFont: .largeTitle
             )
 
             VStack(alignment: .leading, spacing: TTSpacing.sm) {
-                Text("Sync aktuell")
+                Text(SyncBannerText.title(status: status))
                     .font(.largeTitle)
                     .foregroundStyle(SyncBannerStyle.darkPrimaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
 
-                Text(SyncBannerText.subtitle(lastSyncedAt: lastSyncedAt))
+                Text(SyncBannerText.subtitle(status: status))
                     .font(.title)
                     .foregroundStyle(SyncBannerStyle.darkSecondaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
+
+                let detail = SyncBannerText.detail(status: status)
+                if detail.isEmpty == false {
+                    Text(detail)
+                        .font(.callout)
+                        .foregroundStyle(SyncBannerStyle.darkSecondaryText)
+                        .lineLimit(2)
+                }
             }
 
             Spacer(minLength: TTSpacing.md)
 
-            Image(systemName: "arrow.triangle.2.circlepath")
+            Image(systemName: status.trailingSymbol)
                 .font(.largeTitle)
-                .foregroundStyle(SyncBannerStyle.darkSecondaryText)
+                .foregroundStyle(status.foregroundStyle)
         }
         .padding(.horizontal, 48)
         .padding(.vertical, 28)
@@ -141,50 +181,56 @@ private struct SyncBannerExpandedCard: View {
 }
 
 private struct SyncBannerToolbarIcon: View {
+    let status: SyncBannerStatus
+
     var body: some View {
         SyncBannerStatusIcon(
+            status: status,
             size: SyncBannerMetrics.toolbarIconSize,
             cornerRadius: TTRadius.sm,
-            iconFont: .callout,
-            background: SyncBannerStyle.toolbarIconBackground
+            iconFont: .callout
         )
-        .overlay {
-            RoundedRectangle(cornerRadius: TTRadius.sm, style: .continuous)
-                .strokeBorder(SyncBannerStyle.toolbarIconBorder, lineWidth: 0.5)
-        }
     }
 }
 
 private struct SyncBannerFloatingCard: View {
-    let lastSyncedAt: Date?
+    let status: SyncBannerStatus
 
     var body: some View {
         HStack(spacing: TTSpacing.md) {
             SyncBannerStatusIcon(
+                status: status,
                 size: 32,
                 cornerRadius: TTRadius.sm,
-                iconFont: .headline,
-                background: SyncBannerStyle.toolbarIconBackground
+                iconFont: .headline
             )
 
             VStack(alignment: .leading, spacing: TTSpacing.xs) {
-                Text("Sync aktuell")
+                Text(SyncBannerText.title(status: status))
                     .font(.callout)
                     .bold()
                     .foregroundStyle(TTColors.text)
                     .lineLimit(1)
 
-                Text(SyncBannerText.subtitle(lastSyncedAt: lastSyncedAt))
+                Text(SyncBannerText.subtitle(status: status))
                     .font(.caption)
                     .foregroundStyle(TTColors.text2)
                     .lineLimit(1)
+
+                let detail = SyncBannerText.detail(status: status)
+                if detail.isEmpty == false {
+                    Text(detail)
+                        .font(.caption2)
+                        .foregroundStyle(TTColors.text3)
+                        .lineLimit(2)
+                }
             }
 
             Spacer(minLength: TTSpacing.sm)
 
-            Image(systemName: "arrow.triangle.2.circlepath")
+            Image(systemName: status.trailingSymbol)
                 .font(.body)
-                .foregroundStyle(TTColors.text3)
+                .foregroundStyle(status.foregroundStyle)
         }
         .padding(.horizontal, TTSpacing.md)
         .padding(.vertical, TTSpacing.sm)
@@ -199,20 +245,20 @@ private struct SyncBannerFloatingCard: View {
 }
 
 private struct SyncBannerStatusIcon: View {
+    let status: SyncBannerStatus
     let size: CGFloat
     let cornerRadius: CGFloat
     let iconFont: Font
-    let background: Color
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(background)
+                .fill(status.iconBackground)
 
-            Image(systemName: "checkmark")
+            Image(systemName: status.symbol)
                 .font(iconFont)
                 .bold()
-                .foregroundStyle(SyncBannerStyle.iconForeground)
+                .foregroundStyle(status.foregroundStyle)
         }
         .frame(width: size, height: size)
     }
@@ -226,6 +272,60 @@ private enum SyncBannerMetrics {
 }
 
 enum SyncBannerText {
+    static func title(status: SyncBannerStatus) -> String {
+        switch status {
+        case .localOnly:
+            return "Nur lokal"
+        case .waitingForCloud:
+            return "Sync bereit"
+        case .syncing:
+            return "Sync läuft"
+        case .upToDate:
+            return "Sync aktuell"
+        case .failed:
+            return "Sync fehlgeschlagen"
+        }
+    }
+
+    static func subtitle(
+        status: SyncBannerStatus,
+        now: Date = .now,
+        calendar: Calendar = .current,
+        locale: Locale = Locale(identifier: "de_DE")
+    ) -> String {
+        switch status {
+        case .localOnly:
+            return "Lokal"
+        case .waitingForCloud:
+            return "iCloud wartet"
+        case let .syncing(operation):
+            return operation.syncBannerText
+        case let .upToDate(lastSyncedAt):
+            return subtitle(
+                lastSyncedAt: lastSyncedAt,
+                now: now,
+                calendar: calendar,
+                locale: locale
+            )
+        case let .failed(_, at):
+            return subtitle(
+                lastSyncedAt: at,
+                now: now,
+                calendar: calendar,
+                locale: locale
+            )
+        }
+    }
+
+    static func detail(status: SyncBannerStatus) -> String {
+        switch status {
+        case let .failed(message, _):
+            return message
+        default:
+            return ""
+        }
+    }
+
     static func subtitle(
         lastSyncedAt: Date?,
         now: Date = .now,
@@ -250,15 +350,83 @@ enum SyncBannerText {
     }
 }
 
+private extension CloudKitSyncOperation {
+    var syncBannerText: String {
+        switch self {
+        case .setup:
+            return "iCloud wird vorbereitet"
+        case .importData:
+            return "Import läuft"
+        case .export:
+            return "Export läuft"
+        }
+    }
+}
+
+private extension SyncBannerStatus {
+    var symbol: String {
+        switch self {
+        case .failed:
+            return "exclamationmark"
+        case .syncing:
+            return "arrow.triangle.2.circlepath"
+        default:
+            return "checkmark"
+        }
+    }
+
+    var trailingSymbol: String {
+        switch self {
+        case .failed:
+            return "exclamationmark.triangle"
+        case .localOnly:
+            return "externaldrive"
+        default:
+            return "arrow.triangle.2.circlepath"
+        }
+    }
+
+    var foregroundStyle: Color {
+        switch self {
+        case .failed:
+            return SyncBannerStyle.errorForeground
+        case .waitingForCloud:
+            return SyncBannerStyle.waitingForeground
+        case .syncing:
+            return SyncBannerStyle.syncingForeground
+        default:
+            return SyncBannerStyle.iconForeground
+        }
+    }
+
+    var iconBackground: Color {
+        switch self {
+        case .failed:
+            return SyncBannerStyle.errorBackground
+        case .waitingForCloud:
+            return SyncBannerStyle.waitingBackground
+        case .syncing:
+            return SyncBannerStyle.syncingBackground
+        default:
+            return SyncBannerStyle.toolbarIconBackground
+        }
+    }
+}
+
 private enum SyncBannerStyle {
     static let darkBackground = Color(.sRGB, red: 0.015, green: 0.015, blue: 0.015, opacity: 1)
     static let darkBorder = Color(.sRGB, red: 0.26, green: 0.26, blue: 0.28, opacity: 1)
-    static let darkIconBackground = Color(.sRGB, red: 0.0, green: 0.12, blue: 0.055, opacity: 1)
     static let darkPrimaryText = Color.white
     static let darkSecondaryText = Color(.sRGB, red: 0.34, green: 0.34, blue: 0.37, opacity: 1)
     static let iconForeground = Color(.sRGB, red: 0.0, green: 0.72, blue: 0.28, opacity: 1)
     static let toolbarIconBackground = TTColors.green.opacity(0.14)
     static let toolbarIconBorder = TTColors.green.opacity(0.18)
+    static let errorForeground = Color(.sRGB, red: 1.0, green: 0.29, blue: 0.25, opacity: 1)
+    static let errorBackground = Color(.sRGB, red: 0.24, green: 0.035, blue: 0.03, opacity: 1)
+    static let waitingForeground = Color(.sRGB, red: 0.95, green: 0.62, blue: 0.18, opacity: 1)
+    static let waitingBackground = Color(.sRGB, red: 0.28, green: 0.15, blue: 0.02, opacity: 1)
+    static let syncingForeground = Color(.sRGB, red: 0.25, green: 0.58, blue: 1.0, opacity: 1)
+    static let syncingBackground = Color(.sRGB, red: 0.03, green: 0.11, blue: 0.24, opacity: 1)
     static let floatingShadow = Color.black.opacity(0.16)
 }
 
@@ -271,6 +439,16 @@ private enum SyncBannerStyle {
     SyncBanner(
         lastSyncedAt: Date(timeIntervalSince1970: 1_779_000_000),
         presentation: .compactExpandable
+    )
+    .padding()
+}
+
+#Preview("Sync Error") {
+    SyncBanner(
+        syncStatus: .failed(
+            message: "iCloud Konto nicht erreichbar",
+            at: Date(timeIntervalSince1970: 1_779_000_000)
+        )
     )
     .padding()
 }

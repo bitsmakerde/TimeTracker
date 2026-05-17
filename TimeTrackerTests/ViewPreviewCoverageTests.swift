@@ -3,6 +3,14 @@ import SwiftUI
 import Testing
 @testable import TimeTracker
 
+#if canImport(AppKit)
+import AppKit
+#endif
+
+#if canImport(UIKit)
+import UIKit
+#endif
+
 @Suite("View Preview Coverage")
 struct ViewPreviewCoverageTests {
     @Test("Every SwiftUI view file includes a preview")
@@ -231,6 +239,19 @@ struct ViewRenderingTests {
             height: 120
         )
         ViewRenderTestSupport.assertRenders(
+            SyncBanner(lastSyncedAt: Date(timeIntervalSince1970: 1_779_000_000)),
+            width: 620,
+            height: 160
+        )
+        ViewRenderTestSupport.assertRenders(
+            SyncBanner(
+                lastSyncedAt: Date(timeIntervalSince1970: 1_779_000_000),
+                presentation: .compactExpandable
+            ),
+            width: 120,
+            height: 120
+        )
+        ViewRenderTestSupport.assertRenders(
             TimerHero(
                 clientName: activeProject.displayClientName,
                 projectName: activeProject.displayName,
@@ -384,6 +405,22 @@ struct ViewRenderingTests {
             AnalyticsOverviewView(projects: preview.projects),
             width: 1200,
             height: 1200
+        )
+        ViewRenderTestSupport.assertRenders(
+            MacAufnehmenPane(
+                project: activeProject,
+                activeSession: activeSession,
+                onStartTask: { _ in },
+                onStartProject: { },
+                onStop: { },
+                onAddManualEntry: { },
+                onEditEntry: { _ in },
+                onEditTask: { _ in },
+                onAddTask: { _ in }
+            )
+            .modelContainer(preview.modelContainer),
+            width: 1200,
+            height: 900
         )
         ViewRenderTestSupport.assertRenders(
             WorkspaceRootView(
@@ -581,17 +618,35 @@ private enum ViewRenderTestSupport {
         width: CGFloat,
         height: CGFloat
     ) {
-        let renderer = ImageRenderer(
+        let host = ViewRenderHost(
+            width: width,
+            height: height,
             content: view
-                .frame(width: width, height: height, alignment: .topLeading)
         )
-        renderer.scale = 1
 
 #if os(macOS)
-        #expect(renderer.nsImage != nil)
-#else
-        #expect(renderer.uiImage != nil)
+        let hostingView = NSHostingView(rootView: host)
+        hostingView.frame = CGRect(x: 0, y: 0, width: width, height: height)
+        hostingView.layoutSubtreeIfNeeded()
+        #expect(hostingView.fittingSize.width.isFinite)
+#elseif os(iOS)
+        let hostingController = UIHostingController(rootView: host)
+        hostingController.view.frame = CGRect(x: 0, y: 0, width: width, height: height)
+        hostingController.view.setNeedsLayout()
+        hostingController.view.layoutIfNeeded()
+        #expect(hostingController.view.bounds.width == width)
 #endif
+    }
+}
+
+private struct ViewRenderHost<Content: View>: View {
+    let width: CGFloat
+    let height: CGFloat
+    let content: Content
+
+    var body: some View {
+        content
+            .frame(width: width, height: height, alignment: .topLeading)
     }
 }
 

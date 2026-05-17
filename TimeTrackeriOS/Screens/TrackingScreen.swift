@@ -25,6 +25,7 @@ struct TrackingScreen: View {
     @State private var quickAddText: String = ""
     @State private var sessionToEdit: WorkSession?
     @State private var manualEntryProject: ClientProject?
+    @State private var taskToEdit: ProjectTask?
     @State private var errorMessage: String?
     @State private var showProjectsDrawer = false
     @State private var newProjectPresentation: NewProjectPresentation?
@@ -53,7 +54,7 @@ struct TrackingScreen: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
-                SyncBanner(lastSyncedAt: nil)
+                SyncBanner(syncStatus: trackingStatus.syncStatus)
 
                 if let project = selectedProject {
                     timerHero(for: project)
@@ -141,6 +142,28 @@ struct TrackingScreen: View {
                     project: project,
                     onSave: { start, end, task in
                         addManualSession(for: project, task: task, startedAt: start, endedAt: end)
+                    }
+                )
+            }
+        }
+        .sheet(item: $taskToEdit) { task in
+            NavigationStack {
+                TaskEditorSheet(
+                    task: task,
+                    onSaveTaskTitle: { title in
+                        saveTaskTitle(title, for: task)
+                    },
+                    onAddEntry: { startedAt, endedAt in
+                        addManualSession(for: task, startedAt: startedAt, endedAt: endedAt)
+                    },
+                    onUpdateEntry: { session, startedAt, endedAt in
+                        updateManualSession(session, task: task, startedAt: startedAt, endedAt: endedAt)
+                    },
+                    onDeleteTask: { task in
+                        deleteTask(task)
+                    },
+                    onDeleteEntry: { session in
+                        deleteSession(session)
                     }
                 )
             }
@@ -299,10 +322,7 @@ struct TrackingScreen: View {
                                 manualEntryProject = project
                             },
                             onEdit: {
-                                manualEntryProject = project
-                            },
-                            onShowEntries: {
-                                manualEntryProject = project
+                                taskToEdit = task
                             }
                         )
                     }
@@ -425,6 +445,20 @@ struct TrackingScreen: View {
         }
     }
 
+    private func addManualSession(for task: ProjectTask, startedAt: Date, endedAt: Date) -> Bool {
+        guard let project = task.project else {
+            errorMessage = "Die Aufgabe ist keinem Projekt mehr zugeordnet."
+            return false
+        }
+
+        return addManualSession(
+            for: project,
+            task: task,
+            startedAt: startedAt,
+            endedAt: endedAt
+        )
+    }
+
     private func updateManualSession(_ session: WorkSession, task: ProjectTask?, startedAt: Date, endedAt: Date) -> Bool {
         do {
             try dependencies.workspaceTrackingUseCases.updateManualSession(
@@ -438,6 +472,37 @@ struct TrackingScreen: View {
             return false
         } catch {
             errorMessage = "Der Zeiteintrag konnte nicht aktualisiert werden."
+            return false
+        }
+    }
+
+    private func deleteSession(_ session: WorkSession) -> Bool {
+        do {
+            try dependencies.workspaceTrackingUseCases.deleteSession(
+                session,
+                in: modelContext
+            )
+            trackingStatus.refresh()
+            return true
+        } catch {
+            errorMessage = "Der Zeiteintrag konnte nicht entfernt werden."
+            return false
+        }
+    }
+
+    private func deleteTask(_ task: ProjectTask) -> Bool {
+        do {
+            try dependencies.workspaceTrackingUseCases.deleteTask(
+                task,
+                in: modelContext
+            )
+            if taskToEdit?.id == task.id {
+                taskToEdit = nil
+            }
+            trackingStatus.refresh()
+            return true
+        } catch {
+            errorMessage = ProjectDetailLogic.taskEditorTaskDeleteErrorMessage()
             return false
         }
     }
@@ -466,6 +531,25 @@ struct TrackingScreen: View {
         } catch {
             modelContext.delete(project)
             errorMessage = "Das Projekt konnte nicht gespeichert werden."
+            return false
+        }
+    }
+
+    private func saveTaskTitle(_ title: String, for task: ProjectTask) -> Bool {
+        let normalizedTitle = ProjectDetailLogic.normalizedTaskTitle(title)
+        guard ProjectDetailLogic.taskTitleValidationMessage(normalizedTitle) == nil else {
+            return false
+        }
+
+        let previousTitle = task.title
+        task.title = normalizedTitle
+
+        do {
+            try modelContext.save()
+            return true
+        } catch {
+            task.title = previousTitle
+            errorMessage = "Die Aufgabe konnte nicht gespeichert werden."
             return false
         }
     }

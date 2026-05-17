@@ -164,4 +164,48 @@ enum ProjectDetailLogic {
     ) -> WorkSession? {
         isPresented ? currentSession : nil
     }
+
+    static func pendingTaskAfterDeletionPresentationChange(
+        currentTask: ProjectTask?,
+        isPresented: Bool
+    ) -> ProjectTask? {
+        isPresented ? currentTask : nil
+    }
+
+    static func pendingSessionAfterEditorPresentationChange(
+        currentSession: WorkSession?,
+        isPresented: Bool
+    ) -> WorkSession? {
+        isPresented ? currentSession : nil
+    }
+
+    static func taskEditorEntrySaveErrorMessage(isEditing: Bool) -> String {
+        isEditing
+            ? "Der Zeiteintrag konnte nicht aktualisiert werden."
+            : "Der Zeiteintrag konnte nicht gespeichert werden."
+    }
+
+    static func taskEditorTaskDeleteErrorMessage() -> String {
+        "Die Aufgabe konnte nicht entfernt werden."
+    }
+
+    static func taskEditorSessions(for task: ProjectTask) -> [WorkSession] {
+        task.sessionList.sorted { lhs, rhs in
+            if lhs.startedAt == rhs.startedAt {
+                return lhs.id.uuidString < rhs.id.uuidString
+            }
+
+            return lhs.startedAt > rhs.startedAt
+        }
+    }
+
+    static func normalizedTaskTitle(_ title: String) -> String {
+        title.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    static func taskTitleValidationMessage(_ title: String) -> String? {
+        normalizedTaskTitle(title).isEmpty
+            ? "Bitte gib einen gueltigen Aufgabentitel ein."
+            : nil
+    }
 }

@@ -458,3 +458,29 @@ private struct MacEntryListRow: View {
         .buttonStyle(.plain)
     }
 }
+
+#Preview("Mac aufnehmen pane") {
+    MacAufnehmenPanePreviewHost()
+        .frame(width: 1080, height: 760)
+}
+
+@MainActor
+private struct MacAufnehmenPanePreviewHost: View {
+    private let preview = PreviewWorkspaceSnapshot()
+
+    var body: some View {
+        let project = preview.projects[0]
+
+        MacAufnehmenPane(
+            project: project,
+            activeSession: preview.activeSessions.first,
+            onStartTask: { _ in },
+            onStartProject: {},
+            onStop: {},
+            onAddManualEntry: {},
+            onEditEntry: { _ in },
+            onEditTask: { _ in },
+            onAddTask: { _ in }
+        )
+    }
+}

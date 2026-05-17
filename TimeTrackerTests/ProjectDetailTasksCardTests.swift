@@ -46,4 +46,10 @@ struct ProjectDetailTasksCardTests {
         #expect(vm.taskDuration(for: buildTask, referenceDate: referenceDate) == 1_800)
         #expect(vm.taskValueText(for: designTask, referenceDate: referenceDate) == TimeFormatting.euroAmount(180))
     }
+
+    @Test("Task row secondary actions expose add entry and edit task only")
+    func taskRowSecondaryActions() {
+        #expect(TaskRowSecondaryAction.allCases.map(\.title) == ["Eintrag", "Bearbeiten"])
+        #expect(TaskRowSecondaryAction.allCases.map(\.systemImage) == ["plus", "pencil"])
+    }
 }

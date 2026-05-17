@@ -6,7 +6,7 @@ import AppKit
 
 struct MacAuswertungPane: View {
     let projects: [ClientProject]
-    let lastSyncedAt: Date?
+    let syncStatus: CloudSyncStatus
 
     @State private var topMode: AnalyticsTopProjectsDisplayMode = .bar
     @State private var exportErrorMessage: String?
@@ -19,7 +19,7 @@ struct MacAuswertungPane: View {
         let snapshot = snapshot
         ScrollView {
             VStack(spacing: 14) {
-                SyncBanner(lastSyncedAt: lastSyncedAt)
+                SyncBanner(syncStatus: syncStatus)
                 header
                 kpiGrid(snapshot)
                 topProjects(snapshot)
@@ -281,5 +281,22 @@ private struct MacAnalyticsTopProjectsPieChart: View {
         let start: CGFloat
         let end: CGFloat
         let color: Color
+    }
+}
+
+#Preview("Mac auswertung pane") {
+    MacAuswertungPanePreviewHost()
+        .frame(width: 1080, height: 760)
+}
+
+@MainActor
+private struct MacAuswertungPanePreviewHost: View {
+    private let preview = PreviewWorkspaceSnapshot()
+
+    var body: some View {
+        MacAuswertungPane(
+            projects: preview.projects,
+            syncStatus: .upToDate(lastSyncAt: Date(timeIntervalSince1970: 1_779_000_000))
+        )
     }
 }

@@ -42,6 +42,15 @@
 		65BE5A332FB5FD7E00052284 /* ProjectDetailBudgetSheetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A322FB5FD7E00052284 /* ProjectDetailBudgetSheetTests.swift */; };
 		65BE5A352FB5FD8500052284 /* ProjectDetailSessionsCardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A342FB5FD8500052284 /* ProjectDetailSessionsCardTests.swift */; };
 		65BE5A372FB5FD8E00052284 /* ProjectDetailExportSheetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5A362FB5FD8E00052284 /* ProjectDetailExportSheetTests.swift */; };
+		65BE5B032FB821C800052284 /* SyncBannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5B022FB821C800052284 /* SyncBannerTests.swift */; };
+		65BE5B052FB8A1E000052284 /* MacRedesignedRootViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5B042FB8A1E000052284 /* MacRedesignedRootViewModel.swift */; };
+		65BE5B062FB8A1E000052284 /* MacRedesignedRootViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5B042FB8A1E000052284 /* MacRedesignedRootViewModel.swift */; };
+		65BE5B082FB8A2D100052284 /* MacSidebarPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5B072FB8A2D100052284 /* MacSidebarPane.swift */; };
+		65BE5B092FB8A2D100052284 /* MacSidebarPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5B072FB8A2D100052284 /* MacSidebarPane.swift */; };
+		65BE5B0B2FB8A32700052284 /* MacRecordingPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5B0A2FB8A32700052284 /* MacRecordingPane.swift */; };
+		65BE5B0C2FB8A32700052284 /* MacRecordingPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5B0A2FB8A32700052284 /* MacRecordingPane.swift */; };
+		65BE5B0E2FB8A35800052284 /* MacAnalyticsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5B0D2FB8A35800052284 /* MacAnalyticsPane.swift */; };
+		65BE5B0F2FB8A35800052284 /* MacAnalyticsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BE5B0D2FB8A35800052284 /* MacAnalyticsPane.swift */; };
 		65E888E92FB2610A007E10CE /* WorkspaceSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888E82FB2610A007E10CE /* WorkspaceSection.swift */; };
 		65E888EA2FB2610A007E10CE /* WorkspaceSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888E82FB2610A007E10CE /* WorkspaceSection.swift */; };
 		65E888EC2FB2610A007E10CE /* WorkspaceRootLayoutRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E888EB2FB2610A007E10CE /* WorkspaceRootLayoutRules.swift */; };
@@ -187,6 +196,11 @@
 		65BE5A322FB5FD7E00052284 /* ProjectDetailBudgetSheetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailBudgetSheetTests.swift; sourceTree = "<group>"; };
 		65BE5A342FB5FD8500052284 /* ProjectDetailSessionsCardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailSessionsCardTests.swift; sourceTree = "<group>"; };
 		65BE5A362FB5FD8E00052284 /* ProjectDetailExportSheetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailExportSheetTests.swift; sourceTree = "<group>"; };
+		65BE5B022FB821C800052284 /* SyncBannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncBannerTests.swift; sourceTree = "<group>"; };
+		65BE5B042FB8A1E000052284 /* MacRedesignedRootViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacRedesignedRootViewModel.swift; sourceTree = "<group>"; };
+		65BE5B072FB8A2D100052284 /* MacSidebarPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacSidebarPane.swift; sourceTree = "<group>"; };
+		65BE5B0A2FB8A32700052284 /* MacRecordingPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacRecordingPane.swift; sourceTree = "<group>"; };
+		65BE5B0D2FB8A35800052284 /* MacAnalyticsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacAnalyticsPane.swift; sourceTree = "<group>"; };
 		65E888E82FB2610A007E10CE /* WorkspaceSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceSection.swift; sourceTree = "<group>"; };
 		65E888EB2FB2610A007E10CE /* WorkspaceRootLayoutRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceRootLayoutRules.swift; sourceTree = "<group>"; };
 		65E888EE2FB2610B007E10CE /* WorkspaceTabButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceTabButton.swift; sourceTree = "<group>"; };
@@ -452,6 +466,10 @@
 				B0000000000000000000001A /* MacRedesignedRootView.swift */,
 				B00000000000000000000008 /* NewProjectSheet.swift */,
 				B0000000000000000000000B /* ManualSessionSheet.swift */,
+				65BE5B042FB8A1E000052284 /* MacRedesignedRootViewModel.swift */,
+				65BE5B072FB8A2D100052284 /* MacSidebarPane.swift */,
+				65BE5B0A2FB8A32700052284 /* MacRecordingPane.swift */,
+				65BE5B0D2FB8A35800052284 /* MacAnalyticsPane.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -471,6 +489,7 @@
 				65BE5A342FB5FD8500052284 /* ProjectDetailSessionsCardTests.swift */,
 				65BE5A362FB5FD8E00052284 /* ProjectDetailExportSheetTests.swift */,
 				65F0C9E22FC95A6B0099A001 /* ViewPreviewCoverageTests.swift */,
+				65BE5B022FB821C800052284 /* SyncBannerTests.swift */,
 			);
 			path = TimeTrackerTests;
 			sourceTree = "<group>";
@@ -777,6 +796,7 @@
 				C3000000000000000000000D /* NewProjectSheet.swift in Sources */,
 				C3000000000000000000000E /* ManualSessionSheet.swift in Sources */,
 				65E888F62FB26121007E10CE /* SessionEditor.swift in Sources */,
+				65BE5B082FB8A2D100052284 /* MacSidebarPane.swift in Sources */,
 				65E888F22FB2610B007E10CE /* ClientGroup.swift in Sources */,
 				C3000000000000000000000C /* ProjectDetailView.swift in Sources */,
 				C30000000000000000000010 /* ProjectDetailView+Logic.swift in Sources */,
@@ -784,6 +804,7 @@
 				C30000000000000000000001 /* ClientProject.swift in Sources */,
 				C30000000000000000000002 /* ProjectTask.swift in Sources */,
 				C30000000000000000000003 /* WorkSession.swift in Sources */,
+				65BE5B052FB8A1E000052284 /* MacRedesignedRootViewModel.swift in Sources */,
 				65317F322FB58F3A00E8C9E3 /* WorkspaceRootViewModel.swift in Sources */,
 				65317F622FB59AAA00E8C9E3 /* PreviewSampleData.swift in Sources */,
 				C30000000000000000000004 /* TrackingManager.swift in Sources */,
@@ -798,6 +819,7 @@
 				653180392FB5F1DD00E8C9E3 /* ProjectDetailViewModel.swift in Sources */,
 				C30000000000000000000040 /* ProjectCreationDraft.swift in Sources */,
 				C30000000000000000000020 /* Tokens.swift in Sources */,
+				65BE5B0B2FB8A32700052284 /* MacRecordingPane.swift in Sources */,
 				C30000000000000000000021 /* GlassCard.swift in Sources */,
 				C30000000000000000000022 /* PillButton.swift in Sources */,
 				C30000000000000000000023 /* ProjectColor.swift in Sources */,
@@ -807,6 +829,7 @@
 				C30000000000000000000030 /* PulseDot.swift in Sources */,
 				C30000000000000000000031 /* SectionCard.swift in Sources */,
 				C30000000000000000000032 /* StatTile.swift in Sources */,
+				65BE5B0F2FB8A35800052284 /* MacAnalyticsPane.swift in Sources */,
 				C30000000000000000000033 /* SyncBanner.swift in Sources */,
 				C30000000000000000000034 /* TimerHero.swift in Sources */,
 				C30000000000000000000035 /* TaskRow.swift in Sources */,
@@ -851,6 +874,7 @@
 				A0000000000000000000000B /* MenuBarTrackingView.swift in Sources */,
 				A00000000000000000000008 /* NewProjectSheet.swift in Sources */,
 				C20000000000000000000001 /* ClientProject.swift in Sources */,
+				65BE5B092FB8A2D100052284 /* MacSidebarPane.swift in Sources */,
 				65317F312FB58F3A00E8C9E3 /* WorkspaceRootViewModel.swift in Sources */,
 				C20000000000000000000040 /* ProjectCreationDraft.swift in Sources */,
 				C20000000000000000000008 /* PlatformSummaryCard.swift in Sources */,
@@ -866,7 +890,9 @@
 				65BE5A1E2FB5FCE300052284 /* ProjectDetailBillingCard.swift in Sources */,
 				65317F3E2FB5926500E8C9E3 /* WorkspaceTrackingDetailView.swift in Sources */,
 				C20000000000000000000024 /* AppearanceSettings.swift in Sources */,
+				65BE5B0E2FB8A35800052284 /* MacAnalyticsPane.swift in Sources */,
 				C20000000000000000000030 /* PulseDot.swift in Sources */,
+				65BE5B062FB8A1E000052284 /* MacRedesignedRootViewModel.swift in Sources */,
 				65E888F02FB2610B007E10CE /* WorkspaceTabButton.swift in Sources */,
 				C20000000000000000000031 /* SectionCard.swift in Sources */,
 				C20000000000000000000032 /* StatTile.swift in Sources */,
@@ -878,6 +904,7 @@
 				65E888EC2FB2610A007E10CE /* WorkspaceRootLayoutRules.swift in Sources */,
 				C20000000000000000000037 /* ProjectBar.swift in Sources */,
 				65317F382FB5925000E8C9E3 /* WorkspaceSidebarView.swift in Sources */,
+				65BE5B0C2FB8A32700052284 /* MacRecordingPane.swift in Sources */,
 				65E888F52FB26121007E10CE /* SessionEditor.swift in Sources */,
 				65BE5A1B2FB5FCCD00052284 /* ProjectDetailSummaryRow.swift in Sources */,
 				65E888F32FB2610B007E10CE /* ClientGroup.swift in Sources */,
@@ -916,6 +943,7 @@
 				A00000000000000000000012 /* ModelAndFormattingTests.swift in Sources */,
 				A00000000000000000000013 /* TestSupport.swift in Sources */,
 				A00000000000000000000011 /* TrackingManagerTests.swift in Sources */,
+				65BE5B032FB821C800052284 /* SyncBannerTests.swift in Sources */,
 				65BE5A352FB5FD8500052284 /* ProjectDetailSessionsCardTests.swift in Sources */,
 				65BE5A332FB5FD7E00052284 /* ProjectDetailBudgetSheetTests.swift in Sources */,
 				65BE5A372FB5FD8E00052284 /* ProjectDetailExportSheetTests.swift in Sources */,

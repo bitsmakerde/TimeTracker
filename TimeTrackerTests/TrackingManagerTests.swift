@@ -405,6 +405,60 @@ struct TrackingManagerTests {
         #expect(activeSession.endedAt == activeSession.startedAt)
     }
 
+    @Test("deleteTask removes the task and only its task sessions")
+    func deleteTaskRemovesTaskAndTaskSessions() throws {
+        let container = try TestSupport.makeInMemoryContainer()
+        let context = container.mainContext
+        let manager = TrackingManager()
+
+        let project = ClientProject(clientName: "A", name: "Project")
+        let taskToDelete = ProjectTask(title: "Delete me", project: project)
+        let otherTask = ProjectTask(title: "Keep me", project: project)
+        let deletedTaskSession = WorkSession(
+            project: project,
+            task: taskToDelete,
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200)
+        )
+        let keptTaskSession = WorkSession(
+            project: project,
+            task: otherTask,
+            startedAt: Date(timeIntervalSince1970: 300),
+            endedAt: Date(timeIntervalSince1970: 400)
+        )
+        let keptProjectSession = WorkSession(
+            project: project,
+            startedAt: Date(timeIntervalSince1970: 500),
+            endedAt: Date(timeIntervalSince1970: 600)
+        )
+        context.insert(project)
+        context.insert(taskToDelete)
+        context.insert(otherTask)
+        context.insert(deletedTaskSession)
+        context.insert(keptTaskSession)
+        context.insert(keptProjectSession)
+        try context.save()
+
+        try manager.deleteTask(taskToDelete, in: context)
+
+        let projects = try context.fetch(FetchDescriptor<ClientProject>())
+        let tasks = try context.fetch(FetchDescriptor<ProjectTask>())
+        let sessions = try context.fetch(FetchDescriptor<WorkSession>())
+        let remainingSessionIDs = sessions.map(\.id).sorted { lhs, rhs in
+            lhs.uuidString < rhs.uuidString
+        }
+        let expectedSessionIDs = [
+            keptProjectSession.id,
+            keptTaskSession.id,
+        ].sorted { lhs, rhs in
+            lhs.uuidString < rhs.uuidString
+        }
+
+        #expect(projects.map(\.id) == [project.id])
+        #expect(tasks.map(\.id) == [otherTask.id])
+        #expect(remainingSessionIDs == expectedSessionIDs)
+    }
+
     @Test("deleteSession and deleteProject remove persisted records")
     func deleteOperations() throws {
         let container = try TestSupport.makeInMemoryContainer()
@@ -494,6 +548,7 @@ struct TrackingAbstractionTests {
         )
         try repository.archiveProject(project, in: context, at: archiveDate)
         try repository.restoreProject(project, in: context)
+        try repository.deleteTask(task, in: context)
         try repository.deleteProject(project, in: context)
         try repository.deleteSession(session, in: context)
 
@@ -504,6 +559,7 @@ struct TrackingAbstractionTests {
             .update(sessionID: session.id, taskID: task.id, startedAt: start, endedAt: end, now: now),
             .archive(projectID: project.id, referenceDate: archiveDate),
             .restore(projectID: project.id),
+            .deleteTask(taskID: task.id),
             .deleteProject(projectID: project.id),
             .deleteSession(sessionID: session.id),
         ]
@@ -554,6 +610,7 @@ struct TrackingAbstractionTests {
         )
         try useCases.archiveProject(project, in: context, at: archiveDate)
         try useCases.restoreProject(project, in: context)
+        try useCases.deleteTask(task, in: context)
         try useCases.deleteProject(project, in: context)
         try useCases.deleteSession(session, in: context)
 
@@ -564,6 +621,7 @@ struct TrackingAbstractionTests {
             .update(sessionID: session.id, taskID: task.id, startedAt: start, endedAt: end, now: now),
             .archive(projectID: project.id, referenceDate: archiveDate),
             .restore(projectID: project.id),
+            .deleteTask(taskID: task.id),
             .deleteProject(projectID: project.id),
             .deleteSession(sessionID: session.id),
         ]
@@ -984,6 +1042,8 @@ struct TrackingStatusStoreTests {
                 errorDescription: nil
             )
         )
+        #expect(store.latestSuccessfulSyncAt == importEnd)
+
         store.handleCloudKitEvent(
             CloudKitSyncEventSnapshot(
                 eventType: .export,
@@ -997,6 +1057,7 @@ struct TrackingStatusStoreTests {
         #expect(store.lastSuccessfulImportAt == importEnd)
         #expect(store.lastSuccessfulExportAt == exportEnd)
         #expect(store.syncStatus == .upToDate(lastSyncAt: exportEnd))
+        #expect(store.latestSuccessfulSyncAt == exportEnd)
     }
 
     @Test("failed cloud event sets failed sync status with message")
@@ -1385,6 +1446,7 @@ private enum TrackingOperationCall: Equatable {
         case update
         case archive
         case restore
+        case deleteTask
         case deleteProject
         case deleteSession
     }
@@ -1395,6 +1457,7 @@ private enum TrackingOperationCall: Equatable {
     case update(sessionID: UUID, taskID: UUID?, startedAt: Date, endedAt: Date, now: Date)
     case archive(projectID: UUID, referenceDate: Date)
     case restore(projectID: UUID)
+    case deleteTask(taskID: UUID)
     case deleteProject(projectID: UUID)
     case deleteSession(sessionID: UUID)
 
@@ -1412,6 +1475,8 @@ private enum TrackingOperationCall: Equatable {
             return .archive
         case .restore:
             return .restore
+        case .deleteTask:
+            return .deleteTask
         case .deleteProject:
             return .deleteProject
         case .deleteSession:
@@ -1474,6 +1539,13 @@ private final class TrackingManagerProtocolSpy: TrackingManagerProtocol {
         in context: ModelContext
     ) throws {
         calls.append(.restore(projectID: project.id))
+    }
+
+    func deleteTask(
+        _ task: ProjectTask,
+        in context: ModelContext
+    ) throws {
+        calls.append(.deleteTask(taskID: task.id))
     }
 
     func deleteProject(
@@ -1545,6 +1617,13 @@ private final class TrackingRepositoryProtocolSpy: TrackingRepositoryProtocol {
         in context: ModelContext
     ) throws {
         calls.append(.restore(projectID: project.id))
+    }
+
+    func deleteTask(
+        _ task: ProjectTask,
+        in context: ModelContext
+    ) throws {
+        calls.append(.deleteTask(taskID: task.id))
     }
 
     func deleteProject(
@@ -1624,6 +1703,14 @@ private final class WorkspaceTrackingUseCasesProtocolSpy: WorkspaceTrackingUseCa
         in context: ModelContext
     ) throws {
         calls.append(.restore(projectID: project.id))
+        try throwIfNeeded()
+    }
+
+    func deleteTask(
+        _ task: ProjectTask,
+        in context: ModelContext
+    ) throws {
+        calls.append(.deleteTask(taskID: task.id))
         try throwIfNeeded()
     }
 

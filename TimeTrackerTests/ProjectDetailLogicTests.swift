@@ -217,4 +217,114 @@ struct ProjectDetailLogicTests {
             )
         )
     }
+
+    @Test("Project detail task title helpers trim input and reject empty titles")
+    func taskTitleHelpers() {
+        #expect(ProjectDetailLogic.normalizedTaskTitle("  Konzept  ") == "Konzept")
+        #expect(ProjectDetailLogic.normalizedTaskTitle("   ") == "")
+        #expect(ProjectDetailLogic.taskTitleValidationMessage("  Konzept  ") == nil)
+        #expect(
+            ProjectDetailLogic.taskTitleValidationMessage("   ")
+                == "Bitte gib einen gueltigen Aufgabentitel ein."
+        )
+    }
+
+    @Test("Task editor sessions show only the selected task newest first")
+    func taskEditorSessions() {
+        let project = ClientProject(clientName: "Acme", name: "Website")
+        let selectedTask = ProjectTask(title: "Konzept", project: project)
+        let otherTask = ProjectTask(title: "Umsetzung", project: project)
+
+        let olderSession = WorkSession(
+            project: project,
+            task: selectedTask,
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200)
+        )
+        let newerSession = WorkSession(
+            project: project,
+            task: selectedTask,
+            startedAt: Date(timeIntervalSince1970: 300),
+            endedAt: Date(timeIntervalSince1970: 400)
+        )
+        let otherSession = WorkSession(
+            project: project,
+            task: otherTask,
+            startedAt: Date(timeIntervalSince1970: 500),
+            endedAt: Date(timeIntervalSince1970: 600)
+        )
+
+        selectedTask.sessions = [olderSession, newerSession]
+        otherTask.sessions = [otherSession]
+        project.tasks = [selectedTask, otherTask]
+        project.sessions = [olderSession, newerSession, otherSession]
+
+        #expect(
+            ProjectDetailLogic.taskEditorSessions(for: selectedTask).map(\.id)
+                == [newerSession.id, olderSession.id]
+        )
+    }
+
+    @Test("Task editor entry helpers distinguish add edit and dismissal state")
+    func taskEditorEntryHelpers() {
+        let project = ClientProject(clientName: "Acme", name: "Website")
+        let session = WorkSession(project: project)
+
+        #expect(
+            ProjectDetailLogic.taskEditorEntrySaveErrorMessage(isEditing: false)
+                == "Der Zeiteintrag konnte nicht gespeichert werden."
+        )
+        #expect(
+            ProjectDetailLogic.taskEditorEntrySaveErrorMessage(isEditing: true)
+                == "Der Zeiteintrag konnte nicht aktualisiert werden."
+        )
+        #expect(
+            ProjectDetailLogic.pendingSessionAfterEditorPresentationChange(
+                currentSession: session,
+                isPresented: true
+            )?.id == session.id
+        )
+        #expect(
+            ProjectDetailLogic.pendingSessionAfterEditorPresentationChange(
+                currentSession: session,
+                isPresented: false
+            ) == nil
+        )
+    }
+
+    @Test("Task editor delete helpers distinguish task and entry removal state")
+    func taskEditorDeleteHelpers() {
+        let project = ClientProject(clientName: "Acme", name: "Website")
+        let task = ProjectTask(title: "Konzept", project: project)
+        let session = WorkSession(project: project, task: task)
+
+        #expect(
+            ProjectDetailLogic.taskEditorTaskDeleteErrorMessage()
+                == "Die Aufgabe konnte nicht entfernt werden."
+        )
+        #expect(
+            ProjectDetailLogic.pendingTaskAfterDeletionPresentationChange(
+                currentTask: task,
+                isPresented: true
+            )?.id == task.id
+        )
+        #expect(
+            ProjectDetailLogic.pendingTaskAfterDeletionPresentationChange(
+                currentTask: task,
+                isPresented: false
+            ) == nil
+        )
+        #expect(
+            ProjectDetailLogic.pendingSessionAfterDeletionPresentationChange(
+                currentSession: session,
+                isPresented: true
+            )?.id == session.id
+        )
+        #expect(
+            ProjectDetailLogic.pendingSessionAfterDeletionPresentationChange(
+                currentSession: session,
+                isPresented: false
+            ) == nil
+        )
+    }
 }

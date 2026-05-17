@@ -206,6 +206,15 @@ final class TrackingStatusStore {
         crossDeviceTrackingSnapshot?.lifecycle == .started
     }
 
+    var latestSuccessfulSyncAt: Date? {
+        switch syncStatus {
+        case let .upToDate(lastSyncAt):
+            return lastSyncAt ?? latestRecordedSuccessfulSyncAt
+        default:
+            return latestRecordedSuccessfulSyncAt
+        }
+    }
+
     var menuBarDurationText: String {
         guard let activeSession else {
             return "0:00"
@@ -339,6 +348,12 @@ final class TrackingStatusStore {
             )
             lastSyncErrorMessage = message
         }
+    }
+
+    private var latestRecordedSuccessfulSyncAt: Date? {
+        [lastSuccessfulImportAt, lastSuccessfulExportAt]
+            .compactMap(\.self)
+            .max()
     }
 
     private func startRefreshTask() {

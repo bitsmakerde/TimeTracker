@@ -2,6 +2,8 @@ import SwiftData
 import SwiftUI
 
 struct AnalyticsScreen: View {
+    let trackingStatus: TrackingStatusStore
+
     @Query(
         sort: [
             SortDescriptor(\ClientProject.clientName),
@@ -32,7 +34,7 @@ struct AnalyticsScreen: View {
 
         ScrollView {
             VStack(spacing: 14) {
-                SyncBanner(lastSyncedAt: nil)
+                SyncBanner(syncStatus: trackingStatus.syncStatus)
                 introHeader(snapshot: s)
                 kpiGrid(snapshot: s)
                 topProjectsSection(snapshot: s)
@@ -180,7 +182,7 @@ private struct AnalyticsScreenPreviewHost: View {
     private let preview = PreviewWorkspaceSnapshot()
 
     var body: some View {
-        AnalyticsScreen()
+        AnalyticsScreen(trackingStatus: preview.trackingStatus)
             .modelContainer(preview.modelContainer)
     }
 }

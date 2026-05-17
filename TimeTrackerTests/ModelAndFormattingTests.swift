@@ -551,6 +551,38 @@ struct ModelAndFormattingTests {
     }
 
     @MainActor
+    @Test("Mac root view model chooses explicit, active, then first active project")
+    func macRootViewModelSelectionPriority() {
+        let activeProject = ClientProject(clientName: "A", name: "Active")
+        let selectedProject = ClientProject(clientName: "B", name: "Selected")
+        let archivedProject = ClientProject(clientName: "C", name: "Archived")
+        archivedProject.archivedAt = Date(timeIntervalSince1970: 1_000)
+        let activeSession = WorkSession(project: activeProject, startedAt: Date(timeIntervalSince1970: 2_000))
+        let viewModel = MacRedesignedRootViewModel()
+
+        #expect(viewModel.activeProjects(from: [archivedProject, activeProject, selectedProject]).map(\.id) == [activeProject.id, selectedProject.id])
+        #expect(viewModel.selectedProject(from: [archivedProject, activeProject, selectedProject], activeSession: activeSession)?.id == activeProject.id)
+
+        viewModel.selectedProjectID = selectedProject.id
+
+        #expect(viewModel.selectedProject(from: [archivedProject, activeProject, selectedProject], activeSession: activeSession)?.id == selectedProject.id)
+    }
+
+    @MainActor
+    @Test("Mac root view model exposes sheet and alert bindings")
+    func macRootViewModelBindings() {
+        let viewModel = MacRedesignedRootViewModel()
+
+        viewModel.errorMessage = "Fehler"
+        #expect(viewModel.errorIsPresented)
+
+        viewModel.errorIsPresented = false
+
+        #expect(viewModel.errorMessage == nil)
+        #expect(viewModel.errorIsPresented == false)
+    }
+
+    @MainActor
     @Test("Workspace root view model keeps project selection in sync")
     func workspaceRootViewModelSelectionSync() {
         let firstProject = ClientProject(clientName: "Alpha", name: "Erstes Projekt")

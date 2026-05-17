@@ -24,7 +24,7 @@ struct ContentView: View {
 
             Tab("Auswertung", systemImage: "chart.bar.xaxis") {
                 NavigationStack {
-                    AnalyticsScreen()
+                    AnalyticsScreen(trackingStatus: trackingStatus)
                 }
             }
         }

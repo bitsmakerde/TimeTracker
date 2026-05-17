@@ -142,6 +142,20 @@ struct TrackingManager {
         try context.save()
     }
 
+    func deleteTask(
+        _ task: ProjectTask,
+        in context: ModelContext
+    ) throws {
+        let sessionsToDelete = task.sessionList
+
+        for session in sessionsToDelete {
+            context.delete(session)
+        }
+
+        context.delete(task)
+        try context.save()
+    }
+
     func deleteSession(
         _ session: WorkSession,
         in context: ModelContext
@@ -236,6 +250,10 @@ protocol TrackingManagerProtocol {
         _ project: ClientProject,
         in context: ModelContext
     ) throws
+    func deleteTask(
+        _ task: ProjectTask,
+        in context: ModelContext
+    ) throws
     func deleteSession(
         _ session: WorkSession,
         in context: ModelContext
@@ -282,6 +300,10 @@ protocol TrackingRepositoryProtocol {
     ) throws
     func deleteProject(
         _ project: ClientProject,
+        in context: ModelContext
+    ) throws
+    func deleteTask(
+        _ task: ProjectTask,
         in context: ModelContext
     ) throws
     func deleteSession(
@@ -389,6 +411,16 @@ struct SwiftDataTrackingRepository: TrackingRepositoryProtocol {
         )
     }
 
+    func deleteTask(
+        _ task: ProjectTask,
+        in context: ModelContext
+    ) throws {
+        try trackingManager.deleteTask(
+            task,
+            in: context
+        )
+    }
+
     func deleteSession(
         _ session: WorkSession,
         in context: ModelContext
@@ -438,6 +470,10 @@ protocol WorkspaceTrackingUseCasesProtocol {
     ) throws
     func deleteProject(
         _ project: ClientProject,
+        in context: ModelContext
+    ) throws
+    func deleteTask(
+        _ task: ProjectTask,
         in context: ModelContext
     ) throws
     func deleteSession(
@@ -541,6 +577,16 @@ struct DefaultWorkspaceTrackingUseCases: WorkspaceTrackingUseCasesProtocol {
     ) throws {
         try repository.deleteProject(
             project,
+            in: context
+        )
+    }
+
+    func deleteTask(
+        _ task: ProjectTask,
+        in context: ModelContext
+    ) throws {
+        try repository.deleteTask(
+            task,
             in: context
         )
     }

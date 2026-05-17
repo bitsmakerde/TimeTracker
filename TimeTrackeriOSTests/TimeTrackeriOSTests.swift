@@ -236,7 +236,12 @@ struct TimeTrackeriOSViewRenderingTests {
             height: 1200
         )
         ViewRenderTestSupport.assertRenders(
-            AnalyticsScreen()
+            SyncBanner(lastSyncedAt: Date(timeIntervalSince1970: 1_779_000_000)),
+            width: 120,
+            height: 120
+        )
+        ViewRenderTestSupport.assertRenders(
+            AnalyticsScreen(trackingStatus: preview.trackingStatus)
                 .modelContainer(preview.modelContainer),
             width: 430,
             height: 1200

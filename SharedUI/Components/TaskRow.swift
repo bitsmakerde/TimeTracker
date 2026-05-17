@@ -1,5 +1,30 @@
 import SwiftUI
 
+enum TaskRowSecondaryAction: String, CaseIterable, Equatable, Identifiable {
+    case addEntry
+    case editTask
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .addEntry:
+            return "Eintrag"
+        case .editTask:
+            return "Bearbeiten"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .addEntry:
+            return "plus"
+        case .editTask:
+            return "pencil"
+        }
+    }
+}
+
 struct TaskRow: View {
     let title: String
     let projectColor: Color
@@ -11,7 +36,6 @@ struct TaskRow: View {
     let onPlayPause: () -> Void
     let onAddEntry: () -> Void
     let onEdit: () -> Void
-    let onShowEntries: () -> Void
 
     @State private var expanded = false
 
@@ -108,10 +132,28 @@ struct TaskRow: View {
             }
 
             HStack(spacing: 8) {
-                PillButton("Eintrag", systemImage: "plus", variant: .tinted, size: .sm, tint: projectColor, action: onAddEntry)
-                PillButton("Bearbeiten", systemImage: "pencil", variant: .default, size: .sm, action: onEdit)
-                PillButton("Einträge", systemImage: "list.bullet", variant: .default, size: .sm, action: onShowEntries)
+                ForEach(TaskRowSecondaryAction.allCases) { action in
+                    PillButton(
+                        action.title,
+                        systemImage: action.systemImage,
+                        variant: action == .addEntry ? .tinted : .default,
+                        size: .sm,
+                        tint: action == .addEntry ? projectColor : nil,
+                        action: secondaryActionHandler(for: action)
+                    )
+                }
             }
+        }
+    }
+
+    private func secondaryActionHandler(
+        for action: TaskRowSecondaryAction
+    ) -> () -> Void {
+        switch action {
+        case .addEntry:
+            return onAddEntry
+        case .editTask:
+            return onEdit
         }
     }
 }
@@ -128,8 +170,7 @@ struct TaskRow: View {
             isRunning: true,
             onPlayPause: {},
             onAddEntry: {},
-            onEdit: {},
-            onShowEntries: {}
+            onEdit: {}
         )
 
         TaskRow(
@@ -142,8 +183,7 @@ struct TaskRow: View {
             isRunning: false,
             onPlayPause: {},
             onAddEntry: {},
-            onEdit: {},
-            onShowEntries: {}
+            onEdit: {}
         )
     }
     .padding()
