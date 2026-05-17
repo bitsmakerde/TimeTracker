@@ -172,11 +172,6 @@ private struct SyncBannerExpandedCard: View {
         .padding(.horizontal, 48)
         .padding(.vertical, 28)
         .frame(minHeight: 140)
-        .background(SyncBannerStyle.darkBackground, in: .rect(cornerRadius: 40, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 40, style: .continuous)
-                .strokeBorder(SyncBannerStyle.darkBorder, lineWidth: 2)
-        }
     }
 }
 
@@ -188,7 +183,8 @@ private struct SyncBannerToolbarIcon: View {
             status: status,
             size: SyncBannerMetrics.toolbarIconSize,
             cornerRadius: TTRadius.sm,
-            iconFont: .callout
+            iconFont: .callout,
+            style: .plain
         )
     }
 }
@@ -198,13 +194,6 @@ private struct SyncBannerFloatingCard: View {
 
     var body: some View {
         HStack(spacing: TTSpacing.md) {
-            SyncBannerStatusIcon(
-                status: status,
-                size: 32,
-                cornerRadius: TTRadius.sm,
-                iconFont: .headline
-            )
-
             VStack(alignment: .leading, spacing: TTSpacing.xs) {
                 Text(SyncBannerText.title(status: status))
                     .font(.callout)
@@ -249,19 +238,41 @@ private struct SyncBannerStatusIcon: View {
     let size: CGFloat
     let cornerRadius: CGFloat
     let iconFont: Font
+    let style: SyncBannerStatusIconStyle
+
+    init(
+        status: SyncBannerStatus,
+        size: CGFloat,
+        cornerRadius: CGFloat,
+        iconFont: Font,
+        style: SyncBannerStatusIconStyle = .filled
+    ) {
+        self.status = status
+        self.size = size
+        self.cornerRadius = cornerRadius
+        self.iconFont = iconFont
+        self.style = style
+    }
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(status.iconBackground)
+            if style == .filled {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(status.iconBackground)
+            }
 
             Image(systemName: status.symbol)
                 .font(iconFont)
                 .bold()
                 .foregroundStyle(status.foregroundStyle)
         }
-        .frame(width: size, height: size)
+        .frame(width: size * 1.5, height: size)
     }
+}
+
+private enum SyncBannerStatusIconStyle {
+    case filled
+    case plain
 }
 
 private enum SyncBannerMetrics {
@@ -371,7 +382,7 @@ private extension SyncBannerStatus {
         case .syncing:
             return "arrow.triangle.2.circlepath"
         default:
-            return "checkmark"
+            return "arrow.trianglehead.2.clockwise.rotate.90"
         }
     }
 
