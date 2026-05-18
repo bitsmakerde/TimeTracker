@@ -629,101 +629,126 @@ struct ModelAndFormattingTests {
         #expect(TimeTrackerTargetConfiguration.iOS.featureFlags.enablesPreparedExports)
     }
 
-    @Test("Analytics aggregator counts overlapping periods and excludes archived projects")
-    func analyticsAggregatorCountsOverlapsAndExcludesArchivedProjects() throws {
-        let calendar = Calendar.current
-        let referenceDate = try #require(
-            calendar.date(from: DateComponents(year: 2026, month: 5, day: 14, hour: 12))
+    @Test("Analytics aggregator applies week, month, year, and custom ranges")
+    func analyticsAggregatorAppliesNamedRanges() {
+        let calendar = Self.analyticsCalendar
+        let referenceDate = analyticsDate(
+            year: 2026,
+            month: 5,
+            day: 14,
+            hour: 12,
+            calendar: calendar
         )
-        let startOfToday = calendar.startOfDay(for: referenceDate)
-        let startOfWeek = try #require(
-            calendar.dateInterval(of: .weekOfYear, for: referenceDate)?.start
-        )
-        let yesterdayStart = try #require(
-            calendar.date(byAdding: .day, value: -1, to: startOfToday)
-        )
-
-        let mainProject = ClientProject(
-            clientName: "Acme",
-            name: "Website",
-            hourlyRate: 100
-        )
-        let supportProject = ClientProject(clientName: "Beta", name: "Support")
-        let archivedProject = ClientProject(
-            clientName: "Archiv",
-            name: "Alt",
-            archivedAt: referenceDate
+        let projects = analyticsProjects(
+            referenceDate: referenceDate,
+            calendar: calendar
         )
 
-        mainProject.sessions = [
-            WorkSession(
-                project: mainProject,
-                startedAt: startOfToday.addingTimeInterval(-1_800),
-                endedAt: startOfToday.addingTimeInterval(1_800)
+        let weekSnapshot = AnalyticsAggregator.snapshot(
+            projects: projects,
+            selection: .init(period: .week),
+            referenceDate: referenceDate,
+            calendar: calendar
+        )
+        #expect(weekSnapshot.rangeTitle == "Woche")
+        #expect(weekSnapshot.totalDuration == 18_000)
+        #expect(weekSnapshot.totalValue == 400)
+        #expect(weekSnapshot.todayDuration == 9_000)
+        #expect(weekSnapshot.weekDuration == 18_000)
+        #expect(weekSnapshot.averageDailyDuration == 4_500)
+        #expect(weekSnapshot.projectCount == 2)
+        #expect(weekSnapshot.entryCount == 4)
+        #expect(weekSnapshot.projectBars.map(\.projectId) == [projects[0].id, projects[1].id])
+        #expect(abs(weekSnapshot.projectBars[0].percentage - 0.8) < 0.0001)
+        #expect(weekSnapshot.weekBars.count == 7)
+        #expect(weekSnapshot.weekBars.reduce(0) { $0 + $1.totalMinutes } == 300)
+        #expect(weekSnapshot.weekBars.first { $0.isToday }?.totalMinutes == 150)
+        #expect(weekSnapshot.day.first { $0.hour == 0 }?.parts.map(\.minutes).reduce(0, +) == 90)
+        #expect(weekSnapshot.day.first { $0.hour == 10 }?.parts.map(\.minutes).reduce(0, +) == 60)
+        #expect(weekSnapshot.day.first { $0.hour == 11 }?.parts.map(\.minutes).reduce(0, +) == 60)
+        #expect(weekSnapshot.day.first { $0.hour == 14 }?.parts.map(\.minutes).reduce(0, +) == 60)
+
+        let monthSnapshot = AnalyticsAggregator.snapshot(
+            projects: projects,
+            selection: .init(period: .month),
+            referenceDate: referenceDate,
+            calendar: calendar
+        )
+        #expect(monthSnapshot.rangeTitle == "Monat")
+        #expect(monthSnapshot.totalDuration == 39_600)
+        #expect(monthSnapshot.totalValue == 1_000)
+        #expect(monthSnapshot.todayDuration == 9_000)
+        #expect(monthSnapshot.weekDuration == 18_000)
+        #expect(monthSnapshot.averageDailyDuration == 39_600.0 / 14.0)
+        #expect(monthSnapshot.projectCount == 2)
+        #expect(monthSnapshot.entryCount == 6)
+        #expect(monthSnapshot.weekBars.count == 31)
+        #expect(monthSnapshot.weekBars.reduce(0) { $0 + $1.totalMinutes } == 660)
+        #expect(monthSnapshot.day.first { $0.hour == 9 }?.parts.map(\.minutes).reduce(0, +) == 120)
+
+        let yearSnapshot = AnalyticsAggregator.snapshot(
+            projects: projects,
+            selection: .init(period: .year),
+            referenceDate: referenceDate,
+            calendar: calendar
+        )
+        #expect(yearSnapshot.rangeTitle == "Jahr")
+        #expect(yearSnapshot.totalDuration == 50_400)
+        #expect(yearSnapshot.totalValue == 1_300)
+        #expect(yearSnapshot.todayDuration == 9_000)
+        #expect(yearSnapshot.weekDuration == 18_000)
+        #expect(yearSnapshot.averageDailyDuration == 50_400.0 / 134.0)
+        #expect(yearSnapshot.projectCount == 2)
+        #expect(yearSnapshot.entryCount == 7)
+        #expect(yearSnapshot.weekBars.count == 12)
+        #expect(yearSnapshot.weekBars.reduce(0) { $0 + $1.totalMinutes } == 840)
+
+        let customSnapshot = AnalyticsAggregator.snapshot(
+            projects: projects,
+            selection: .init(
+                period: .custom,
+                customStart: analyticsDate(year: 2026, month: 5, day: 10, calendar: calendar),
+                customEnd: analyticsDate(year: 2026, month: 5, day: 14, calendar: calendar)
             ),
-            WorkSession(
-                project: mainProject,
-                startedAt: startOfToday.addingTimeInterval(10 * 3_600),
-                endedAt: nil
-            ),
-            WorkSession(
-                project: mainProject,
-                startedAt: startOfWeek.addingTimeInterval(-7_200),
-                endedAt: startOfWeek.addingTimeInterval(3_600)
-            ),
-        ]
-        supportProject.sessions = [
-            WorkSession(
-                project: supportProject,
-                startedAt: yesterdayStart.addingTimeInterval(14 * 3_600),
-                endedAt: yesterdayStart.addingTimeInterval(15 * 3_600)
-            ),
-        ]
-        archivedProject.sessions = [
-            WorkSession(
-                project: archivedProject,
-                startedAt: startOfToday.addingTimeInterval(8 * 3_600),
-                endedAt: startOfToday.addingTimeInterval(9 * 3_600)
-            ),
-        ]
-
-        let snapshot = AnalyticsAggregator.snapshot(
-            projects: [supportProject, archivedProject, mainProject],
-            referenceDate: referenceDate
+            referenceDate: referenceDate,
+            calendar: calendar
         )
-
-        #expect(snapshot.totalDuration == 25_200)
-        #expect(snapshot.totalValue == 600)
-        #expect(snapshot.todayDuration == 9_000)
-        #expect(snapshot.weekDuration == 18_000)
-        #expect(snapshot.entryCount == 4)
-        #expect(snapshot.projectBars.map(\.projectId) == [mainProject.id, supportProject.id])
-        #expect(abs(snapshot.projectBars[0].percentage - (6.0 / 7.0)) < 0.0001)
-
-        let todayBar = try #require(snapshot.weekBars.first { $0.isToday })
-        #expect(todayBar.totalMinutes == 150)
-
-        let midnightBucket = try #require(snapshot.day.first { $0.hour == 0 })
-        let tenOClockBucket = try #require(snapshot.day.first { $0.hour == 10 })
-        let elevenOClockBucket = try #require(snapshot.day.first { $0.hour == 11 })
-
-        #expect(midnightBucket.parts.map(\.minutes).reduce(0, +) == 30)
-        #expect(tenOClockBucket.parts.map(\.minutes).reduce(0, +) == 60)
-        #expect(elevenOClockBucket.parts.map(\.minutes).reduce(0, +) == 60)
+        #expect(customSnapshot.rangeTitle == "Individuell")
+        #expect(customSnapshot.totalDuration == 32_400)
+        #expect(customSnapshot.totalValue == 800)
+        #expect(customSnapshot.todayDuration == 9_000)
+        #expect(customSnapshot.weekDuration == 18_000)
+        #expect(customSnapshot.averageDailyDuration == 6_480)
+        #expect(customSnapshot.projectCount == 2)
+        #expect(customSnapshot.entryCount == 5)
+        #expect(customSnapshot.weekBars.count == 5)
+        #expect(customSnapshot.weekBars.reduce(0) { $0 + $1.totalMinutes } == 540)
     }
 
     @Test("Analytics aggregator returns stable empty chart buckets")
-    func analyticsAggregatorEmptySnapshotBuckets() throws {
-        let referenceDate = try #require(
-            Calendar.current.date(from: DateComponents(year: 2026, month: 5, day: 14, hour: 12))
+    func analyticsAggregatorEmptySnapshotBuckets() {
+        let calendar = Self.analyticsCalendar
+        let referenceDate = analyticsDate(
+            year: 2026,
+            month: 5,
+            day: 14,
+            hour: 12,
+            calendar: calendar
         )
 
-        let snapshot = AnalyticsAggregator.snapshot(projects: [], referenceDate: referenceDate)
+        let snapshot = AnalyticsAggregator.snapshot(
+            projects: [],
+            selection: .init(period: .week),
+            referenceDate: referenceDate,
+            calendar: calendar
+        )
 
         #expect(snapshot.totalDuration == 0)
         #expect(snapshot.totalValue == 0)
         #expect(snapshot.todayDuration == 0)
         #expect(snapshot.weekDuration == 0)
+        #expect(snapshot.averageDailyDuration == 0)
+        #expect(snapshot.projectCount == 0)
         #expect(snapshot.entryCount == 0)
         #expect(snapshot.projectBars.isEmpty)
         #expect(snapshot.weekBars.count == 7)
@@ -750,8 +775,9 @@ struct ModelAndFormattingTests {
 
     @Test("Analytics export supports CSV and PDF output")
     func analyticsExportSupportsCSVAndPDF() throws {
+        let calendar = Self.analyticsCalendar
         let referenceDate = try #require(
-            Calendar.current.date(from: DateComponents(year: 2026, month: 5, day: 15, hour: 12))
+            calendar.date(from: DateComponents(year: 2026, month: 5, day: 15, hour: 12))
         )
         let project = ClientProject(
             clientName: "Acme",
@@ -768,7 +794,13 @@ struct ModelAndFormattingTests {
 
         let snapshot = AnalyticsAggregator.snapshot(
             projects: [project],
-            referenceDate: referenceDate
+            selection: .init(
+                period: .custom,
+                customStart: analyticsDate(year: 2026, month: 5, day: 15, calendar: calendar),
+                customEnd: analyticsDate(year: 2026, month: 5, day: 15, calendar: calendar)
+            ),
+            referenceDate: referenceDate,
+            calendar: calendar
         )
 
         #expect(AnalyticsExportService.supportedFormats == ProjectExportFormat.allCases)
@@ -787,6 +819,9 @@ struct ModelAndFormattingTests {
         let csvText = String(data: csvData, encoding: .utf8) ?? ""
         #expect(csvText.localizedStandardContains("Top-Projekte"))
         #expect(csvText.localizedStandardContains("CSV"))
+        #expect(csvText.localizedStandardContains("Zeitraum"))
+        #expect(csvText.localizedStandardContains("Individuell"))
+        #expect(csvText.localizedStandardContains("Verlauf"))
 
         let pdfData = AnalyticsExportService.exportData(
             snapshot: snapshot,
@@ -878,5 +913,111 @@ struct ModelAndFormattingTests {
         }
 
         return yScaleValues
+    }
+}
+
+private extension ModelAndFormattingTests {
+    static var analyticsCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = Locale(identifier: "de_DE")
+        calendar.timeZone = TimeZone(identifier: "Europe/Berlin") ?? .gmt
+        calendar.firstWeekday = 2
+        calendar.minimumDaysInFirstWeek = 4
+        return calendar
+    }
+
+    func analyticsDate(
+        year: Int,
+        month: Int,
+        day: Int,
+        hour: Int = 0,
+        minute: Int = 0,
+        calendar: Calendar = Self.analyticsCalendar
+    ) -> Date {
+        calendar.date(
+            from: DateComponents(
+                year: year,
+                month: month,
+                day: day,
+                hour: hour,
+                minute: minute
+            )
+        ) ?? .distantPast
+    }
+
+    func analyticsProjects(
+        referenceDate: Date,
+        calendar: Calendar
+    ) -> [ClientProject] {
+        let startOfToday = calendar.startOfDay(for: referenceDate)
+        let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: referenceDate)?.start ?? startOfToday
+
+        let mainProject = ClientProject(
+            clientName: "Acme",
+            name: "Website",
+            hourlyRate: 100
+        )
+        let supportProject = ClientProject(clientName: "Beta", name: "Support")
+        let archivedProject = ClientProject(
+            clientName: "Archiv",
+            name: "Alt",
+            archivedAt: referenceDate
+        )
+
+        mainProject.sessions = [
+            WorkSession(
+                project: mainProject,
+                startedAt: startOfToday.addingTimeInterval(-1_800),
+                endedAt: startOfToday.addingTimeInterval(1_800)
+            ),
+            WorkSession(
+                project: mainProject,
+                startedAt: startOfToday.addingTimeInterval(10 * 3_600),
+                endedAt: nil
+            ),
+            WorkSession(
+                project: mainProject,
+                startedAt: startOfWeek.addingTimeInterval(-7_200),
+                endedAt: startOfWeek.addingTimeInterval(3_600)
+            ),
+            WorkSession(
+                project: mainProject,
+                startedAt: analyticsDate(year: 2026, month: 5, day: 3, hour: 9, calendar: calendar),
+                endedAt: analyticsDate(year: 2026, month: 5, day: 3, hour: 11, calendar: calendar)
+            ),
+            WorkSession(
+                project: mainProject,
+                startedAt: analyticsDate(year: 2026, month: 5, day: 10, hour: 9, calendar: calendar),
+                endedAt: analyticsDate(year: 2026, month: 5, day: 10, hour: 11, calendar: calendar)
+            ),
+            WorkSession(
+                project: mainProject,
+                startedAt: analyticsDate(year: 2026, month: 2, day: 10, hour: 9, calendar: calendar),
+                endedAt: analyticsDate(year: 2026, month: 2, day: 10, hour: 12, calendar: calendar)
+            ),
+        ]
+
+        supportProject.sessions = [
+            WorkSession(
+                project: supportProject,
+                startedAt: analyticsDate(year: 2026, month: 5, day: 13, hour: 14, calendar: calendar),
+                endedAt: analyticsDate(year: 2026, month: 5, day: 13, hour: 15, calendar: calendar)
+            ),
+            WorkSession(
+                project: supportProject,
+                startedAt: analyticsDate(year: 2025, month: 12, day: 15, hour: 8, calendar: calendar),
+                endedAt: analyticsDate(year: 2025, month: 12, day: 15, hour: 10, calendar: calendar)
+            ),
+        ]
+
+        archivedProject.sessions = [
+            WorkSession(
+                project: archivedProject,
+                startedAt: startOfToday.addingTimeInterval(8 * 3_600),
+                endedAt: startOfToday.addingTimeInterval(9 * 3_600)
+            ),
+        ]
+
+        return [mainProject, supportProject, archivedProject]
     }
 }

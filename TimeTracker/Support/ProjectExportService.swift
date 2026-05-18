@@ -43,11 +43,13 @@ enum ProjectExportFormat: String, CaseIterable, Identifiable {
 }
 
 struct AnalyticsExportDocument {
+    let rangeTitle: String
+    let rangeDescription: String
     let exportedAt: Date
     let totalDuration: TimeInterval
     let totalValue: Double
-    let todayDuration: TimeInterval
-    let weekDuration: TimeInterval
+    let averageDailyDuration: TimeInterval
+    let projectCount: Int
     let entryCount: Int
     let projectRows: [AnalyticsExportProjectRow]
     let weekRows: [AnalyticsExportWeekRow]
@@ -113,11 +115,13 @@ enum AnalyticsExportService {
         exportedAt: Date
     ) -> AnalyticsExportDocument {
         AnalyticsExportDocument(
+            rangeTitle: snapshot.rangeTitle,
+            rangeDescription: snapshot.rangeDescription,
             exportedAt: exportedAt,
             totalDuration: snapshot.totalDuration,
             totalValue: snapshot.totalValue,
-            todayDuration: snapshot.todayDuration,
-            weekDuration: snapshot.weekDuration,
+            averageDailyDuration: snapshot.averageDailyDuration,
+            projectCount: snapshot.projectCount,
             entryCount: snapshot.entryCount,
             projectRows: snapshot.projectBars.map { aggregate in
                 AnalyticsExportProjectRow(
@@ -182,10 +186,12 @@ enum AnalyticsExportService {
 
         lines.append("Auswertung;CSV")
         lines.append("Exportiert am;\(csvCell(document.exportedAt.formatted(date: .abbreviated, time: .shortened)))")
+        lines.append("Zeitraum;\(csvCell(document.rangeTitle))")
+        lines.append("Zeitraum-Details;\(csvCell(document.rangeDescription))")
         lines.append("Gesamtzeit;\(csvCell(TimeFormatting.compactDuration(document.totalDuration)))")
         lines.append("Gesamtwert;\(csvCell(formattedAmount(document.totalValue)))")
-        lines.append("Diese Woche;\(csvCell(TimeFormatting.compactDuration(document.weekDuration)))")
-        lines.append("Heute;\(csvCell(TimeFormatting.compactDuration(document.todayDuration)))")
+        lines.append("Ø pro Tag;\(csvCell(TimeFormatting.compactDuration(document.averageDailyDuration)))")
+        lines.append("Projekte;\(document.projectCount)")
         lines.append("Einträge;\(document.entryCount)")
         lines.append("")
 
@@ -203,8 +209,8 @@ enum AnalyticsExportService {
         }
 
         lines.append("")
-        lines.append("Wochenstunden")
-        lines.append("Tag;Datum;Stunden;Heute")
+        lines.append("Verlauf")
+        lines.append("Segment;Details;Stunden;Aktuell")
         for row in document.weekRows {
             lines.append(
                 [
@@ -297,10 +303,12 @@ enum AnalyticsExportService {
         lines.append("Analytics-Export")
         lines.append("Format: PDF")
         lines.append("Exportiert am: \(document.exportedAt.formatted(date: .abbreviated, time: .shortened))")
+        lines.append("Zeitraum: \(document.rangeTitle)")
+        lines.append("Details: \(document.rangeDescription)")
         lines.append("Gesamtzeit: \(TimeFormatting.compactDuration(document.totalDuration))")
         lines.append("Gesamtwert: \(formattedAmount(document.totalValue))")
-        lines.append("Diese Woche: \(TimeFormatting.compactDuration(document.weekDuration))")
-        lines.append("Heute: \(TimeFormatting.compactDuration(document.todayDuration))")
+        lines.append("Ø pro Tag: \(TimeFormatting.compactDuration(document.averageDailyDuration))")
+        lines.append("Projekte: \(document.projectCount)")
         lines.append("Einträge: \(document.entryCount)")
         lines.append("")
         lines.append("TOP-PROJEKTE")
@@ -312,11 +320,11 @@ enum AnalyticsExportService {
         }
 
         lines.append("")
-        lines.append("WOCHENSTUNDEN")
+        lines.append("VERLAUF")
 
         for row in document.weekRows {
             lines.append(
-                "\(row.dayLabel) \(row.dateLabel) | \(formattedHours(row.totalMinutes * 60)) h | Heute: \(row.isToday ? "Ja" : "Nein")"
+                "\(row.dayLabel) \(row.dateLabel) | \(formattedHours(row.totalMinutes * 60)) h | Aktuell: \(row.isToday ? "Ja" : "Nein")"
             )
         }
 

@@ -8,22 +8,27 @@ struct MacAuswertungPane: View {
     let projects: [ClientProject]
     let syncStatus: CloudSyncStatus
 
+    @State private var rangeSelection = AnalyticsAggregator.RangeSelection()
     @State private var topMode: AnalyticsTopProjectsDisplayMode = .bar
     @State private var exportErrorMessage: String?
 
     private var snapshot: AnalyticsAggregator.Snapshot {
-        AnalyticsAggregator.snapshot(projects: projects)
+        AnalyticsAggregator.snapshot(
+            projects: projects,
+            selection: rangeSelection
+        )
     }
 
     var body: some View {
         let snapshot = snapshot
+
         ScrollView {
             VStack(spacing: 14) {
-                header
+                header(snapshot: snapshot)
                 kpiGrid(snapshot)
                 topProjects(snapshot)
                 HStack(alignment: .top, spacing: 14) {
-                    weekCard(snapshot).frame(maxWidth: .infinity)
+                    timelineCard(snapshot).frame(maxWidth: .infinity)
                     dayCard(snapshot).frame(maxWidth: .infinity)
                 }
             }
@@ -36,71 +41,122 @@ struct MacAuswertungPane: View {
         } message: {
             Text(exportErrorMessage ?? "")
         }
+        .onChange(of: rangeSelection.customStart, initial: false) { _, newValue in
+            if newValue > rangeSelection.customEnd {
+                rangeSelection.customEnd = newValue
+            }
+        }
+        .onChange(of: rangeSelection.customEnd, initial: false) { _, newValue in
+            if newValue < rangeSelection.customStart {
+                rangeSelection.customStart = newValue
+            }
+        }
     }
 
-    private var header: some View {
-        HStack(alignment: .center, spacing: TTSpacing.xl) {
-            VStack(alignment: .leading, spacing: TTSpacing.xs) {
-                Text("Auswertungen")
-                    .font(.title2)
-                    .bold()
-                    .foregroundStyle(TTColors.text)
-                Text("Top-Projekte, Wochenstunden und tägliche Arbeitsverteilung auf einen Blick.")
-                    .font(.subheadline)
-                    .foregroundStyle(TTColors.text2)
-            }
-            Spacer()
-            HStack(spacing: 6) {
-                Image(systemName: "calendar").font(.caption)
-                Text(monthLabel).font(.caption.bold())
-            }
-            .foregroundStyle(TTColors.text)
-            .padding(.horizontal, TTSpacing.md)
-            .padding(.vertical, 6)
-            .background(TTColors.fill3, in: Capsule())
-
-            Menu {
-                ForEach(AnalyticsExportService.supportedFormats) { format in
-                    Button {
-                        exportAnalytics(as: format)
-                    } label: {
-                        Label(format.title, systemImage: exportSystemImage(for: format))
-                    }
+    private func header(snapshot: AnalyticsAggregator.Snapshot) -> some View {
+        HStack(alignment: .top, spacing: TTSpacing.xl) {
+            VStack(alignment: .leading, spacing: TTSpacing.md) {
+                VStack(alignment: .leading, spacing: TTSpacing.xs) {
+                    Text("Auswertungen")
+                        .font(.title2)
+                        .bold()
+                        .foregroundStyle(TTColors.text)
+                    Text("Top-Projekte, Verlauf und Tagesprofil auf einen Blick.")
+                        .font(.subheadline)
+                        .foregroundStyle(TTColors.text2)
                 }
-            } label: {
+
                 HStack(spacing: 6) {
-                    Image(systemName: "arrow.down").font(.caption)
-                    Text("Exportieren").font(.caption.bold())
+                    Image(systemName: "calendar").font(.caption)
+                    Text("\(snapshot.rangeTitle) · \(snapshot.rangeDescription)")
+                        .font(.caption.bold())
                 }
                 .foregroundStyle(TTColors.text)
                 .padding(.horizontal, TTSpacing.md)
                 .padding(.vertical, 6)
                 .background(TTColors.fill3, in: Capsule())
+
+                Picker("Zeitraum", selection: $rangeSelection.period) {
+                    ForEach(AnalyticsAggregator.RangeSelection.Period.allCases) { period in
+                        Text(period.segmentTitle).tag(period)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 420)
+
+                if rangeSelection.period == .custom {
+                    HStack(spacing: TTSpacing.md) {
+                        DatePicker(
+                            "Von",
+                            selection: $rangeSelection.customStart,
+                            in: ...Date.now,
+                            displayedComponents: .date
+                        )
+                        DatePicker(
+                            "Bis",
+                            selection: $rangeSelection.customEnd,
+                            in: ...Date.now,
+                            displayedComponents: .date
+                        )
+                    }
+                    .frame(maxWidth: 420, alignment: .leading)
+                }
             }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: TTSpacing.md) {
+                HStack(spacing: 6) {
+                    Image(systemName: "folder").font(.caption)
+                    Text("\(snapshot.projectCount) Projekte · \(snapshot.entryCount) Einträge")
+                        .font(.caption.bold())
+                }
+                .foregroundStyle(TTColors.text)
+                .padding(.horizontal, TTSpacing.md)
+                .padding(.vertical, 6)
+                .background(TTColors.fill3, in: Capsule())
+
+                Menu {
+                    ForEach(AnalyticsExportService.supportedFormats) { format in
+                        Button {
+                            exportAnalytics(as: format)
+                        } label: {
+                            Label(format.title, systemImage: exportSystemImage(for: format))
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.down").font(.caption)
+                        Text("Exportieren").font(.caption.bold())
+                    }
+                    .foregroundStyle(TTColors.text)
+                    .padding(.horizontal, TTSpacing.md)
+                    .padding(.vertical, 6)
+                    .background(TTColors.fill3, in: Capsule())
+                }
 #if os(macOS)
-            .menuStyle(.borderlessButton)
+                .menuStyle(.borderlessButton)
 #endif
+            }
         }
         .padding(TTSpacing.xl)
         .ttSurface(cornerRadius: TTRadius.lg)
     }
 
-    private var monthLabel: String {
-        Date.now.formatted(
-            .dateTime
-                .month(.wide)
-                .year()
-                .locale(Locale(identifier: "de_DE"))
-        )
-        .capitalized
-    }
-
     private func kpiGrid(_ snapshot: AnalyticsAggregator.Snapshot) -> some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 10) {
-            StatTile("Gesamtzeit", value: TimeFormatting.compactDuration(snapshot.totalDuration), sub: "\(snapshot.entryCount) Einträge")
-            StatTile("Gesamtwert", value: TimeFormatting.euroAmount(snapshot.totalValue), sub: "aus Zeit × Satz")
-            StatTile("Diese Woche", value: TimeFormatting.compactDuration(snapshot.weekDuration))
-            StatTile("Heute", value: TimeFormatting.compactDuration(snapshot.todayDuration), sub: "Seit 00:00")
+            StatTile("Gesamtzeit", value: TimeFormatting.compactDuration(snapshot.totalDuration))
+            StatTile("Gesamtwert", value: TimeFormatting.euroAmount(snapshot.totalValue))
+            StatTile(
+                "Einträge",
+                value: snapshot.entryCount.formatted(.number),
+                sub: "\(snapshot.projectCount) Projekte"
+            )
+            StatTile(
+                "Ø pro Tag",
+                value: TimeFormatting.compactDuration(snapshot.averageDailyDuration),
+                sub: snapshot.rangeDescription
+            )
         }
     }
 
@@ -121,7 +177,7 @@ struct MacAuswertungPane: View {
         } content: {
             switch topMode.presentation(for: snapshot.projectBars) {
             case .empty:
-                Text("Noch keine Daten")
+                Text("Noch keine Daten im gewählten Zeitraum")
                     .font(.subheadline)
                     .foregroundStyle(TTColors.text2)
                     .padding(.vertical, TTSpacing.sm)
@@ -207,14 +263,15 @@ struct MacAuswertungPane: View {
         }
     }
 
-    private func weekCard(_ snapshot: AnalyticsAggregator.Snapshot) -> some View {
-        SectionCard("Wochenstunden nach Projekten") {
-            WeekBars(bars: snapshot.weekBars).frame(height: 180)
+    private func timelineCard(_ snapshot: AnalyticsAggregator.Snapshot) -> some View {
+        SectionCard(snapshot.timelineTitle) {
+            WeekBars(bars: snapshot.weekBars)
+                .frame(height: 180)
         }
     }
 
     private func dayCard(_ snapshot: AnalyticsAggregator.Snapshot) -> some View {
-        SectionCard("Tagesprofil 0–24 Uhr") {
+        SectionCard("Tagesprofil im Zeitraum") {
             DayProfile(buckets: snapshot.day)
         }
     }
@@ -226,7 +283,7 @@ private struct MacAnalyticsTopProjectsPieChart: View {
     var body: some View {
         HStack(alignment: .center, spacing: TTSpacing.xl) {
             ZStack {
-                ForEach(Array(pieSlices.enumerated()), id: \.offset) { _, slice in
+                ForEach(pieSlices.enumerated(), id: \.offset) { _, slice in
                     Circle()
                         .trim(from: slice.start, to: slice.end)
                         .stroke(slice.color, lineWidth: 24)

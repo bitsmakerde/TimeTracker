@@ -24,7 +24,7 @@ struct ProjectBar: View {
                     .font(.ttMono)
                     .monospacedDigit()
                     .foregroundStyle(TTColors.text)
-                Text(String(format: "%.0f%%", percentage * 100))
+                Text(percentage, format: .percent.precision(.fractionLength(0)))
                     .font(.system(size: 12))
                     .foregroundStyle(TTColors.text2)
                     .frame(width: 44, alignment: .trailing)
