@@ -19,7 +19,6 @@ struct MacAuswertungPane: View {
         let snapshot = snapshot
         ScrollView {
             VStack(spacing: 14) {
-                SyncBanner(syncStatus: syncStatus)
                 header
                 kpiGrid(snapshot)
                 topProjects(snapshot)
