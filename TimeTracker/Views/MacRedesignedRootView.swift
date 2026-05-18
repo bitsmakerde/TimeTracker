@@ -104,18 +104,43 @@ struct MacRedesignedRootView: View {
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .principal) {
             HStack(spacing: 4) {
-                MacModeToolbarButton(
-                    title: "Erfassen",
-                    systemImage: "chart.bar.xaxis",
-                    isSelected: macMode == "rec",
-                    action: { macMode = "rec" }
-                )
-                MacModeToolbarButton(
-                    title: "Auswertung",
-                    systemImage: "chart.bar.xaxis",
-                    isSelected: macMode == "rep",
-                    action: { macMode = "rep" }
-                )
+                if macMode == "rec" {
+                    Button(action: { macMode = "rec" }) {
+                        HStack {
+                            Image(systemName: "chart.bar.xaxis")
+                            Text("Erfassen")
+                        }
+                    }
+                    .buttonStyle(.glass)
+                } else {
+                    Button(action: { macMode = "rec" }) {
+                        HStack {
+                            Image(systemName: "chart.bar.xaxis")
+                            Text("Erfassen")
+                        }
+                        .padding(.horizontal, 8)
+                    }
+                    .buttonStyle(.bordered)
+                }
+
+                if macMode == "rep" {
+                    Button(action: { macMode = "rep" }) {
+                        HStack {
+                            Image(systemName: "chart.bar.xaxis")
+                            Text("Auswertung")
+                        }
+                    }
+                    .buttonStyle(.glass)
+                } else {
+                    Button(action: { macMode = "rep" }) {
+                        HStack {
+                            Image(systemName: "chart.bar.xaxis")
+                            Text("Auswertung")
+                        }
+                        .padding(.horizontal, 8)
+                    }
+                    .buttonStyle(.bordered)
+                }
             }
         }
         ToolbarItem(placement: .primaryAction) {
